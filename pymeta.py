@@ -7,15 +7,157 @@ class ParseError(Exception):
     ?Redo from start
     """
 
-parseFailed = object()
+
+def pyExpr(bits):
+    """
+    Extract a Python expression from the beginning of a string and return it.
+    """
+
+class IterBuffer(object):
+    """
+    Wrapper for an iterable that allows pushing items onto it.
+    """
+
+    def __init__(self, iterable):
+        self.iterable = iter(iterable)
+        self.buffer = []
+        self.markBuffers = []
+        self.lastMark = -1
+    def __iter__(self):
+        return self
+
+
+    def next(self):
+        if self.buffer:
+            val = self.buffer.pop()
+        else:
+            val = self.iterable.next()
+        for buf in self.markBuffers:
+            buf.append(val)
+        self.lastThing = val
+        return val
+
+
+    def prev(self):
+        self.buffer.append(self.lastThing)
+        for buf in self.markBuffers:
+            del buf[-1]
+        del self.lastThing
+
+    def push(self, obj):
+        self.buffer.append(obj)
+
+
+    def mark(self):
+        self.lastMark += 1
+        self.markBuffers.append([])
+        return self.lastMark
+
+
+    def unmark(self, mark):
+        del self.markBuffers[mark:]
+        self.lastMark = mark-1
+
+
+    def rewind(self, mark):
+        saved = self.markBuffers[mark][::-1]
+        self.buffer.extend(saved)
+        del self.markBuffers[mark:]
+        for buf in self.markBuffers:
+            del buf[-len(saved):]
+        self.lastMark = mark-1
+
+class OMeta(object):
+    """
+    Abstract class providing implementations of the basic OMeta operations.
+    """
+    def apply(self, ruleName, *args):
+        for arg in args[::-1]:
+            self.input.push(arg)
+        return getattr(self, "rule_"+ruleName)()
+
+
+    def rule_anything(self):
+        try:
+            return self.input.next()
+        except StopIteration:
+            raise ParseError()
+
+    def exactly(self, wanted):
+        try:
+            val = self.input.next()
+        except StopIteration:
+            raise ParseError()
+        if wanted == val:
+            return wanted
+        else:
+            self.input.prev()
+            raise ParseError()
+
+
+    def many(self, fn, *initial):
+        ans = list(initial)
+        try:
+            while True:
+                m = self.input.mark()
+                ans.append(fn())
+                self.input.unmark(m)
+        except ParseError:
+                self.input.rewind(m)
+        return ans
+
+    def eatWhitespace(self):
+        for c in self.input:
+            if not c.isspace():
+                self.input.prev()
+                break
+        return True
+
+    def token(self, tok):
+        m = self.input.mark()
+        try:
+            self.eatWhitespace()
+            for c in tok:
+                self.exactly(c)
+            self.input.unmark(m)
+            return tok
+        except ParseError:
+            self.input.rewind(m)
+            raise
+
+    def letter(self):
+        try:
+            x = self.input.next()
+            if x.isalpha():
+                return x
+            else:
+                self.input.prev()
+                raise ParseError
+        except StopIteration:
+            raise ParseError
+
+    def letterOrDigit(self):
+        x = self.input.next()
+        if x.isalnum():
+            return x
+        else:
+            self.input.prev()
+            raise ParseError()
+
+class StringOMeta(OMeta):
+    """
+    Simple OMeta backend for parsing strings.
+    """
+    def __init__(self, string):
+        self.input = IterBuffer(string)
 
 def compile(grammar, name="<grammar>"):
     """
     Compile an OMeta grammar and return an object whose methods invoke its
     productions on their first argument.
     """
-    ab = AstBuilder("<grammar>")
-    rules = parseGrammar(ab, grammar)
+
+    ab, rules = parseGrammar(grammar, name)
     ruleMethods = dict([("rule_"+k, ab.compileAstMethod("rule_"+k, v))
                          for (k, v) in rules.iteritems()])
     grammarClass = type(name, (StringOMeta,), ruleMethods)
@@ -42,27 +184,71 @@ class HandyWrapper(object):
                 raise ParseError("trailing garbage in input")
         return doIt
 
-def parseGrammar(ab, grammar):
+def parseGrammar(grammar, name="<grammar>"):
+    ab = AstBuilder(name)
+    g = OMetaGrammar(grammar)
+    g.ab = ab
+    return ab, g.rule_grammar()
+
+class OMetaGrammar(StringOMeta):
     """
-    Interim grammar parser.
+    Grammar parser.
     """
-    line = 1
-    col = 0
-    name_, rule_ = grammar.split('::=')
-    name = name_.strip()
-    rule = rule_.strip()
-    if rule[0] == "'":
-        char = rule[1]
-        if rule[2] != "'":
-            raise SyntaxError("invalid syntax", ("<grammar>", 1,
-                                                 len(name_) + len(rule_), + 5,
-                                                 grammar))
-        if len(rule) > 3:
-            if rule[3] == '*':
-                return {name: ab.many(ab.exactly(ast.Const(char)))}
-            if rule[3] == '+':
-                return {name: ab.many1(ab.exactly(ast.Const(char)))}
-    return {name: ab.exactly(ast.Const(char))}
+
+    def rule_character(self):
+        self.token("'")
+        r = self.apply("anything")
+        self.token("'")
+        return self.ab.exactly(ast.Const(r))
+
+
+    def rule_name(self):
+        x  = self.letter()
+        xs = self.many(self.letterOrDigit)
+        xs.insert(0, x)
+        return ''.join(xs)
+
+    def rule_expr1(self):
+        return self.apply("character")
+
+    def rule_expr2(self):
+        return self.apply("expr1")
+
+
+    def rule_expr3(self):
+        r = self.apply("expr2")
+        try:
+            self.token("*")
+            r = self.ab.many(r)
+        except ParseError:
+            try:
+                self.token("+")
+                r = self.ab.many1(r)
+            except ParseError:
+                pass
+        return r
+
+
+    def rule_expr4(self):
+        return ast.Subscript(ast.Tuple(self.many(lambda: self.apply("expr3"))),
+                             "OP_APPLY", [ast.Const(-1)])
+
+    def rule_expr(self):
+        x = self.apply("expr4")
+        return x
+
+    def rule_rulePart(self):
+        name = self.apply("name")
+        self.token("::=")
+        body = self.apply("expr")
+        return (name, body)
+
+    def rule_rule(self):
+        self.eatWhitespace()
+        return self.apply("rulePart")
+
+    def rule_grammar(self):
+        return dict(self.many(lambda: self.apply("rule")))
 
 
 class AstBuilder(object):
@@ -130,98 +316,3 @@ class AstBuilder(object):
                                         "many"),
                             [f, expr],
                             None, None)
-
-
-
-def pyExpr(bits):
-    """
-    Extract a Python expression from the beginning of a string and return it.
-    """
-
-class IterBuffer(object):
-    """
-    Wrapper for an iterable that allows pushing items onto it.
-    """
-
-    def __init__(self, iterable):
-        self.iterable = iter(iterable)
-        self.buffer = []
-        self.markBuffers = []
-        self.lastMark = -1
-    def __iter__(self):
-        return self
-
-
-    def next(self):
-        if self.buffer:
-            val = self.buffer.pop()
-        else:
-            val = self.iterable.next()
-        for buf in self.markBuffers:
-            buf.append(val)
-        return val
-
-
-    def push(self, obj):
-        self.buffer.append(obj)
-
-
-    def mark(self):
-        self.lastMark += 1
-        self.markBuffers.append([])
-        return self.lastMark
-
-
-    def unmark(self, mark):
-        del self.markBuffers[mark:]
-        self.lastMark = mark-1
-
-
-    def rewind(self, mark):
-        saved = self.markBuffers[mark][::-1]
-        self.buffer.extend(saved)
-        del self.markBuffers[mark:]
-        for buf in self.markBuffers:
-            del buf[-len(saved):]
-        self.lastMark = mark-1
-
-class OMeta(object):
-    """
-    Abstract class providing implementations of the basic OMeta operations.
-    """
-    def apply(self, ruleName, *args):
-        for arg in args[::-1]:
-            self.input.push(arg)
-        return getattr(self, "rule_"+ruleName)()
-
-
-    def rule_anything(self):
-        try:
-            return self.input.next()
-        except StopIteration:
-            raise ParseError()
-
-    def exactly(self, wanted):
-        if wanted == self.apply("anything"):
-            return wanted
-        else:
-            raise ParseError()
-
-
-    def many(self, fn, *initial):
-        ans = list(initial)
-        try:
-            while True:
-                m = self.input.mark()
-                ans.append(fn())
-                self.input.unmark(m)
-        except ParseError:
-                self.input.rewind(m)
-        return ans
-
-class StringOMeta(OMeta):
-    """
-    Simple OMeta backend for parsing strings.
-    """
-    def __init__(self, string):
-        self.input = IterBuffer(string)

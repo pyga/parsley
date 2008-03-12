@@ -1,6 +1,6 @@
 from twisted.trial import unittest
 from compiler import parse as python_parse
-from pymeta import compile, ParseError, pyExpr, compileAstMethod
+from pymeta import compile, ParseError, pyExpr, AstBuilder
 class OMetaTestCase(unittest.TestCase):
     """
     Tests of OMeta grammar compilation.
@@ -191,5 +191,6 @@ class CodeGenTest(unittest.TestCase):
         returns the value of the given expression.
         """
         expr = python_parse("self[1] + 3", mode="eval").asList()[0]
-        f = compileAstMethod("f", expr)
+        ab = AstBuilder("<test>")
+        f = ab.compileAstMethod("f", expr)
         self.assertEqual(f([0, 2]), 5)

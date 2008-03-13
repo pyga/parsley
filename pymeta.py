@@ -1,4 +1,4 @@
-import itertools
+import itertools, string
 from types import FunctionType
 from compiler import ast, compile as python_compile
 from compiler.pycodegen import ExpressionCodeGenerator, CodeGenerator
@@ -60,8 +60,9 @@ class IterBuffer(object):
         saved = self.markBuffers[mark][::-1]
         self.buffer.extend(saved)
         del self.markBuffers[mark:]
-        for buf in self.markBuffers:
-            del buf[-len(saved):]
+        if len(saved) > 0:
+            for buf in self.markBuffers:
+                del buf[-len(saved):]
         self.lastMark = mark-1
 
 class OMeta(object):
@@ -94,13 +95,15 @@ class OMeta(object):
 
     def many(self, fn, *initial):
         ans = list(initial)
-        try:
-            while True:
+        while True:
+            try:
                 m = self.input.mark()
                 ans.append(fn())
-                self.input.unmark(m)
-        except ParseError:
+            except ParseError:
                 self.input.rewind(m)
+                break
+            else:
+                self.input.unmark(m)
         return ans
 
     def _or(self, fns):
@@ -159,6 +162,15 @@ class OMeta(object):
         return self._not(self.rule_anything)
 
 
+    def lookahead(self, f):
+        try:
+            m = self.input.mark()
+            x = f()
+            return x
+        finally:
+            self.input.rewind(m)
+
+
     def newline(self):
         for c in self.input:
             if c in '\r\n':
@@ -197,12 +209,38 @@ class OMeta(object):
             raise ParseError
 
     def letterOrDigit(self):
-        x = self.input.next()
+        try:
+            x = self.input.next()
+        except StopIteration:
+            raise ParseError()
         if x.isalnum() or x == '_':
             return x
         else:
             self.input.prev()
             raise ParseError()
+
+    def digit(self):
+        try:
+            x = self.input.next()
+        except StopIteration:
+            raise ParseError()
+        if x.isdigit():
+            return x
+        else:
+            self.input.prev()
+            raise ParseError()
+
+    def hexdigit(self):
+        try:
+            x = self.input.next()
+        except StopIteration:
+            raise ParseError()
+        if x in string.hexdigits:
+            return x
+        else:
+            self.input.prev()
+            raise ParseError()
+
 
     def pythonExpr(self, endChars="\r\n"):
         """
@@ -265,22 +303,29 @@ class HandyWrapper(object):
         def doIt(str):
             obj = self.klass(str)
             ret = getattr(obj, "rule_"+name)()
-            try:
-                obj.input.next()
-            except StopIteration:
+            extra = list(obj.input)
+            if not extra:
                 try:
                     return ''.join(ret)
                 except TypeError:
                     return ret
             else:
-                raise ParseError("trailing garbage in input")
+                raise ParseError("trailing garbage in input: %s" % (extra,))
         return doIt
 
 def parseGrammar(grammar, name="<grammar>"):
     ab = AstBuilder(name)
     g = OMetaGrammar(grammar)
     g.ab = ab
-    return ab, g.rule_grammar()
+    res = g.rule_grammar()
+    x = list(g.input)
+    if x:
+        try:
+            x = repr(''.join(x))
+        except TypeError:
+            pass
+        raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
+    return ab, res
 
 class OMetaGrammar(StringOMeta):
     """
@@ -311,9 +356,52 @@ class OMetaGrammar(StringOMeta):
 
         return self.ab.apply(name, *exprs)
 
+
+    def rule_number(self):
+        self.eatWhitespace()
+        isHex = 0
+        isOctal = 0
+        buf = []
+        try:
+            buf.append(self.exactly("-"))
+        except ParseError:
+            pass
+        d = self.digit()
+        buf.append(d)
+        if d == '0':
+            isOctal = 1
+        try:
+            try:
+                buf.append(self.digit())
+            except ParseError:
+                if isOctal:
+                    try:
+                        buf.append(self.exactly('x'))
+                    except ParseError:
+                        buf.append(self.exactly('X'))
+                    isHex = 1
+                    isOctal = 0
+            while True:
+                try:
+                    buf.append(self.hexdigit())
+                except ParseError:
+                    break
+
+        except ParseError:
+            pass
+        s = ''.join(buf)
+        if isHex:
+            i = int(s, 16)
+        elif isOctal:
+            i = int(s, 8)
+        else:
+            i = int(s)
+        return self.ab.exactly(ast.Const(i))
     def rule_character(self):
         self.token("'")
         r = self.apply("anything")
+        if (r == "\\"):
+            r += self.apply("anything")
         self.token("'")
         return self.ab.exactly(ast.Const(r))
 
@@ -336,21 +424,24 @@ class OMetaGrammar(StringOMeta):
                     r = self.apply("semanticPredicate")
                 except ParseError:
                     try:
-                        r = self.apply("character")
+                        r = self.apply("number")
                     except ParseError:
                         try:
-                            self.token("(")
-                            r = self.apply("expr")
-                            self.token(")")
+                            r = self.apply("character")
                         except ParseError:
-                            self.token("[")
                             try:
-                                self.token("]")
-                                r = self.ab.listpattern([])
+                                self.token("(")
+                                r = self.apply("expr")
+                                self.token(")")
                             except ParseError:
-                                e = self.apply("expr")
-                                self.token("]")
-                                r = self.ab.listpattern(e)
+                                self.token("[")
+                                try:
+                                    self.token("]")
+                                    r = self.ab.listpattern([])
+                                except ParseError:
+                                    e = self.apply("expr")
+                                    self.token("]")
+                                    r = self.ab.listpattern(e)
         return r
 
     def rule_expr2(self):
@@ -394,6 +485,7 @@ class OMetaGrammar(StringOMeta):
 
     def rule_expr(self):
         ans = [self.apply("expr4")]
+        m = -1
         try:
             while True:
                 m = self.input.mark()
@@ -401,6 +493,7 @@ class OMetaGrammar(StringOMeta):
                 ans.append(self.apply("expr4"))
                 self.input.unmark(m)
         except ParseError:
+            if m >= 0:
                 self.input.rewind(m)
 
         return self.ab._or(ans)
@@ -415,28 +508,45 @@ class OMetaGrammar(StringOMeta):
         return self.ab.pred(expr)
 
     def rule_rulePart(self):
+        requiredName = self.apply("anything")
+        self.eatWhitespace()
+        m = self.input.mark()
         name = self.apply("name")
+        if (name != requiredName):
+            self.input.rewind(m)
+            raise ParseError()
+        else:
+            self.input.unmark(m)
+
         self.name = name
         argPatterns = self.apply("expr4")
-        self.token("::=")
-        body = self.ab.sequence([argPatterns, self.apply("expr")])
-        return (name, body)
-
+        try:
+            self.token("::=")
+        except ParseError:
+            return argPatterns
+        else:
+            body = self.ab.sequence([argPatterns, self.apply("expr")])
+            return body
 
     def rule_rule(self):
         self.eatWhitespace()
-        rs = [self.apply("rulePart")]
+        name = self.lookahead(lambda: self.apply("name"))
+        if hasattr(self, "rule_"+name):
+            raise SyntaxError("Multiple definitions of "+name)
+        rs = [self.apply("rulePart", name)]
         while True:
             try:
-                self.newline()
-                rs.append(self.apply("rulePart"))
+                rs.append(self.apply("rulePart", name))
             except ParseError:
                 break
-        return rs
+        if len(rs) == 1:
+            return (name, rs[0])
+        else:
+            return (name, self.ab._or(rs))
 
 
     def rule_grammar(self):
-        return dict(itertools.chain(*self.many(lambda: self.apply("rule"))))
+        return dict(self.many(lambda: self.apply("rule")))
 
 class AstBuilder(object):
     def __init__(self, filename):

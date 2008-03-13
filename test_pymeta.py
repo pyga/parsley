@@ -14,6 +14,15 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.digit, "4")
 
 
+    def test_integers(self):
+        """
+        Input matches can be made on literal integers.
+        """
+        g = compile("stuff ::= 17 0x1F -2 0177")
+        self.assertEqual(g.stuff([17, 0x1f, -2, 0177]), 0177)
+        self.assertRaises(ParseError, g.stuff, [1, 2, 3])
+
+
     def test_star(self):
         """
         Input matches can be made on zero or more repetitions of a pattern.
@@ -40,7 +49,7 @@ class OMetaTestCase(unittest.TestCase):
         """
         Input matches can be made on a sequence of patterns.
         """
-        g = compile("twelve ::= '1' '2';")
+        g = compile("twelve ::= '1' '2'")
         self.assertEqual(g.twelve("12"), "2");
         self.assertRaises(ParseError, g.twelve, "1")
 
@@ -149,7 +158,7 @@ class OMetaTestCase(unittest.TestCase):
               fact 0                       => 1
               fact :n ::= <fact (n - 1)>:m => n * m
            """)
-        self.assertEqual(g.foo([3]), 6)
+        self.assertEqual(g.fact([3]), 6)
 
 
     def test_listpattern(self):

@@ -92,7 +92,7 @@ class OMetaTestCase(unittest.TestCase):
         g = compile("foo ::= '1':x => int(x) * 2")
         self.assertEqual(g.foo("1"), 2)
 
-if 0:
+
     def test_predicate(self):
         """
         Python expressions can be used to determine the success or failure of a
@@ -113,8 +113,8 @@ if 0:
         Parens can be used to group subpatterns.
         """
         g = compile("foo ::= 'a' ('b' | 'c')")
-        self.assertEqual(g.foo("ab"), "ab")
-        self.assertEqual(g.foo("ac"), "ac")
+        self.assertEqual(g.foo("ab"), "b")
+        self.assertEqual(g.foo("ac"), "c")
 
 
     def test_args(self):

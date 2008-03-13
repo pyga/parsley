@@ -129,6 +129,13 @@ class OMeta(object):
         return True
 
 
+    def pred(self, expr):
+        if not expr:
+            raise ParseError()
+        else:
+            return True
+
+
     def newline(self):
         for c in self.input:
             if c in '\r\n':
@@ -174,15 +181,17 @@ class OMeta(object):
             self.input.prev()
             raise ParseError()
 
-    def pythonExpr(self):
+    def pythonExpr(self, endChars="\r\n"):
         """
         Extract a Python expression from the input and return it.
+
+        @arg endChars: A set of characters delimiting the end of the expression.
         """
         delimiters = { "(": ")", "[": "]", "{": "}"}
         stack = []
         expr = []
         for c in self.input:
-            if c in '\r\n' and len(stack) == 0:
+            if c in endChars and len(stack) == 0:
                 break
             else:
                 expr.append(c)
@@ -277,9 +286,14 @@ class OMetaGrammar(StringOMeta):
             r = self.apply("application")
         except ParseError:
             try:
-                r = self.apply("semanticAction")
+                r = self.apply("semanticPredicate")
             except ParseError:
-                r = self.apply("character")
+                try:
+                    r = self.apply("character")
+                except ParseError:
+                    self.token("(")
+                    r = self.apply("expr")
+                    self.token(")")
         return r
 
     def rule_expr2(self):
@@ -333,11 +347,14 @@ class OMetaGrammar(StringOMeta):
         self.token("=>")
         return self.pythonExpr()
 
-    def rule_semanticAction(self):
-        raise ParseError()
+    def rule_semanticPredicate(self):
+        self.token("?(")
+        expr = self.ab.compilePythonExpr(self.name, self.pythonExpr(')'))
+        return self.ab.pred(expr)
 
     def rule_rulePart(self):
         name = self.apply("name")
+        self.name = name
         self.token("::=")
         body = self.apply("expr")
         try:
@@ -484,3 +501,8 @@ class AstBuilder(object):
                  ast.Subscript(ast.Name('__locals'),
                                'OP_APPLY', [ast.Const(name)])])
 
+    def pred(self, expr):
+        return ast.CallFunc(ast.Getattr(ast.Name("self"),
+                                        "pred"),
+                            [expr],
+                            None, None)

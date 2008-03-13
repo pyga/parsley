@@ -176,23 +176,23 @@ class OMetaTestCase(unittest.TestCase):
         Rules can call themselves.
         """
         g = compile("""
-             digit  ::= :x ?(x.isdigit())          => int(x)
-             interp ::= <digit>
-                      | [<digit>:x '+' <interp>:y] => x + y
+             digit  ::= :x ?(type(x) is str and x.isdigit()) => int(x)
+             interp ::= (<digit>
+                        | [<digit>:x '+' <interp>:y] => x + y)
            """)
         self.assertEqual(g.interp([['3', '+', ['4', '+', '2']]]), 9)
 
-if 0:
-     def test_leftrecursion(self):
+
+    def test_leftrecursion(self):
          """
          Left-recursion is detected and compiled appropriately.
          """
          g = compile("""
-             interp ::= :x ?(x.isdigit())           => x
-                      | [<interp>:x "+" <interp>:y] => x + y
-                      | [<interp>:x "*" <interp>:y] => x * y
+             interp ::= (:x ?(type(x) is str and x.isdigit()) => int(x)
+                        | [<interp>:x '+' <interp>:y] => x + y
+                        | [<interp>:x '*' <interp>:y] => x * y)
              """)
-         self.assertEqual(g.interp(['3', '+', ['5', '*', '2']]), 13)
+         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
 
 class PyExtractorTest(unittest.TestCase):
     """

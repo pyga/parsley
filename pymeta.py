@@ -134,14 +134,10 @@ class OMeta(object):
 
 
     def pred(self, expr):
-        try:
-            if not expr():
-                raise ParseError()
-            else:
-                return True
-        except:
+        if not expr():
             raise ParseError()
-
+        else:
+            return True
 
     def listpattern(self, expr):
         oldInput = self.input
@@ -500,7 +496,11 @@ class OMetaGrammar(StringOMeta):
 
     def rule_ruleValue(self):
         self.token("=>")
-        return self.pythonExpr()[0]
+        #this feels a bit hackish...
+        expr, endchar = self.pythonExpr(endChars="\r\n)]")
+        if endchar in ')]':
+            self.input.prev()
+        return expr
 
     def rule_semanticPredicate(self):
         self.token("?(")

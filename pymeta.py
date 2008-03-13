@@ -1,17 +1,13 @@
+import itertools
 from types import FunctionType
-from compiler import ast
-from compiler.pycodegen import ExpressionCodeGenerator
+from compiler import ast, compile as python_compile
+from compiler.pycodegen import ExpressionCodeGenerator, CodeGenerator
 
 class ParseError(Exception):
     """
     ?Redo from start
     """
 
-
-def pyExpr(bits):
-    """
-    Extract a Python expression from the beginning of a string and return it.
-    """
 
 class IterBuffer(object):
     """
@@ -106,12 +102,46 @@ class OMeta(object):
                 self.input.rewind(m)
         return ans
 
+    def _or(self, fns):
+        for f in fns:
+            try:
+                m = self.input.mark()
+                ret = f()
+                self.input.unmark(m)
+                return ret
+            except ParseError:
+                self.input.rewind(m)
+        raise ParseError()
+
+    def _not(self, fn):
+        try:
+            fn()
+        except ParseError:
+            return True
+        else:
+            raise ParseError()
+
     def eatWhitespace(self):
         for c in self.input:
             if not c.isspace():
                 self.input.prev()
                 break
         return True
+
+
+    def newline(self):
+        for c in self.input:
+            if c in '\r\n':
+                break
+            if not c.isspace():
+                self.input.prev()
+                raise ParseError()
+        for c in self.input:
+            if c not in '\r\n':
+                self.input.prev()
+                break
+        return True
+
 
     def token(self, tok):
         m = self.input.mark()
@@ -138,11 +168,38 @@ class OMeta(object):
 
     def letterOrDigit(self):
         x = self.input.next()
-        if x.isalnum():
+        if x.isalnum() or x == '_':
             return x
         else:
             self.input.prev()
             raise ParseError()
+
+    def pythonExpr(self):
+        """
+        Extract a Python expression from the input and return it.
+        """
+        delimiters = { "(": ")", "[": "]", "{": "}"}
+        stack = []
+        expr = []
+        for c in self.input:
+            if c in '\r\n' and len(stack) == 0:
+                break
+            else:
+                expr.append(c)
+                if c in delimiters:
+                    stack.append(delimiters[c])
+                elif len(stack) > 0 and c == stack[-1]:
+                    stack.pop()
+                elif c in delimiters.values():
+                    raise ParseError()
+                elif c in "\"'":
+                    for strc in self.input:
+                        expr.append(strc)
+                        if strc == c:
+                            break
+        if len(stack) > 0:
+            raise ParseError()
+        return ''.join(expr).strip()
 
 class StringOMeta(OMeta):
     """
@@ -195,6 +252,13 @@ class OMetaGrammar(StringOMeta):
     Grammar parser.
     """
 
+    def rule_application(self):
+        self.token("<")
+        self.eatWhitespace()
+        name = self.rule_name()
+        self.token(">")
+        return self.ab.apply(name)
+
     def rule_character(self):
         self.token("'")
         r = self.apply("anything")
@@ -209,9 +273,22 @@ class OMetaGrammar(StringOMeta):
         return ''.join(xs)
 
     def rule_expr1(self):
-        return self.apply("character")
+        try:
+            r = self.apply("application")
+        except ParseError:
+            try:
+                r = self.apply("semanticAction")
+            except ParseError:
+                r = self.apply("character")
+        return r
 
     def rule_expr2(self):
+        try:
+            self.token("~")
+            r = self.apply("expr2")
+            return self.ab._not(r)
+        except ParseError:
+            pass
         return self.apply("expr1")
 
 
@@ -226,30 +303,66 @@ class OMetaGrammar(StringOMeta):
                 r = self.ab.many1(r)
             except ParseError:
                 pass
+        try:
+            self.exactly(":")
+            name = self.apply("name")
+            r = self.ab.bind(r, name)
+        except ParseError:
+            pass
         return r
 
 
     def rule_expr4(self):
-        return ast.Subscript(ast.Tuple(self.many(lambda: self.apply("expr3"))),
-                             "OP_APPLY", [ast.Const(-1)])
+        return self.ab.sequence(self.many(lambda: self.apply("expr3")))
+
 
     def rule_expr(self):
-        x = self.apply("expr4")
-        return x
+        ans = [self.apply("expr4")]
+        try:
+            while True:
+                m = self.input.mark()
+                self.token("|")
+                ans.append(self.apply("expr4"))
+                self.input.unmark(m)
+        except ParseError:
+                self.input.rewind(m)
+
+        return self.ab._or(ans)
+
+    def rule_ruleValue(self):
+        self.token("=>")
+        return self.pythonExpr()
+
+    def rule_semanticAction(self):
+        raise ParseError()
 
     def rule_rulePart(self):
         name = self.apply("name")
         self.token("::=")
         body = self.apply("expr")
+        try:
+            expr = self.ab.compilePythonExpr(name, self.apply("ruleValue"))
+            body = self.ab.sequence([body, expr])
+
+        except ParseError:
+            pass
         return (name, body)
+
 
     def rule_rule(self):
         self.eatWhitespace()
-        return self.apply("rulePart")
+        rs = [self.apply("rulePart")]
+        while True:
+            try:
+                self.newline()
+                rs.append(self.apply("rulePart"))
+            except ParseError:
+                break
+        return rs
+
 
     def rule_grammar(self):
-        return dict(self.many(lambda: self.apply("rule")))
-
+        return dict(itertools.chain(*self.many(lambda: self.apply("rule"))))
 
 class AstBuilder(object):
     def __init__(self, filename):
@@ -265,15 +378,30 @@ class AstBuilder(object):
         e = ast.Expression(f)
         e.filename = self.filename
         c = ExpressionCodeGenerator(e).getCode()
-        return eval(c)
+        return FunctionType(c.co_consts[-1], globals())
 
+
+    def compilePythonExpr(self, name, expr):
+        c = python_compile(expr, "<grammar rule %s>" % (name,), "eval")
+        return ast.Stmt([
+#                ast.Printnl([ast.Mod((ast.Const('%s -> %s'),
+#                                      ast.Tuple([ast.Name('__locals'),
+#                                                 ast.Const(expr)])))],
+#                            None),
+                ast.CallFunc(ast.Name('eval'),
+                             [ast.Const(c),
+                              ast.Name('__locals')])])
 
     def function(self, name, expr):
         """
         Create a function of one argument with the given name returning the
         given expr.
         """
-        f = ast.Lambda(['self'], [], 0, expr)
+
+        fexpr = ast.Stmt([ast.Assign([ast.AssName('__locals', 'OP_ASSIGN')],
+                                     ast.Dict(())),
+                          expr])
+        f = ast.Lambda(['self'], [], 0, fexpr)
         f.filename = self.filename
         return f
 
@@ -316,3 +444,43 @@ class AstBuilder(object):
                                         "many"),
                             [f, expr],
                             None, None)
+
+    def _or(self, exprs):
+        """
+        Create a call to
+        self._or([lambda: expr1, lambda: expr2, ... , lambda: exprN]).
+        """
+        fs = []
+        for expr in exprs:
+            f = ast.Lambda([], [], 0, expr)
+            f.filename = self.filename
+            fs.append(f)
+        return ast.CallFunc(ast.Getattr(ast.Name("self"),
+                                        "_or"),
+                            [ast.List(fs)],
+                            None, None)
+
+    def _not(self, expr):
+        f = ast.Lambda([], [], 0, expr)
+        f.filename = self.filename
+        return ast.CallFunc(ast.Getattr(ast.Name("self"),
+                                        "_not"),
+                            [f],
+                            None, None)
+
+    def sequence(self, exprs):
+        if len(exprs) > 0:
+            stmtExprs = [ast.Discard(e) for e in exprs[:-1]] + [exprs[-1]]
+            return ast.Stmt(stmtExprs)
+        else:
+            return ast.Const(None)
+
+    def bind(self, expr, name):
+        return ast.Stmt([
+                 ast.Assign([ast.Subscript(ast.Name('__locals'),
+                                           'OP_ASSIGN',
+                                           [ast.Const(name)])],
+                            expr),
+                 ast.Subscript(ast.Name('__locals'),
+                               'OP_APPLY', [ast.Const(name)])])
+

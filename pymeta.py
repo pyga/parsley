@@ -15,6 +15,7 @@ class IterBuffer(object):
     """
 
     def __init__(self, iterable):
+        self.original = iterable
         self.iterable = iter(iterable)
         self.buffer = []
         self.markBuffers = []
@@ -142,13 +143,15 @@ class OMeta(object):
     def listpattern(self, expr):
         oldInput = self.input
         try:
-            list = IterBuffer(self.rule_anything())
-            self.input = list
-        except TypeError:
-            raise ParseError()
-        r = expr()
-        self.end()
-        self.input = oldInput
+            try:
+                list = IterBuffer(self.rule_anything())
+                self.input = list
+            except TypeError:
+                raise ParseError()
+            r = expr()
+            self.end()
+        finally:
+            self.input = oldInput
         return r
 
 

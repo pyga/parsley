@@ -162,6 +162,17 @@ class OMetaTestCase(unittest.TestCase):
            """)
         self.assertEqual(g.interp([['3', '+', '5']]), 8)
 
+    def test_recursion(self):
+        """
+        Rules can call themselves.
+        """
+        g = compile("""
+             digit  ::= :x ?(x.isdigit())          => int(x)
+             interp ::= <digit>
+                      | [<digit>:x '+' <interp>:y] => x + y
+           """)
+        self.assertEqual(g.interp([['3', '+', ['4', '+', '2']]]), 9)
+
 if 0:
      def test_leftrecursion(self):
          """

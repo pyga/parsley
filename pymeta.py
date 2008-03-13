@@ -130,10 +130,30 @@ class OMeta(object):
 
 
     def pred(self, expr):
-        if not expr:
+        try:
+            if not expr():
+                raise ParseError()
+            else:
+                return True
+        except:
             raise ParseError()
-        else:
-            return True
+
+
+    def listpattern(self, expr):
+        oldInput = self.input
+        try:
+            list = IterBuffer(self.rule_anything())
+            self.input = list
+        except TypeError:
+            raise ParseError()
+        r = expr()
+        self.end()
+        self.input = oldInput
+        return r
+
+
+    def end(self):
+        return self._not(self.rule_anything)
 
 
     def newline(self):
@@ -192,6 +212,7 @@ class OMeta(object):
         expr = []
         for c in self.input:
             if c in endChars and len(stack) == 0:
+                endchar = c
                 break
             else:
                 expr.append(c)
@@ -206,9 +227,11 @@ class OMeta(object):
                         expr.append(strc)
                         if strc == c:
                             break
+        else:
+            endchar = None
         if len(stack) > 0:
             raise ParseError()
-        return ''.join(expr).strip()
+        return ''.join(expr).strip(), c
 
 class StringOMeta(OMeta):
     """
@@ -265,8 +288,25 @@ class OMetaGrammar(StringOMeta):
         self.token("<")
         self.eatWhitespace()
         name = self.rule_name()
-        self.token(">")
-        return self.ab.apply(name)
+        try:
+            self.exactly(" ")
+            args = []
+            while True:
+                try:
+                    arg, endchar = self.pythonExpr(" >")
+                    if not arg:
+                        break
+                    args.append(arg)
+                    if endchar == '>':
+                        break
+                except ParseError:
+                    break
+            exprs = [self.ab.compilePythonExpr(self.name, arg) for arg in args]
+        except ParseError:
+            exprs = []
+            self.token(">")
+
+        return self.ab.apply(name, *exprs)
 
     def rule_character(self):
         self.token("'")
@@ -286,14 +326,28 @@ class OMetaGrammar(StringOMeta):
             r = self.apply("application")
         except ParseError:
             try:
-                r = self.apply("semanticPredicate")
+                r = self.ab.compilePythonExpr(self.name,
+                                              self.apply("ruleValue"))
             except ParseError:
                 try:
-                    r = self.apply("character")
+                    r = self.apply("semanticPredicate")
                 except ParseError:
-                    self.token("(")
-                    r = self.apply("expr")
-                    self.token(")")
+                    try:
+                        r = self.apply("character")
+                    except ParseError:
+                        try:
+                            self.token("(")
+                            r = self.apply("expr")
+                            self.token(")")
+                        except ParseError:
+                            self.token("[")
+                            try:
+                                self.token("]")
+                                r = self.ab.listpattern([])
+                            except ParseError:
+                                e = self.apply("expr")
+                                self.token("]")
+                                r = self.ab.listpattern(e)
         return r
 
     def rule_expr2(self):
@@ -307,24 +361,29 @@ class OMetaGrammar(StringOMeta):
 
 
     def rule_expr3(self):
-        r = self.apply("expr2")
         try:
-            self.token("*")
-            r = self.ab.many(r)
-        except ParseError:
+            r = self.apply("expr2")
             try:
-                self.token("+")
-                r = self.ab.many1(r)
+                self.token("*")
+                r = self.ab.many(r)
+            except ParseError:
+                try:
+                    self.token("+")
+                    r = self.ab.many1(r)
+                except ParseError:
+                    pass
+            try:
+                self.exactly(":")
+                name = self.apply("name")
+                r = self.ab.bind(r, name)
             except ParseError:
                 pass
-        try:
-            self.exactly(":")
-            name = self.apply("name")
-            r = self.ab.bind(r, name)
+            return r
         except ParseError:
-            pass
-        return r
-
+            self.token(":")
+            name = self.apply("name")
+            r = self.ab.apply("anything")
+            return self.ab.bind(r, name)
 
     def rule_expr4(self):
         return self.ab.sequence(self.many(lambda: self.apply("expr3")))
@@ -345,24 +404,19 @@ class OMetaGrammar(StringOMeta):
 
     def rule_ruleValue(self):
         self.token("=>")
-        return self.pythonExpr()
+        return self.pythonExpr()[0]
 
     def rule_semanticPredicate(self):
         self.token("?(")
-        expr = self.ab.compilePythonExpr(self.name, self.pythonExpr(')'))
+        expr = self.ab.compilePythonExpr(self.name, self.pythonExpr(')')[0])
         return self.ab.pred(expr)
 
     def rule_rulePart(self):
         name = self.apply("name")
         self.name = name
+        argPatterns = self.apply("expr4")
         self.token("::=")
-        body = self.apply("expr")
-        try:
-            expr = self.ab.compilePythonExpr(name, self.apply("ruleValue"))
-            body = self.ab.sequence([body, expr])
-
-        except ParseError:
-            pass
+        body = self.ab.sequence([argPatterns, self.apply("expr")])
         return (name, body)
 
 
@@ -502,7 +556,17 @@ class AstBuilder(object):
                                'OP_APPLY', [ast.Const(name)])])
 
     def pred(self, expr):
+        f = ast.Lambda([], [], 0, expr)
+        f.filename = self.filename
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "pred"),
-                            [expr],
+                            [f],
+                            None, None)
+
+    def listpattern(self, exprs):
+        f = ast.Lambda([], [], 0, exprs)
+        f.filename = self.filename
+        return ast.CallFunc(ast.Getattr(ast.Name("self"),
+                                        "listpattern"),
+                            [f],
                             None, None)

@@ -81,7 +81,7 @@ class OMetaTestCase(unittest.TestCase):
         Productions can specify a Python expression that provides the result
         of the parse.
         """
-        g = compile("foo ::= '1' | '2' => 7")
+        g = compile("foo ::= '1' => 7")
         self.assertEqual(g.foo('1'), 7)
 
 
@@ -117,6 +117,14 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.foo("ac"), "c")
 
 
+    def test_bindNameOnly(self):
+        """
+        A pattern consisting of only a bind name matches a single element and
+        binds it to that name.
+        """
+        g = compile("foo ::= '1' :x '2' => x")
+        self.assertEqual(g.foo("132"), "3")
+
     def test_args(self):
         """
         Productions can take arguments.
@@ -124,11 +132,11 @@ class OMetaTestCase(unittest.TestCase):
         g = compile("""
               digit ::= ('0' | '1' | '2'):d => int(d)
               foo :x ::= (?(x > 1) '9' | ?(x <= 1) '8'):d => int(d)
-              baz ::= <digit>:a <foo a>
+              baz ::= <digit>:a <foo a>:b => [a, b]
             """)
-        self.assertEqual(g.foo("18"), [1, 8])
-        self.assertEqual(g.foo("08"), [0, 8])
-        self.assertEqual(g.foo("29"), [2, 9])
+        self.assertEqual(g.baz("18"), [1, 8])
+        self.assertEqual(g.baz("08"), [0, 8])
+        self.assertEqual(g.baz("29"), [2, 9])
         self.assertRaises(ParseError, g.foo, "28")
 
 
@@ -149,13 +157,22 @@ class OMetaTestCase(unittest.TestCase):
         Brackets can be used to match contents of lists.
         """
         g = compile("""
+             digit  ::= :x ?(x.isdigit())          => int(x)
+             interp ::= [<digit>:x '+' <digit>:y] => x + y
+           """)
+        self.assertEqual(g.interp([['3', '+', '5']]), 8)
+
+if 0:
+     def test_leftrecursion(self):
+         """
+         Left-recursion is detected and compiled appropriately.
+         """
+         g = compile("""
              interp ::= :x ?(x.isdigit())           => x
                       | [<interp>:x "+" <interp>:y] => x + y
-                      | [<interp>:x "+" <interp>:y] => x * y
-           """)
-        self.assertEqual(g.interp([3, '+', [5, '*', 2]]), 13)
-
-
+                      | [<interp>:x "*" <interp>:y] => x * y
+             """)
+         self.assertEqual(g.interp(['3', '+', ['5', '*', '2']]), 13)
 
 class PyExtractorTest(unittest.TestCase):
     """
@@ -167,7 +184,7 @@ class PyExtractorTest(unittest.TestCase):
         string, ignoring the text following it.
         """
         o = StringOMeta(expr + "\nbaz ::= ...\n")
-        self.assertEqual(o.pythonExpr(), expr)
+        self.assertEqual(o.pythonExpr()[0], expr)
     def test_expressions(self):
         """
         L{OMeta.pythonExpr()} can recognize various paired delimiters properly

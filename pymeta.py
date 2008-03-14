@@ -134,8 +134,21 @@ class OMetaBase(object):
         self.input = IterBuffer(string)
 
 
+    def hasRule(self, name):
+        return (name in self.__ometa_rules__
+                or hasattr(self, "rule_"+name))
+
+
+    def getRule(self, name):
+        r = self.__ometa_rules__.get(name, None)
+        if r is None and hasattr(self, "rule_"+name):
+            return getattr(self, "rule_"+name)
+        else:
+            return r.__get__(self)
+
+
     def apply(self, ruleName, *args):
-        rule = getattr(self, "rule_"+ruleName)
+        rule = self.getRule(ruleName)
         if args:
             for arg in args[::-1]:
                 self.input.push(arg)
@@ -381,9 +394,10 @@ def compile(grammar, name="<grammar>"):
     """
 
     ab, rules = parseGrammar(grammar, name)
-    ruleMethods = dict([("rule_"+k, ab.compileAstMethod("rule_"+k, v))
+    ruleMethods = dict([(k, ab.compileAstMethod(k, v))
                          for (k, v) in rules.iteritems()])
-    grammarClass = type(name, (OMetaBase,), ruleMethods)
+    methodDict = {'__ometa_rules__': ruleMethods}
+    grammarClass = type(name, (OMetaBase,), methodDict)
     return HandyWrapper(grammarClass)
 
 class HandyWrapper(object):
@@ -424,7 +438,7 @@ class OMetaGrammar(OMetaBase):
     """
     Grammar parser.
     """
-
+    __ometa_rules__ = {}
     def rule_application(self):
         self.token("<")
         self.eatWhitespace()
@@ -628,7 +642,7 @@ class OMetaGrammar(OMetaBase):
     def rule_rule(self):
         self.eatWhitespace()
         name = self.lookahead(lambda: self.apply("name"))
-        if hasattr(self, "rule_"+name):
+        if self.hasRule(name):
             raise SyntaxError("Multiple definitions of "+name)
         rs = [self.apply("rulePart", name)]
         while True:
@@ -777,7 +791,30 @@ class AstBuilder(object):
                             [f],
                             None, None)
 
-class OMeta(object):
+class _MetaOMeta(type):
     """
-    TODO: metaclass of doom
+    There is probably some really good joke I could make about this class name
+    but I'm not coming up with anything at the moment.
     """
+    def __new__(metaclass, name, bases, methodDict):
+        grammar = methodDict.get('__doc__', None)
+        if grammar:
+            ab, rules = parseGrammar(grammar, name)
+            ruleMethods = dict([(k, ab.compileAstMethod(k, v))
+                                for (k, v) in rules.iteritems()])
+            methodDict['__ometa_rules__'] = ruleMethods
+        else:
+            methodDict['__ometa_rules__'] = {}
+        grammarClass = type.__new__(metaclass, name, bases, methodDict)
+        return grammarClass
+
+
+class _OMetaCallWrapper(OMetaBase):
+    def __getattr__(self, name):
+        if name in self.__ometa_rules__:
+            return lambda: self.apply(name)
+        else:
+            raise AttributeError
+
+class OMeta(_OMetaCallWrapper):
+    __metaclass__ = _MetaOMeta

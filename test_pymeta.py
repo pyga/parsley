@@ -268,3 +268,6 @@ class MetaclassTest(unittest.TestCase):
             num ::= (<num>:n <digit>:d => n * 10 + d
                    | <digit>)
             """
+
+        g = TestGrammar("314159")
+        self.assertEqual(g.num(), 314159)

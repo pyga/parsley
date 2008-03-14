@@ -1,7 +1,7 @@
-import itertools, string
+import string
 from types import FunctionType
 from compiler import ast, compile as python_compile
-from compiler.pycodegen import ExpressionCodeGenerator, CodeGenerator
+from compiler.pycodegen import ExpressionCodeGenerator
 
 class ParseError(Exception):
     """
@@ -20,6 +20,7 @@ class IterBuffer(object):
         self.buffer = []
         self.markBuffers = []
         self.lastMark = -1
+        self.memo = {}
     def __iter__(self):
         return self
 
@@ -65,13 +66,32 @@ class IterBuffer(object):
                 del buf[-len(saved):]
         self.lastMark = mark-1
 
-class OMeta(object):
+class LeftRecursion(object):
     """
-    Abstract class providing implementations of the basic OMeta operations.
+    Marker for left recursion in a grammar rule.
     """
+    detected = False
+
+class OMetaBase(object):
+    """
+    Base class providing implementations of the fundamental OMeta operations.
+    """
+    def __init__(self, string):
+        self.input = IterBuffer(string)
     def apply(self, ruleName, *args):
+#         m = self.input.memo.get(ruleName, None)
+#         if m is None:
+#             oldInput = self.input
+#             lr = LeftRecursion()
+#             self.input.memo[ruleName] = m = lr
+#             self.input.memo[ruleName] = m = {"ans": self.apply(ruleName, *args), "nextInput": self.input}
+#             if lr.detected:
+#                 sentinel = self.input
+#                 while True:
+                    
         for arg in args[::-1]:
             self.input.push(arg)
+
         return getattr(self, "rule_"+ruleName)()
 
 
@@ -270,12 +290,6 @@ class OMeta(object):
             raise ParseError()
         return ''.join(expr).strip(), c
 
-class StringOMeta(OMeta):
-    """
-    Simple OMeta backend for parsing strings.
-    """
-    def __init__(self, string):
-        self.input = IterBuffer(string)
 
 def compile(grammar, name="<grammar>"):
     """
@@ -286,7 +300,7 @@ def compile(grammar, name="<grammar>"):
     ab, rules = parseGrammar(grammar, name)
     ruleMethods = dict([("rule_"+k, ab.compileAstMethod("rule_"+k, v))
                          for (k, v) in rules.iteritems()])
-    grammarClass = type(name, (StringOMeta,), ruleMethods)
+    grammarClass = type(name, (OMetaBase,), ruleMethods)
     return HandyWrapper(grammarClass)
 
 class HandyWrapper(object):
@@ -323,7 +337,7 @@ def parseGrammar(grammar, name="<grammar>"):
         raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
     return ab, res
 
-class OMetaGrammar(StringOMeta):
+class OMetaGrammar(OMetaBase):
     """
     Grammar parser.
     """
@@ -683,3 +697,8 @@ class AstBuilder(object):
                                         "listpattern"),
                             [f],
                             None, None)
+
+class OMeta(object):
+    """
+    TODO: metaclass of doom
+    """

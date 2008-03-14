@@ -180,11 +180,11 @@ class OMetaTestCase(unittest.TestCase):
         Rules can call themselves.
         """
         g = self.compile("""
-             digit  ::= :x ?(type(x) is str and x.isdigit()) => int(x)
-             interp ::= (<digit>
-                        | [<interp>:x '+' <interp>:y] => x + y)
-           """)
-        self.assertEqual(g.interp([['3', '+', ['4', '+', '2']]]), 9)
+             interp ::= (['+' <interp>:x <interp>:y] => x + y
+                       | ['*' <interp>:x <interp>:y] => x * y
+                       | :x ?(isinstance(x, str) and x.isdigit()) => int(x))
+             """)
+        self.assertEqual(g.interp([['+', '3', ['*', '5', '2']]]), 13)
 
 
     def test_leftrecursion(self):
@@ -192,12 +192,25 @@ class OMetaTestCase(unittest.TestCase):
          Left-recursion is detected and compiled appropriately.
          """
          g = self.compile("""
+               num ::= (<num>:n <digit>:d   => n * 10 + d
+                      | <digit>)
+               digit ::= :x ?(x.isdigit()) => int(x)
+              """)
+         self.assertEqual(g.num("3"), 3)
+         self.assertEqual(g.num("32767"), 32767)
+
+    def test_characterVsSequence(self):
+        """
+        Characters (in single-quotes) are not regarded as sequences.
+        """
+        g = self.compile("""
              interp ::= ([<interp>:x '+' <interp>:y] => x + y
                        | [<interp>:x '*' <interp>:y] => x * y
-                       | :x ?(type(x) is str and x.isdigit()) => int(x))
+                       | :x ?(isinstance(x, str) and x.isdigit()) => int(x))
              """)
-         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
-    test_leftrecursion.skip = "needs better input model"
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
+
+
 
 class PyExtractorTest(unittest.TestCase):
     """
@@ -241,3 +254,17 @@ class CodeGenTest(unittest.TestCase):
         ab = AstBuilder("<test>")
         f = ab.compileAstMethod("f", expr)
         self.assertEqual(f([0, 2]), 5)
+
+
+class MetaclassTest(unittest.TestCase):
+    """
+    Test the definition of grammars in a class statement.
+    """
+
+    def test_grammarClass(self):
+        class TestGrammar(OMeta):
+            """
+            digit ::= :x ?('0' <= x <= '9') => int(x)
+            num ::= (<num>:n <digit>:d => n * 10 + d
+                   | <digit>)
+            """

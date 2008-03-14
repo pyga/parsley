@@ -8,6 +8,28 @@ class ParseError(Exception):
     ?Redo from start
     """
 
+class character(str):
+    """
+    Type to allow distinguishing characters from strings.
+    """
+
+    def __iter__(self):
+        """
+        Prevent string patterns and list patterns from matching single
+        characters.
+        """
+        raise TypeError("Characters are not iterable")
+
+class unicodeCharacter(unicode):
+    """
+    Type to distinguish characters from Unicode strings.
+    """
+    def __iter__(self):
+        """
+        Prevent string patterns and list patterns from matching single
+        characters.
+        """
+        raise TypeError("Characters are not iterable")
 
 class IterBuffer(object):
     """
@@ -16,11 +38,25 @@ class IterBuffer(object):
 
     def __init__(self, iterable):
         self.original = iterable
-        self.iterable = iter(iterable)
+        if isinstance(iterable, str):
+            self.iterable = (character(c) for c in iterable)
+        else:
+            self.iterable = iter(iterable)
         self.buffer = []
         self.markBuffers = []
-        self.lastMark = -1
+        self.markPositions = []
+        self.position = 0
         self.memo = {}
+
+    def getMemo(self, name):
+        m = self.memo.get(self.position, None)
+        if m:
+            return m.get(name, None)
+
+    def setMemo(self, pos, name, rec):
+        self.memo.setdefault(pos, {})[name] = rec
+        return rec
+
     def __iter__(self):
         return self
 
@@ -32,6 +68,7 @@ class IterBuffer(object):
             val = self.iterable.next()
         for buf in self.markBuffers:
             buf.append(val)
+        self.position += 1
         self.lastThing = val
         return val
 
@@ -40,31 +77,48 @@ class IterBuffer(object):
         self.buffer.append(self.lastThing)
         for buf in self.markBuffers:
             del buf[-1]
+        self.position -= 1
         del self.lastThing
 
     def push(self, obj):
+        self.position -= 1
         self.buffer.append(obj)
-
+        if self.position in self.memo:
+            self.memo[self.position] = {}
 
     def mark(self):
-        self.lastMark += 1
+        self.markPositions.append(self.position)
         self.markBuffers.append([])
-        return self.lastMark
+        return len(self.markBuffers)-1
 
 
     def unmark(self, mark):
         del self.markBuffers[mark:]
-        self.lastMark = mark-1
+        del self.markPositions[mark:]
 
 
     def rewind(self, mark):
         saved = self.markBuffers[mark][::-1]
         self.buffer.extend(saved)
-        del self.markBuffers[mark:]
+        self.position = self.markPositions[mark]
+        self.unmark(mark)
         if len(saved) > 0:
             for buf in self.markBuffers:
                 del buf[-len(saved):]
-        self.lastMark = mark-1
+
+
+    def seekTo(self, position):
+        if position > self.position:
+            while position > self.position:
+                self.next()
+            return
+        elif position < self.position:
+            try:
+                i = self.markPositions.index(position)
+            except ValueError:
+                raise RuntimeError("Tried to seek to an unsaved position", position)
+            self.rewind(i)
+
 
 class LeftRecursion(object):
     """
@@ -78,21 +132,46 @@ class OMetaBase(object):
     """
     def __init__(self, string):
         self.input = IterBuffer(string)
-    def apply(self, ruleName, *args):
-#         m = self.input.memo.get(ruleName, None)
-#         if m is None:
-#             oldInput = self.input
-#             lr = LeftRecursion()
-#             self.input.memo[ruleName] = m = lr
-#             self.input.memo[ruleName] = m = {"ans": self.apply(ruleName, *args), "nextInput": self.input}
-#             if lr.detected:
-#                 sentinel = self.input
-#                 while True:
-                    
-        for arg in args[::-1]:
-            self.input.push(arg)
 
-        return getattr(self, "rule_"+ruleName)()
+
+    def apply(self, ruleName, *args):
+        rule = getattr(self, "rule_"+ruleName)
+        if args:
+            for arg in args[::-1]:
+                self.input.push(arg)
+            return rule()
+        memoRec = self.input.getMemo(ruleName)
+        if memoRec is None:
+            m = self.input.mark()
+            oldPosition = self.input.position
+            lr = LeftRecursion()
+            memoRec = self.input.setMemo(self.input.position, ruleName, lr)
+
+            memoRec = self.input.setMemo(self.input.position, ruleName,
+                                         [rule(), self.input.position])
+            if lr.detected:
+                sentinel = self.input.position
+                self.input.rewind(m)
+                while True:
+                    try:
+                        m = self.input.mark()
+                        ans = rule()
+                        if (self.input.position == sentinel):
+                            break
+
+                        memoRec = self.input.setMemo(oldPosition, ruleName,
+                                                     [ans, self.input.position])
+                        self.input.rewind(m)
+                    except ParseError:
+                        break
+                pass
+            self.input.unmark(m)
+
+        elif isinstance(memoRec, LeftRecursion):
+            memoRec.detected = True
+            raise ParseError()
+        self.input.seekTo(memoRec[1])
+        return memoRec[0]
 
 
     def rule_anything(self):
@@ -161,12 +240,16 @@ class OMetaBase(object):
 
     def listpattern(self, expr):
         oldInput = self.input
+        m = self.input.mark()
         try:
             try:
                 list = IterBuffer(self.rule_anything())
                 self.input = list
             except TypeError:
+                oldInput.rewind(m)
                 raise ParseError()
+            else:
+                oldInput.unmark(m)
             r = expr()
             self.end()
         finally:
@@ -312,7 +395,7 @@ class HandyWrapper(object):
     def __getattr__(self, name):
         def doIt(str):
             obj = self.klass(str)
-            ret = getattr(obj, "rule_"+name)()
+            ret = obj.apply(name)
             extra = list(obj.input)
             if not extra:
                 try:
@@ -582,10 +665,6 @@ class AstBuilder(object):
     def compilePythonExpr(self, name, expr):
         c = python_compile(expr, "<grammar rule %s>" % (name,), "eval")
         return ast.Stmt([
-#                ast.Printnl([ast.Mod((ast.Const('%s -> %s'),
-#                                      ast.Tuple([ast.Name('__locals'),
-#                                                 ast.Const(expr)])))],
-#                            None),
                 ast.CallFunc(ast.Name('eval'),
                              [ast.Const(c),
                               ast.Name('__locals')])])

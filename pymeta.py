@@ -1,4 +1,4 @@
-import string
+import string, sys, itertools
 from types import FunctionType
 from compiler import ast, compile as python_compile
 from compiler.pycodegen import ExpressionCodeGenerator
@@ -47,6 +47,7 @@ class IterBuffer(object):
         self.markPositions = []
         self.position = 0
         self.memo = {}
+        self.args = []
 
     def getMemo(self, name):
         m = self.memo.get(self.position, None)
@@ -62,12 +63,15 @@ class IterBuffer(object):
 
 
     def next(self):
-        if self.buffer:
-            val = self.buffer.pop()
+        if self.args:
+            val = self.args.pop()
         else:
-            val = self.iterable.next()
-        for buf in self.markBuffers:
-            buf.append(val)
+            if self.buffer:
+                val = self.buffer.pop()
+            else:
+                val = self.iterable.next()
+            for buf in self.markBuffers:
+                buf.append(val)
         self.position += 1
         self.lastThing = val
         return val
@@ -76,13 +80,14 @@ class IterBuffer(object):
     def prev(self):
         self.buffer.append(self.lastThing)
         for buf in self.markBuffers:
-            del buf[-1]
+            if buf:
+                del buf[-1]
         self.position -= 1
         del self.lastThing
 
     def push(self, obj):
         self.position -= 1
-        self.buffer.append(obj)
+        self.args.append(obj)
         if self.position in self.memo:
             self.memo[self.position] = {}
 
@@ -130,9 +135,14 @@ class OMetaBase(object):
     """
     Base class providing implementations of the fundamental OMeta operations.
     """
-    def __init__(self, string):
+    globals = None
+    def __init__(self, string, globals=None):
         self.input = IterBuffer(string)
-
+        if self.globals is None:
+            if globals is None:
+                self.globals = {}
+            else:
+                self.globals = globals
 
     def hasRule(self, name):
         return (name in self.__ometa_rules__
@@ -141,8 +151,11 @@ class OMetaBase(object):
 
     def getRule(self, name):
         r = self.__ometa_rules__.get(name, None)
-        if r is None and hasattr(self, "rule_"+name):
-            return getattr(self, "rule_"+name)
+        if r is None:
+            if hasattr(self, "rule_"+name):
+                return getattr(self, "rule_"+name)
+            else:
+                raise NameError("No rule named '%s'" %(name,))
         else:
             return r.__get__(self)
 
@@ -150,9 +163,12 @@ class OMetaBase(object):
     def apply(self, ruleName, *args):
         rule = self.getRule(ruleName)
         if args:
-            for arg in args[::-1]:
-                self.input.push(arg)
-            return rule()
+            if rule.func_code.co_argcount - 1 != len(args):
+                for arg in args[::-1]:
+                    self.input.push(arg)
+                return rule()
+            else:
+                return rule(*args)
         memoRec = self.input.getMemo(ruleName)
         if memoRec is None:
             m = self.input.mark()
@@ -243,7 +259,7 @@ class OMetaBase(object):
                 self.input.prev()
                 break
         return True
-
+    rule_spaces = eatWhitespace
 
     def pred(self, expr):
         if not expr():
@@ -309,6 +325,8 @@ class OMetaBase(object):
             self.input.rewind(m)
             raise
 
+    rule_token = token
+
     def letter(self):
         try:
             x = self.input.next()
@@ -320,6 +338,8 @@ class OMetaBase(object):
         except StopIteration:
             raise ParseError
 
+    rule_letter = letter
+
     def letterOrDigit(self):
         try:
             x = self.input.next()
@@ -330,6 +350,8 @@ class OMetaBase(object):
         else:
             self.input.prev()
             raise ParseError()
+
+    rule_letterOrDigit = letterOrDigit
 
     def digit(self):
         try:
@@ -384,7 +406,7 @@ class OMetaBase(object):
             endchar = None
         if len(stack) > 0:
             raise ParseError()
-        return ''.join(expr).strip(), c
+        return ''.join(expr).strip(), endchar
 
 
 def compile(grammar, name="<grammar>"):
@@ -393,10 +415,7 @@ def compile(grammar, name="<grammar>"):
     productions on their first argument.
     """
 
-    ab, rules = parseGrammar(grammar, name)
-    ruleMethods = dict([(k, ab.compileAstMethod(k, v))
-                         for (k, v) in rules.iteritems()])
-    methodDict = {'__ometa_rules__': ruleMethods}
+    methodDict = parseGrammar(grammar, name)
     grammarClass = type(name, (OMetaBase,), methodDict)
     return HandyWrapper(grammarClass)
 
@@ -420,25 +439,15 @@ class HandyWrapper(object):
                 raise ParseError("trailing garbage in input: %s" % (extra,))
         return doIt
 
-def parseGrammar(grammar, name="<grammar>"):
-    ab = AstBuilder(name)
-    g = OMetaGrammar(grammar)
-    g.ab = ab
-    res = g.rule_grammar()
-    x = list(g.input)
-    if x:
-        try:
-            x = repr(''.join(x))
-        except TypeError:
-            pass
-        raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
-    return ab, res
 
-class OMetaGrammar(OMetaBase):
+class BootOMetaGrammar(OMetaBase):
     """
     Grammar parser.
     """
-    __ometa_rules__ = {}
+    def __init__(self, input):
+        OMetaBase.__init__(self, input)
+        self._ruleNames = []
+        self.__ometa_rules__ = {}
     def rule_application(self):
         self.token("<")
         self.eatWhitespace()
@@ -456,12 +465,11 @@ class OMetaGrammar(OMetaBase):
                         break
                 except ParseError:
                     break
-            exprs = [self.ab.compilePythonExpr(self.name, arg) for arg in args]
         except ParseError:
-            exprs = []
+            args = []
             self.token(">")
 
-        return self.ab.apply(name, *exprs)
+        return self.builder.apply(name, self.name, *args)
 
 
     def rule_number(self):
@@ -503,14 +511,14 @@ class OMetaGrammar(OMetaBase):
             i = int(s, 8)
         else:
             i = int(s)
-        return self.ab.exactly(ast.Const(i))
+        return self.builder.exactly(i)
     def rule_character(self):
         self.token("'")
         r = self.apply("anything")
         if (r == "\\"):
             r += self.apply("anything")
         self.token("'")
-        return self.ab.exactly(ast.Const(r))
+        return self.builder.exactly(r)
 
 
     def rule_name(self):
@@ -524,38 +532,46 @@ class OMetaGrammar(OMetaBase):
             r = self.apply("application")
         except ParseError:
             try:
-                r = self.ab.compilePythonExpr(self.name,
+                r = self.builder.compilePythonExpr(self.name,
                                               self.apply("ruleValue"))
             except ParseError:
                 try:
                     r = self.apply("semanticPredicate")
                 except ParseError:
                     try:
-                        r = self.apply("number")
+                        r = self.apply("semanticAction")
                     except ParseError:
                         try:
-                            r = self.apply("character")
+                            r = self.apply("number")
                         except ParseError:
                             try:
-                                self.token("(")
-                                r = self.apply("expr")
-                                self.token(")")
+                                r = self.apply("character")
                             except ParseError:
-                                self.token("[")
                                 try:
-                                    self.token("]")
-                                    r = self.ab.listpattern([])
+                                    self.token("(")
+                                    r = self.apply("expr")
+                                    self.token(")")
                                 except ParseError:
-                                    e = self.apply("expr")
-                                    self.token("]")
-                                    r = self.ab.listpattern(e)
+                                    self.token("[")
+                                    try:
+                                        self.token("]")
+                                        r = self.builder.listpattern([])
+                                    except ParseError:
+                                        e = self.apply("expr")
+                                        self.token("]")
+                                        r = self.builder.listpattern(e)
         return r
 
     def rule_expr2(self):
         try:
             self.token("~")
-            r = self.apply("expr2")
-            return self.ab._not(r)
+            try:
+                self.token("~")
+                r = self.apply("expr2")
+                return self.builder.lookahead(r)
+            except ParseError:
+                r = self.apply("expr2")
+                return self.builder._not(r)
         except ParseError:
             pass
         return self.apply("expr1")
@@ -566,28 +582,28 @@ class OMetaGrammar(OMetaBase):
             r = self.apply("expr2")
             try:
                 self.token("*")
-                r = self.ab.many(r)
+                r = self.builder.many(r)
             except ParseError:
                 try:
                     self.token("+")
-                    r = self.ab.many1(r)
+                    r = self.builder.many1(r)
                 except ParseError:
                     pass
             try:
                 self.exactly(":")
                 name = self.apply("name")
-                r = self.ab.bind(r, name)
+                r = self.builder.bind(r, name)
             except ParseError:
                 pass
             return r
         except ParseError:
             self.token(":")
             name = self.apply("name")
-            r = self.ab.apply("anything")
-            return self.ab.bind(r, name)
+            r = self.builder.apply("anything")
+            return self.builder.bind(r, name)
 
     def rule_expr4(self):
-        return self.ab.sequence(self.many(lambda: self.apply("expr3")))
+        return self.builder.sequence(self.many(lambda: self.apply("expr3")))
 
 
     def rule_expr(self):
@@ -603,20 +619,25 @@ class OMetaGrammar(OMetaBase):
             if m >= 0:
                 self.input.rewind(m)
 
-        return self.ab._or(ans)
+        return self.builder._or(ans)
 
     def rule_ruleValue(self):
         self.token("=>")
         #this feels a bit hackish...
         expr, endchar = self.pythonExpr(endChars="\r\n)]")
-        if endchar in ')]':
+        if str(endchar) in ")]":
             self.input.prev()
         return expr
 
     def rule_semanticPredicate(self):
         self.token("?(")
-        expr = self.ab.compilePythonExpr(self.name, self.pythonExpr(')')[0])
-        return self.ab.pred(expr)
+        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        return self.builder.pred(expr)
+
+    def rule_semanticAction(self):
+        self.token("!(")
+        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        return self.builder.action(expr)
 
     def rule_rulePart(self):
         requiredName = self.apply("anything")
@@ -636,42 +657,41 @@ class OMetaGrammar(OMetaBase):
         except ParseError:
             return argPatterns
         else:
-            body = self.ab.sequence([argPatterns, self.apply("expr")])
+            body = self.builder.sequence([argPatterns, self.apply("expr")])
             return body
 
     def rule_rule(self):
         self.eatWhitespace()
         name = self.lookahead(lambda: self.apply("name"))
-        if self.hasRule(name):
+        if name in self._ruleNames:
             raise SyntaxError("Multiple definitions of "+name)
-        rs = [self.apply("rulePart", name)]
-        while True:
-            try:
-                rs.append(self.apply("rulePart", name))
-            except ParseError:
-                break
+        r = self.apply("rulePart", name)
+        rs = self.many(lambda: self.apply("rulePart", name), r)
+        self._ruleNames.append(name)
         if len(rs) == 1:
             return (name, rs[0])
         else:
-            return (name, self.ab._or(rs))
+            return (name, self.builder._or(rs))
 
 
     def rule_grammar(self):
-        return dict(self.many(lambda: self.apply("rule")))
+        x = self.builder.makeGrammar(self.many(lambda: self.apply("rule")))
+        self.eatWhitespace()
+        return x
 
 class AstBuilder(object):
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, name, grammar):
+        self.name = name
+        self.grammar = grammar
 
-
-    def compileAstMethod(self, name, expr):
+    def _compileAstMethod(self, name, expr):
         """
         Produce a callable of a single argument with name C{name} that returns
         the value of the given AST.
         """
         f = self.function(name, expr)
         e = ast.Expression(f)
-        e.filename = self.filename
+        e.filename = self.name
         c = ExpressionCodeGenerator(e).getCode()
         return FunctionType(c.co_consts[-1], globals())
 
@@ -681,6 +701,7 @@ class AstBuilder(object):
         return ast.Stmt([
                 ast.CallFunc(ast.Name('eval'),
                              [ast.Const(c),
+                              ast.Getattr(ast.Name("self"), "globals"),
                               ast.Name('__locals')])])
 
     def function(self, name, expr):
@@ -690,19 +711,26 @@ class AstBuilder(object):
         """
 
         fexpr = ast.Stmt([ast.Assign([ast.AssName('__locals', 'OP_ASSIGN')],
-                                     ast.Dict(())),
+                                     ast.Dict([(ast.Const('self'), ast.Name('self'))])),
                           expr])
         f = ast.Lambda(['self'], [], 0, fexpr)
-        f.filename = self.filename
+        f.filename = self.name
         return f
 
-    def apply(self, ruleName, *args):
+    def makeGrammar(self, rules):
+        ruleMethods = dict([(k, self._compileAstMethod(k, v))
+                             for (k, v) in rules])
+        methodDict = {'__ometa_rules__': ruleMethods}
+        return methodDict
+
+    def apply(self, ruleName, codeName=None, *exprs):
         """
         Create a call to self.apply(ruleName, *args).
         """
+        args = [self.compilePythonExpr(codeName, arg) for arg in exprs]
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "apply"),
-                            [ast.Const(ruleName)] + list(args),
+                            [ast.Const(ruleName)] + args,
                         None, None)
 
     def exactly(self, expr):
@@ -711,7 +739,7 @@ class AstBuilder(object):
         """
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "exactly"),
-                            [expr],
+                            [ast.Const(expr)],
                             None, None)
 
     def many(self, expr):
@@ -719,7 +747,7 @@ class AstBuilder(object):
         Create a call to self.many(lambda: expr).
         """
         f = ast.Lambda([], [], 0, expr)
-        f.filename = self.filename
+        f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "many"),
                             [f],
@@ -730,7 +758,7 @@ class AstBuilder(object):
         Create a call to self.many((lambda: expr), expr).
         """
         f = ast.Lambda([], [], 0, expr)
-        f.filename = self.filename
+        f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "many"),
                             [f, expr],
@@ -744,7 +772,7 @@ class AstBuilder(object):
         fs = []
         for expr in exprs:
             f = ast.Lambda([], [], 0, expr)
-            f.filename = self.filename
+            f.filename = self.name
             fs.append(f)
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "_or"),
@@ -753,11 +781,21 @@ class AstBuilder(object):
 
     def _not(self, expr):
         f = ast.Lambda([], [], 0, expr)
-        f.filename = self.filename
+        f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "_not"),
                             [f],
                             None, None)
+
+
+    def lookahead(self, expr):
+        f = ast.Lambda([], [], 0, expr)
+        f.filename = self.name
+        return ast.CallFunc(ast.Getattr(ast.Name("self"),
+                                        "lookahead"),
+                            [f],
+                            None, None)
+
 
     def sequence(self, exprs):
         if len(exprs) > 0:
@@ -777,19 +815,171 @@ class AstBuilder(object):
 
     def pred(self, expr):
         f = ast.Lambda([], [], 0, expr)
-        f.filename = self.filename
+        f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "pred"),
                             [f],
                             None, None)
 
+    def action(self, expr):
+        return expr
+
     def listpattern(self, exprs):
         f = ast.Lambda([], [], 0, exprs)
-        f.filename = self.filename
+        f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "listpattern"),
                             [f],
                             None, None)
+
+
+class PythonBuilder(object):
+    def __init__(self, name, grammar):
+        self.name = name
+        self.gensymCounter = 0
+        self.grammar = grammar
+
+    def _gensym(self, name):
+        self.gensymCounter += 1
+        return "_G_%s_%s" % (name, self.gensymCounter)
+
+    def _newThunkFor(self, name, expr):
+        fname = self._gensym(name)
+        return (self._function("def %s():" % (fname,), expr), fname)
+
+    def _expr(self, e):
+        return e
+
+    def _indent(self, line):
+        if line.isspace():
+            return '\n'
+        else:
+            return "    " + line
+
+    def _return(self, ex):
+        if ex.strip().startswith("return"):
+            return ex
+        else:
+            return 'return ' + ex
+
+    def _function(self, head, body):
+        body = list(body)
+        return [head] + [self._indent(line) for line in body[:-1]] + [self._indent(self._return(body[-1]))]
+
+
+    def _suite(self, head, body):
+        body = list(body)
+        return [head] + [self._indent(line) for line in body]
+
+
+    def makeGrammar(self, rules):
+        lines = list(itertools.chain(*[self._function("def rule_%s(self):"%(name,),
+                                                      ["_locals = {'self': self}"] + list(body)) + ['\n\n']
+                                       for (name, body) in rules]))
+        code = '\n'.join(self._suite("class %s(%s):" %(self.name, self.grammar.__class__.__name__), lines))
+        module = "from %s import %s\n" % (self.grammar.__class__.__module__, self.grammar.__class__.__name__) + code
+        return module
+
+    def compilePythonExpr(self, name, expr):
+        return self._expr('eval(%r, self.globals, _locals)' %(expr,))
+
+
+    def apply(self, ruleName, codeName=None, *exprs):
+        """
+        Create a call to self.apply(ruleName, *args).
+        """
+        args = [self.compilePythonExpr(codeName, arg) for arg in exprs]
+        return [self._expr('self.apply("%s", %s)' % (ruleName, ', '.join(args)))]
+
+
+    def exactly(self, literal):
+        """
+        Create a call to self.exactly(expr).
+        """
+        return [self._expr('self.exactly(%r)' % (literal,))]
+
+
+    def many(self, expr):
+        """
+        Create a call to self.many(lambda: expr).
+        """
+        fn, fname = self._newThunkFor("many", expr)
+        return self.sequence([fn, "self.many(%s)" %(fname,)])
+
+
+    def many1(self, expr):
+        """
+        Create a call to self.many((lambda: expr), expr).
+        """
+        fn, fname = self._newThunkFor("many", expr)
+        return self.sequence([fn, self._expr("self.many(%s, %s())" %(fname, fname))])
+
+
+    def _or(self, exprs):
+        """
+        Create a call to
+        self._or([lambda: expr1, lambda: expr2, ... , lambda: exprN]).
+        """
+        if len(exprs) > 1:
+            fs, fnames = zip(*[self._newThunkFor("_or", expr) for expr in exprs])
+            return self.sequence(list(fs) + [self._expr("self._or([%s])" %(', '.join(fnames)))])
+        else:
+            return exprs[0]
+
+
+    def _not(self, expr):
+        fn, fname = self._newThunkFor("_not", expr)
+        return self.sequence([fn, self._expr("self._not(%s)" %(fname))])
+
+
+    def lookahead(self, expr):
+        fn, fname = self._newThunkFor("lookahead", expr)
+        return self.sequence([fn, self._expr("self.lookahead(%s)" %(fname))])
+
+
+    def sequence(self, exprs):
+        for ex in exprs:
+            if not ex:
+                continue
+            elif isinstance(ex, str):
+                yield ex
+            else:
+                for subex in ex:
+                    yield subex
+
+    def bind(self, exprs, name):
+        bodyExprs = list(exprs)
+        finalExpr = bodyExprs[-1]
+        bodyExprs = bodyExprs[:-1]
+        return self.sequence(bodyExprs + ["_locals['%s'] = %s" %(name, finalExpr), self._expr("_locals['%s']" %(name,))])
+
+
+    def pred(self, expr):
+        fn, fname = self._newThunkFor("pred", [expr])
+        return self.sequence([fn, self._expr("self.pred(%s)" %(fname))])
+
+    def action(self, expr):
+        return [expr]
+
+    def listpattern(self, expr):
+        fn, fname = self._newThunkFor("listpattern", expr)
+        return self.sequence([fn, self._expr("self.listpattern(%s)" %(fname))])
+
+
+
+def parseGrammar(grammar, name="Grammar", builder=AstBuilder):
+    g = BootOMetaGrammar(grammar)
+    g.builder = builder(name, g)
+    res = g.rule_grammar()
+    x = list(g.input)
+    if x:
+        try:
+            x = repr(''.join(x))
+        except TypeError:
+            pass
+        raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
+    return res
+
 
 class _MetaOMeta(type):
     """
@@ -799,13 +989,13 @@ class _MetaOMeta(type):
     def __new__(metaclass, name, bases, methodDict):
         grammar = methodDict.get('__doc__', None)
         if grammar:
-            ab, rules = parseGrammar(grammar, name)
-            ruleMethods = dict([(k, ab.compileAstMethod(k, v))
-                                for (k, v) in rules.iteritems()])
-            methodDict['__ometa_rules__'] = ruleMethods
+            rules = parseGrammar(grammar, name)
+            rules.update(methodDict)
         else:
             methodDict['__ometa_rules__'] = {}
-        grammarClass = type.__new__(metaclass, name, bases, methodDict)
+            rules = methodDict
+        grammarClass = type.__new__(metaclass, name, bases, rules)
+        grammarClass.globals = sys.modules[grammarClass.__module__].__dict__
         return grammarClass
 
 
@@ -818,3 +1008,114 @@ class _OMetaCallWrapper(OMetaBase):
 
 class OMeta(_OMetaCallWrapper):
     __metaclass__ = _MetaOMeta
+
+
+class OMetaGrammar(OMeta):
+    """
+    number ::= <spaces> ('-' <barenumber>:x => self.builder.exactly(-x)
+                        |<barenumber>:x => self.builder.exactly(x))
+    barenumber ::= ('0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
+                        |<octaldigit>*:ds => int('0'+''.join(ds), 8))
+                   |<decdigit>+:ds => int(''.join(ds)))
+    octaldigit ::= :x ?(x in string.octdigits) => x
+    hexdigit ::= :x ?(x in string.hexdigits) => x
+    decdigit ::= :x ?(x in string.digits) => x
+
+    character ::= <token "'"> :c <token "'"> => self.builder.exactly(c)
+
+    name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
+
+    application ::= (<token '<'> <spaces> <name>:name
+                      (' ' !(self.applicationArgs()):args
+                         => self.builder.apply(name, self.name, *args)
+                      |<token '>'>
+                         => self.builder.apply(name)))
+
+    expr1 ::= (<application>
+              |<ruleValue>
+              |<semanticPredicate>
+              |<semanticAction>
+              |<number>
+              |<character>
+              |<token '('> <expr>:e <token ')'> => e
+              |<token '['> <expr>:e <token ']'> => self.builder.listpattern(e))
+
+    expr2 ::= (<token '~'> (<token '~'> <expr2>:e => self.builder.lookahead(e)
+                           |<expr2>:e => self.builder._not(e))
+              |<expr1>)
+
+    expr3 ::= ((<expr2>:e (<token '*'> => self.builder.many(e)
+                          |<token '+'> => self.builder.many1(e)
+                          | => e)):r
+               (':' <name>:n => self.builder.bind(r, n)
+               | => r)
+              |<token ':'> <name>:n
+               => self.builder.bind(self.builder.apply("anything"), n))
+
+    expr4 ::= <expr3>*:es => self.builder.sequence(es)
+
+    expr ::= <expr4>:e (<token '|'> <expr4>)*:es !(es.insert(0, e))
+              => self.builder._or(es)
+
+    ruleValue ::= <token "=>"> => self.ruleValueExpr()
+
+    semanticPredicate ::= <token "?("> => self.semanticPredicateExpr()
+
+    semanticAction ::= <token "!("> => self.semanticActionExpr()
+
+    rulePart :requiredName ::= (<spaces> <name>:n ?(n == requiredName)
+                                !(setattr(self, "name", n))
+                                <expr4>:args
+                                (<token "::="> <expr>:e
+                                   => self.builder.sequence([args, e])
+                                |  => args))
+    rule ::= (<spaces> ~~(<name>:n) <rulePart n>:r
+              (<rulePart n>+:rs => (n, self.builder._or([r] + rs))
+              |                     => (n, r)))
+
+    grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
+    """
+
+    def compile(self, name="<grammar>"):
+        self.builder = AstBuilder(name, self)
+        methodDict = self.apply("grammar")
+        x = list(self.input)
+        if x:
+            try:
+                x = repr(''.join(x))
+            except TypeError:
+                pass
+            raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
+        grammarClass = type(name, (OMetaBase,), methodDict)
+        return HandyWrapper(grammarClass)
+
+    def applicationArgs(self):
+        args = []
+        while True:
+            try:
+                arg, endchar = self.pythonExpr(" >")
+                if not arg:
+                    break
+                args.append(arg)
+                if endchar == '>':
+                    break
+            except ParseError:
+                break
+        if args:
+            return args
+        else:
+            raise ParseError()
+
+    def ruleValueExpr(self):
+        expr, endchar = self.pythonExpr(endChars="\r\n)]")
+        if str(endchar) in ")]":
+            self.input.prev()
+        return self.builder.compilePythonExpr(self.name, expr)
+
+    def semanticActionExpr(self):
+        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        return self.builder.action(expr)
+
+    def semanticPredicateExpr(self):
+        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        return self.builder.pred(expr)

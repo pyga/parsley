@@ -1,7 +1,8 @@
 from twisted.trial import unittest
 from compiler import parse as python_parse
 import pymeta
-from pymeta import ParseError, OMetaBase, AstBuilder, OMeta
+from pymeta import ParseError, OMetaBase, AstBuilder, OMeta, IterBuffer
+import grammar2
 
 class OMetaTestCase(unittest.TestCase):
     """
@@ -88,8 +89,18 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.foo("1"), "1")
         self.assertRaises(ParseError, g.foo, "0")
 
+    def test_lookahead(self):
+        """
+        Doubled negation does lookahead.
+        """
+        g = self.compile("""
+                         foo ::= ~~(:x) <bar x>
+                         bar :x ::= :a :b ?(x == a == b) => x
+                         """)
+        self.assertEqual(g.foo("11"), '1')
+        self.assertEqual(g.foo("22"), '2')
 
-    def test_action(self):
+    def test_ruleValue(self):
         """
         Productions can specify a Python expression that provides the result
         of the parse.
@@ -120,6 +131,12 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.double_bits, "10")
         self.assertRaises(ParseError, g.double_bits, "01")
 
+    def test_action(self):
+        """
+        Python expressions can be run as actions with no effect on the result of the parse.
+        """
+        g = self.compile("foo ::= '1'*:ones !(False) !(ones.insert(0, '0')) => ''.join(ones)")
+        self.assertEqual(g.foo("111"), "0111")
 
     def test_parens(self):
         """
@@ -239,8 +256,57 @@ class PyExtractorTest(unittest.TestCase):
         self.findInGrammar('{x: "]",\ny: "["}')
 
 
+class IterBufferTest(unittest.TestCase):
 
-class CodeGenTest(unittest.TestCase):
+    def test_next(self):
+        """
+        IterBuffers are iterable and yield their contents.
+        """
+        d = "test data"
+        i = IterBuffer(d)
+        self.assertEqual(''.join(i), d)
+
+
+    def test_rewind(self):
+        """
+        Rewinding an IterBuffer should reset it to a previous marked position
+        in the iterator.
+        """
+        d = "test data"
+        i1 = IterBuffer(d)
+        i2 = IterBuffer(d)
+        for _ in range(3):
+            i1.next()
+            i2.next()
+        m = i1.mark()
+        for _ in range(3):
+            i1.next()
+        i1.rewind(m)
+        self.assertEqual(list(i1), list(i2))
+
+    def test_rewindPush(self):
+        """
+        Rewinding an IterBuffer should reset it to a previous marked position
+        in the iterator, even if args have been pushed to it.
+        """
+        d = "test data"
+        i1 = IterBuffer(d)
+        i2 = IterBuffer(d)
+        for _ in range(3):
+            i1.next()
+            i2.next()
+        m = i1.mark()
+        for _ in range(3):
+            i1.next()
+        i1.push(7)
+        i1.next()
+        i1.rewind(m)
+        self.assertEqual(list(i1), list(i2))
+
+
+
+
+class AstBuilderTest(unittest.TestCase):
     """
     Tests for creating Python functions and classes.
     """
@@ -251,8 +317,8 @@ class CodeGenTest(unittest.TestCase):
         returns the value of the given expression.
         """
         expr = python_parse("self[1] + 3", mode="eval").asList()[0]
-        ab = AstBuilder("<test>")
-        f = ab.compileAstMethod("f", expr)
+        ab = AstBuilder("<test>", None)
+        f = ab._compileAstMethod("f", expr)
         self.assertEqual(f([0, 2]), 5)
 
 
@@ -271,3 +337,12 @@ class MetaclassTest(unittest.TestCase):
 
         g = TestGrammar("314159")
         self.assertEqual(g.num(), 314159)
+
+
+class SelfHostingTest(OMetaTestCase):
+     """
+     Tests for the OMeta grammar parser defined with OMeta.
+     """
+     def compile(self, *args):
+         g = grammar2.OMetaGrammar(*args)
+         return g.compile()

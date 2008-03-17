@@ -1,7 +1,8 @@
 from twisted.trial import unittest
 from compiler import parse as python_parse
-import pymeta
-from pymeta import ParseError, OMetaBase, AstBuilder, OMeta, IterBuffer, OMetaGrammar
+from pymeta.runtime import ParseError, OMetaBase, IterBuffer
+from pymeta.builder import AstBuilder
+from pymeta.grammar import OMeta, OMetaGrammar, compile
 
 
 class OMetaTestCase(unittest.TestCase):
@@ -9,7 +10,7 @@ class OMetaTestCase(unittest.TestCase):
     Tests of OMeta grammar compilation.
     """
     def compile(self, *args):
-        return pymeta.compile(*args)
+        return compile(*args)
     def test_literals(self):
         """
         Input matches can be made on literal characters.

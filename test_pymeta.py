@@ -1,8 +1,8 @@
 from twisted.trial import unittest
 from compiler import parse as python_parse
 import pymeta
-from pymeta import ParseError, OMetaBase, AstBuilder, OMeta, IterBuffer
-import grammar2
+from pymeta import ParseError, OMetaBase, AstBuilder, OMeta, IterBuffer, OMetaGrammar
+
 
 class OMetaTestCase(unittest.TestCase):
     """
@@ -344,5 +344,5 @@ class SelfHostingTest(OMetaTestCase):
      Tests for the OMeta grammar parser defined with OMeta.
      """
      def compile(self, *args):
-         g = grammar2.OMetaGrammar(*args)
+         g = OMetaGrammar(*args)
          return g.compile()

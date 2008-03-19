@@ -1,5 +1,52 @@
-from runtime import OMetaBase, ParseError
+from pymeta.runtime import OMetaBase, ParseError
 import string
+from pymeta.builder import AstBuilder
+
+def compile(grammar, name="<grammar>"):
+    """
+    Compile an OMeta grammar and return an object whose methods invoke its
+    productions on their first argument.
+    """
+
+    methodDict = parseGrammar(grammar, name)
+    grammarClass = type(name, (OMetaBase,), methodDict)
+    return HandyWrapper(grammarClass)
+
+class HandyWrapper(object):
+    """
+    Convenient grammar wrapper for parsing strings.
+    """
+    def __init__(self, klass):
+        self.klass = klass
+    def __getattr__(self, name):
+        def doIt(str):
+            obj = self.klass(str)
+            ret = obj.apply(name)
+            extra = list(obj.input)
+            if not extra:
+                try:
+                    return ''.join(ret)
+                except TypeError:
+                    return ret
+            else:
+                raise ParseError("trailing garbage in input: %s" % (extra,))
+        return doIt
+
+
+def parseGrammar(grammar, name="Grammar", builder=AstBuilder):
+    g = BootOMetaGrammar(grammar)
+    g.builder = builder(name, g)
+    res = g.rule_grammar()
+    x = list(g.input)
+    if x:
+        try:
+            x = repr(''.join(x))
+        except TypeError:
+            pass
+        raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
+    return res
+
+
 
 class BootOMetaGrammar(OMetaBase):
     globals = globals()

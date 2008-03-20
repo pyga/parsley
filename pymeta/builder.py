@@ -36,6 +36,10 @@ class AstBuilder(object):
 
         fexpr = ast.Stmt([ast.Assign([ast.AssName('__locals', 'OP_ASSIGN')],
                                      ast.Dict([(ast.Const('self'), ast.Name('self'))])),
+                          ast.Assign([ast.Subscript(ast.Getattr(ast.Name('self'), 'locals'),
+                                                    'OP_ASSIGN',
+                                                    [ast.Const(name)])],
+                                 ast.Name('__locals')),
                           expr])
         f = ast.Lambda(['self'], [], 0, fexpr)
         f.filename = self.name
@@ -44,7 +48,7 @@ class AstBuilder(object):
     def makeGrammar(self, rules):
         ruleMethods = dict([(k, self._compileAstMethod(k, v))
                              for (k, v) in rules])
-        methodDict = {'__ometa_rules__': ruleMethods}
+        methodDict = {'__ometa_rules__': ruleMethods, 'locals': {}}
         return methodDict
 
     def apply(self, ruleName, codeName=None, *exprs):
@@ -204,7 +208,7 @@ class PythonBuilder(object):
 
     def makeGrammar(self, rules):
         lines = list(itertools.chain(*[self._function("def rule_%s(self):"%(name,),
-                                                      ["_locals = {'self': self}"] + list(body)) + ['\n\n']
+                                                      ["_locals = {'self': self}", "self.locals[%s] = _locals" % (name,)] + list(body)) + ['\n\n']
                                        for (name, body) in rules]))
         code = '\n'.join(self._suite("class %s(%s):" %(self.name, self.grammar.__class__.__name__), lines))
         module = "from %s import %s\n" % (self.grammar.__class__.__module__, self.grammar.__class__.__name__) + code

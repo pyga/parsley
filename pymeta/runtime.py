@@ -140,20 +140,13 @@ class OMetaBase(object):
             else:
                 self.globals = globals
 
-    def hasRule(self, name):
-        return (name in self.__ometa_rules__
-                or hasattr(self, "rule_"+name))
-
 
     def getRule(self, name):
-        r = self.__ometa_rules__.get(name, None)
-        if r is None:
-            if hasattr(self, "rule_"+name):
-                return getattr(self, "rule_"+name)
-            else:
-                raise NameError("No rule named '%s'" %(name,))
+        r = getattr(self, "rule_"+name, None)
+        if r is not None:
+            return r
         else:
-            return r.__get__(self)
+            raise NameError("No rule named '%s'" %(name,))
 
 
     def apply(self, ruleName, *args):

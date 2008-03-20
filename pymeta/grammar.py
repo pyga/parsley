@@ -20,7 +20,6 @@ class _MetaOMeta(type):
             rules = g.parseGrammar(name)
             rules.update(methodDict)
         else:
-            methodDict['__ometa_rules__'] = {}
             rules = methodDict
         grammarClass = type.__new__(metaclass, name, bases, rules)
         grammarClass.globals = sys.modules[grammarClass.__module__].__dict__

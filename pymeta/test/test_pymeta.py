@@ -329,13 +329,33 @@ class MetaclassTest(unittest.TestCase):
         self.assertEqual(g.apply("num"), 314159)
 
 
+    def test_subclassing(self):
+        """
+        A subclass of an OMeta subclass should be able to call rules on its
+        parent.
+        """
+        from pymeta.grammar import OMeta
+        class TestGrammar1(OMeta):
+            grammar = """
+            dig ::= :x ?('0' <= x <= '9') => int(x)
+            """
+        class TestGrammar2(TestGrammar1):
+            grammar = """
+            num ::= (<num>:n <dig>:d => n * 10 + d
+                    | <dig>)
+            """
+        g = TestGrammar2("314159")
+        self.assertEqual(g.apply("num"), 314159)
+
 class SelfHostingTest(OMetaTestCase):
     """
     Tests for the OMeta grammar parser defined with OMeta.
     """
-    def __init__(self, *args, **kwargs):
+    classTested = None
+    def setUp(self):
         #imported here to prevent OMetaGrammar from being constructed before
         #tests are run
-        from pymeta.grammar import OMetaGrammar
-        self.classTested = OMetaGrammar
-        OMetaTestCase.__init__(self, *args, **kwargs)
+        if self.classTested is None:
+            from pymeta.grammar import OMetaGrammar
+            self.classTested = OMetaGrammar
+

@@ -38,7 +38,7 @@ class AstBuilder(object):
                                      ast.Dict([(ast.Const('self'), ast.Name('self'))])),
                           ast.Assign([ast.Subscript(ast.Getattr(ast.Name('self'), 'locals'),
                                                     'OP_ASSIGN',
-                                                    [ast.Const(name)])],
+                                                    [ast.Const(name.split('_',1)[1])])],
                                  ast.Name('__locals')),
                           expr])
         f = ast.Lambda(['self'], [], 0, fexpr)
@@ -46,9 +46,11 @@ class AstBuilder(object):
         return f
 
     def makeGrammar(self, rules):
-        ruleMethods = dict([(k, self._compileAstMethod(k, v))
+        ruleMethods = dict([('rule_'+k, self._compileAstMethod('rule_'+k, v))
                              for (k, v) in rules])
-        methodDict = {'__ometa_rules__': ruleMethods, 'locals': {}}
+
+        methodDict = {'locals': {}}
+        methodDict.update(ruleMethods)
         return methodDict
 
     def apply(self, ruleName, codeName=None, *exprs):
@@ -96,7 +98,7 @@ class AstBuilder(object):
         """
         Try to parse an expr and continue if it fails.
         """
-        return self._or([expr, ast.Const(True)])
+        return self._or([expr, ast.Const(None)])
 
     def _or(self, exprs):
         """

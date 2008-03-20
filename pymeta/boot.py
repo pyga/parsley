@@ -8,7 +8,6 @@ class BootOMetaGrammar(OMetaBase):
     def __init__(self, input):
         OMetaBase.__init__(self, input)
         self._ruleNames = []
-        self.__ometa_rules__ = {}
 
 
     def parseGrammar(self, name="Grammar", builder=AstBuilder):

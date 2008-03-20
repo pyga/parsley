@@ -209,6 +209,7 @@ class OMetaBase(object):
             self.input.prev()
             raise ParseError()
 
+    rule_exactly = exactly
 
     def many(self, fn, *initial):
         ans = list(initial)
@@ -278,6 +279,7 @@ class OMetaBase(object):
     def end(self):
         return self._not(self.rule_anything)
 
+    rule_end = end
 
     def lookahead(self, f):
         try:
@@ -352,6 +354,8 @@ class OMetaBase(object):
         else:
             self.input.prev()
             raise ParseError()
+
+    rule_digit = digit
 
     def hexdigit(self):
         try:

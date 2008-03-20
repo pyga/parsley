@@ -37,10 +37,9 @@ class OMetaGrammar(OMeta):
                         |<barenumber>:x => self.builder.exactly(x))
     barenumber ::= ('0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
                         |<octaldigit>*:ds => int('0'+''.join(ds), 8))
-                   |<decdigit>+:ds => int(''.join(ds)))
+                   |<digit>+:ds => int(''.join(ds)))
     octaldigit ::= :x ?(x in string.octdigits) => x
     hexdigit ::= :x ?(x in string.hexdigits) => x
-    decdigit ::= :x ?(x in string.digits) => x
 
     character ::= <token "'"> :c <token "'"> => self.builder.exactly(c)
 

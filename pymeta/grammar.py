@@ -1,7 +1,9 @@
 import sys, string
 from builder import AstBuilder
-from boot import parseGrammar, HandyWrapper
+from boot import BootOMetaGrammar
 from runtime import OMetaBase, ParseError
+
+OMetaGrammar = None
 
 class _MetaOMeta(type):
     """
@@ -9,9 +11,13 @@ class _MetaOMeta(type):
     but I'm not coming up with anything at the moment.
     """
     def __new__(metaclass, name, bases, methodDict):
-        grammar = methodDict.get('__doc__', None)
+        grammar = methodDict.get('grammar', None)
         if grammar:
-            rules = parseGrammar(grammar, name)
+            if OMetaGrammar is None:
+                g = BootOMetaGrammar(grammar)
+            else:
+                g = OMetaGrammar(grammar)
+            rules = g.parseGrammar(name)
             rules.update(methodDict)
         else:
             methodDict['__ometa_rules__'] = {}
@@ -21,19 +27,13 @@ class _MetaOMeta(type):
         return grammarClass
 
 
-class _OMetaCallWrapper(OMetaBase):
-    def __getattr__(self, name):
-        if name in self.__ometa_rules__:
-            return lambda: self.apply(name)
-        else:
-            raise AttributeError
 
-class OMeta(_OMetaCallWrapper):
+class OMeta(OMetaBase):
     __metaclass__ = _MetaOMeta
 
 
 class OMetaGrammar(OMeta):
-    """
+    grammar = """
     number ::= <spaces> ('-' <barenumber>:x => self.builder.exactly(-x)
                         |<barenumber>:x => self.builder.exactly(x))
     barenumber ::= ('0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
@@ -98,9 +98,10 @@ class OMetaGrammar(OMeta):
     grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
     """
 
-    def compile(self, name="<grammar>"):
-        self.builder = AstBuilder(name, self)
-        methodDict = self.apply("grammar")
+
+    def parseGrammar(self, name="Grammar", builder=AstBuilder):
+        self.builder = builder(name, self)
+        res = self.apply("grammar")
         x = list(self.input)
         if x:
             try:
@@ -108,8 +109,8 @@ class OMetaGrammar(OMeta):
             except TypeError:
                 pass
             raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
-        grammarClass = type(name, (OMetaBase,), methodDict)
-        return HandyWrapper(grammarClass)
+        return res
+
 
     def applicationArgs(self):
         args = []

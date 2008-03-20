@@ -1,14 +1,43 @@
 from twisted.trial import unittest
 from pymeta.runtime import ParseError, OMetaBase
-from pymeta.boot import compile
+from pymeta.boot import BootOMetaGrammar
+
+
+class HandyWrapper(object):
+    """
+    Convenient grammar wrapper for parsing strings.
+    """
+    def __init__(self, klass):
+        self.klass = klass
+    def __getattr__(self, name):
+        def doIt(str):
+            obj = self.klass(str)
+            ret = obj.apply(name)
+            extra = list(obj.input)
+            if not extra:
+                try:
+                    return ''.join(ret)
+                except TypeError:
+                    return ret
+            else:
+                raise ParseError("trailing garbage in input: %s" % (extra,))
+        return doIt
+
 
 
 class OMetaTestCase(unittest.TestCase):
     """
     Tests of OMeta grammar compilation.
     """
+
+    classTested = BootOMetaGrammar
+
     def compile(self, *args):
-        return compile(*args)
+        g = self.classTested(*args)
+        methodDict = g.parseGrammar()
+        grammarClass = type("<grammar>", (OMetaBase,), methodDict)
+        return HandyWrapper(grammarClass)
+
     def test_literals(self):
         """
         Input matches can be made on literal characters.
@@ -262,25 +291,27 @@ class MetaclassTest(unittest.TestCase):
     """
 
     def test_grammarClass(self):
-        #imported here to prevent OMetaGrammar from being constructed before tests are run
+        #imported here to prevent OMetaGrammar from being constructed before
+        #tests are run
         from pymeta.grammar import OMeta
         class TestGrammar(OMeta):
-            """
+            grammar = """
             digit ::= :x ?('0' <= x <= '9') => int(x)
             num ::= (<num>:n <digit>:d => n * 10 + d
                    | <digit>)
             """
 
         g = TestGrammar("314159")
-        self.assertEqual(g.num(), 314159)
+        self.assertEqual(g.apply("num"), 314159)
 
 
 class SelfHostingTest(OMetaTestCase):
     """
     Tests for the OMeta grammar parser defined with OMeta.
     """
-    def compile(self, *args):
-        #imported here to prevent OMetaGrammar from being constructed before tests are run
+    def __init__(self, *args, **kwargs):
+        #imported here to prevent OMetaGrammar from being constructed before
+        #tests are run
         from pymeta.grammar import OMetaGrammar
-        g = OMetaGrammar(*args)
-        return g.compile()
+        self.classTested = OMetaGrammar
+        OMetaTestCase.__init__(self, *args, **kwargs)

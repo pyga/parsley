@@ -88,6 +88,12 @@ class AstBuilder(object):
                             [f, expr],
                             None, None)
 
+    def optional(self, expr):
+        """
+        Try to parse an expr and continue if it fails.
+        """
+        return self._or([expr, ast.Const(True)])
+
     def _or(self, exprs):
         """
         Create a call to
@@ -237,6 +243,12 @@ class PythonBuilder(object):
         """
         fn, fname = self._newThunkFor("many", expr)
         return self.sequence([fn, self._expr("self.many(%s, %s())" %(fname, fname))])
+
+    def optional(self, expr):
+        """
+        Try to parse an expr and continue if it fails.
+        """
+        return self._or([expr, "True"])
 
 
     def _or(self, exprs):

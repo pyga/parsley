@@ -68,6 +68,7 @@ class OMetaGrammar(OMeta):
 
     expr3 ::= ((<expr2>:e (<token '*'> => self.builder.many(e)
                           |<token '+'> => self.builder.many1(e)
+                          |<token '?'> => self.builder.optional(e)
                           | => e)):r
                (':' <name>:n => self.builder.bind(r, n)
                | => r)

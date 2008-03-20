@@ -98,6 +98,14 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.digit, "3")
 
 
+    def test_optional(self):
+        """
+        Subpatterns can be made optional.
+        """
+        g = self.compile("foo ::= 'x' 'y'? 'z'")
+        self.assertEqual(g.foo("xyz"), 'z')
+        self.assertEqual(g.foo("xz"), 'z')
+
     def test_apply(self):
         """
         Other productions can be invoked from within a production.

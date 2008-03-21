@@ -117,10 +117,7 @@ class OMetaGrammar(OMeta):
         res = self.apply("grammar")
         x = list(self.input)
         if x:
-            try:
-                x = repr(''.join(x))
-            except TypeError:
-                pass
+            x = repr(''.join(x))
             raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
         return res
 

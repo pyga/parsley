@@ -40,6 +40,8 @@ class IterBuffer(object):
         self.original = iterable
         if isinstance(iterable, str):
             self.iterable = (character(c) for c in iterable)
+        elif isinstance(iterable, unicode):
+            self.iterable = (unicodeCharacter(c) for c in iterable)
         else:
             self.iterable = iter(iterable)
         self.buffer = []
@@ -146,22 +148,12 @@ class IterBuffer(object):
                 del buf[-len(saved):]
 
 
-    def seekTo(self, position):
+    def seekForwardTo(self, position):
         """
-        Return to a previously marked position, if it was marked, or advance to
-        a later position.
+        Advance until the input reaches the requested position.
         """
-        if position > self.position:
-            while position > self.position:
-                self.next()
-            return
-        elif position < self.position:
-            try:
-                i = self.markPositions.index(position)
-            except ValueError:
-                raise RuntimeError("Tried to seek to an unsaved position", position)
-            self.rewind(i)
-
+        while position > self.position:
+            self.next()
 
 class LeftRecursion(object):
     """
@@ -239,13 +231,12 @@ class OMetaBase(object):
                         self.input.rewind(m)
                     except ParseError:
                         break
-                pass
             self.input.unmark(m)
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
             raise ParseError()
-        self.input.seekTo(memoRec[1])
+        self.input.seekForwardTo(memoRec[1])
         return memoRec[0]
 
 
@@ -396,23 +387,6 @@ class OMetaBase(object):
             self.input.rewind(m)
 
 
-    def newline(self):
-        """
-        Match any number of newlines in the input.
-        """
-        for c in self.input:
-            if c in '\r\n':
-                break
-            if not c.isspace():
-                self.input.prev()
-                raise ParseError()
-        for c in self.input:
-            if c not in '\r\n':
-                self.input.prev()
-                break
-        return True
-
-
     def token(self, tok):
         """
         Match and return the given string, consuming any preceding whitespace.
@@ -477,20 +451,6 @@ class OMetaBase(object):
             raise ParseError()
 
     rule_digit = digit
-
-    def hexdigit(self):
-        """
-        Match a single hex digit.
-        """
-        try:
-            x = self.input.next()
-        except StopIteration:
-            raise ParseError()
-        if x in string.hexdigits:
-            return x
-        else:
-            self.input.prev()
-            raise ParseError()
 
 
     def pythonExpr(self, endChars="\r\n"):

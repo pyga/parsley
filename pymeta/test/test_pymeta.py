@@ -146,6 +146,15 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.foo, "0")
 
 
+    def test_ruleValue(self):
+        """
+        Productions can specify a Python expression that provides the result
+        of the parse.
+        """
+        g = self.compile("foo ::= '1' => 7")
+        self.assertEqual(g.foo('1'), 7)
+
+
     def test_lookahead(self):
         """
         Doubled negation does lookahead.
@@ -156,15 +165,6 @@ class OMetaTestCase(unittest.TestCase):
                          """)
         self.assertEqual(g.foo("11"), '1')
         self.assertEqual(g.foo("22"), '2')
-
-
-    def test_ruleValue(self):
-        """
-        Productions can specify a Python expression that provides the result
-        of the parse.
-        """
-        g = self.compile("foo ::= '1' => 7")
-        self.assertEqual(g.foo('1'), 7)
 
 
     def test_binding(self):
@@ -305,13 +305,16 @@ class OMetaTestCase(unittest.TestCase):
         Characters (in single-quotes) are not regarded as sequences.
         """
         g = self.compile("""
-             interp ::= ([<interp>:x '+' <interp>:y] => x + y
-                       | [<interp>:x '*' <interp>:y] => x * y
-                       | :x ?(isinstance(x, str) and x.isdigit()) => int(x))
-             """)
+        interp ::= ([<interp>:x '+' <interp>:y] => x + y
+                  | [<interp>:x '*' <interp>:y] => x * y
+                  | :x ?(isinstance(x, basestring) and x.isdigit()) => int(x))
+        """)
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
+        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
 
-
+    def test_badGrammar(self):
+        grammar = "not really a grammar at all!"
+        self.assertRaises(ParseError, self.compile, grammar)
 
 class PyExtractorTest(unittest.TestCase):
     """
@@ -342,6 +345,10 @@ class PyExtractorTest(unittest.TestCase):
         self.findInGrammar('[x, "]",\n 1]')
         self.findInGrammar('{x: "]",\ny: "["}')
 
+        o = OMetaBase("foo(x[1]])\nbaz ::= ...\n")
+        self.assertRaises(ParseError, o.pythonExpr)
+        o = OMetaBase("foo(x[1]\nbaz ::= ...\n")
+        self.assertRaises(ParseError, o.pythonExpr)
 
 
 class MetaclassTest(unittest.TestCase):

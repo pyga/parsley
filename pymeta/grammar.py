@@ -7,8 +7,7 @@ OMetaGrammar = None
 
 class _MetaOMeta(type):
     """
-    There is probably some really good joke I could make about this class name
-    but I'm not coming up with anything at the moment.
+    Metaclass for generating Python methods from grammar definitions.
     """
     def __new__(metaclass, name, bases, methodDict):
         grammar = methodDict.get('grammar', None)
@@ -28,10 +27,17 @@ class _MetaOMeta(type):
 
 
 class OMeta(OMetaBase):
+    """
+    Base class for grammar definitions: define a subclass of this class with a
+    'grammar' attribute and rules will be produced from it as methods.
+    """
     __metaclass__ = _MetaOMeta
 
 
 class OMetaGrammar(OMeta):
+    """
+    The base grammar for parsing grammar definitions.
+    """
     grammar = """
     number ::= <spaces> ('-' <barenumber>:x => self.builder.exactly(-x)
                         |<barenumber>:x => self.builder.exactly(x))
@@ -99,6 +105,14 @@ class OMetaGrammar(OMeta):
 
 
     def parseGrammar(self, name="Grammar", builder=AstBuilder):
+        """
+        Entry point for converting a grammar to code (of some variety).
+
+        @param name: The name for this grammar.
+
+        @param builder: A class that implements the grammar-building interface
+        (interface to be explicitly defined later)
+        """
         self.builder = builder(name, self)
         res = self.apply("grammar")
         x = list(self.input)
@@ -112,6 +126,10 @@ class OMetaGrammar(OMeta):
 
 
     def applicationArgs(self):
+        """
+        Collect rule arguments, a list of Python expressions separated by
+        spaces.
+        """
         args = []
         while True:
             try:
@@ -129,16 +147,29 @@ class OMetaGrammar(OMeta):
             raise ParseError()
 
     def ruleValueExpr(self):
+        """
+        Find and generate code for a Python expression terminated by a close
+        paren/brace or end of line.
+        """
         expr, endchar = self.pythonExpr(endChars="\r\n)]")
         if str(endchar) in ")]":
             self.input.prev()
         return self.builder.compilePythonExpr(self.name, expr)
 
     def semanticActionExpr(self):
+        """
+        Find and generate code for a Python expression terminated by a
+        close-paren, whose return value is ignored.
+        """
         expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
         return self.builder.action(expr)
 
     def semanticPredicateExpr(self):
+        """
+        Find and generate code for a Python expression terminated by a
+        close-paren, whose return value determines the success of the pattern
+        it's in.
+        """
         expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
         return self.builder.pred(expr)
 

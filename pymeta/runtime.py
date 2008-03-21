@@ -1,4 +1,5 @@
 import string
+
 class ParseError(Exception):
     """
     ?Redo from start
@@ -33,6 +34,9 @@ class IterBuffer(object):
     """
 
     def __init__(self, iterable):
+        """
+        @param iterable: Any iterable Python object.
+        """
         self.original = iterable
         if isinstance(iterable, str):
             self.iterable = (character(c) for c in iterable)
@@ -45,20 +49,37 @@ class IterBuffer(object):
         self.memo = {}
         self.args = []
 
+
     def getMemo(self, name):
+        """
+        Returns the memo record for the named rule.
+        @param name: A rule name.
+        """
         m = self.memo.get(self.position, None)
         if m:
             return m.get(name, None)
 
+
     def setMemo(self, pos, name, rec):
+        """
+        Store a memo record for the given value and position for the given
+        rule.
+        @param pos: A position in the input.
+        @param name: A rule name.
+        @param rec: A memo record.
+        """
         self.memo.setdefault(pos, {})[name] = rec
         return rec
+
 
     def __iter__(self):
         return self
 
 
     def next(self):
+        """
+        Fetch the next item in the stream.
+        """
         if self.args:
             val = self.args.pop()
         else:
@@ -74,6 +95,9 @@ class IterBuffer(object):
 
 
     def prev(self):
+        """
+        Rewind by a single item.
+        """
         self.buffer.append(self.lastThing)
         for buf in self.markBuffers:
             if buf:
@@ -82,23 +106,37 @@ class IterBuffer(object):
         del self.lastThing
 
     def push(self, obj):
+        """
+        Push an object onto the stream, such that it will be returned on the
+        next call to next().
+        """
         self.position -= 1
         self.args.append(obj)
         if self.position in self.memo:
             self.memo[self.position] = {}
 
     def mark(self):
+        """
+        Mark a position in the stream.
+        """
         self.markPositions.append(self.position)
         self.markBuffers.append([])
         return len(self.markBuffers)-1
 
 
     def unmark(self, mark):
+        """
+        Register disinterest in returning to a previously marked stream
+        position.
+        """
         del self.markBuffers[mark:]
         del self.markPositions[mark:]
 
 
     def rewind(self, mark):
+        """
+        Return to a previously marked position in the stream.
+        """
         saved = self.markBuffers[mark][::-1]
         self.buffer.extend(saved)
         self.position = self.markPositions[mark]
@@ -109,6 +147,10 @@ class IterBuffer(object):
 
 
     def seekTo(self, position):
+        """
+        Return to a previously marked position, if it was marked, or advance to
+        a later position.
+        """
         if position > self.position:
             while position > self.position:
                 self.next()
@@ -133,6 +175,12 @@ class OMetaBase(object):
     """
     globals = None
     def __init__(self, string, globals=None):
+        """
+        @param string: The string to be parsed.
+
+        @param globals: A dictionary of names to objects, for use in evaluating
+        embedded Python expressions.
+        """
         self.input = IterBuffer(string)
         if self.globals is None:
             if globals is None:
@@ -142,6 +190,10 @@ class OMetaBase(object):
 
 
     def getRule(self, name):
+        """
+        Locate the named rule.
+        @param name: A rule name.
+        """
         r = getattr(self, "rule_"+name, None)
         if r is not None:
             return r
@@ -150,6 +202,11 @@ class OMetaBase(object):
 
 
     def apply(self, ruleName, *args):
+        """
+        Apply the named rule, optionally with some arguments.
+
+        @param ruleName: A rule name.
+        """
         rule = self.getRule(ruleName)
         if args:
             if rule.func_code.co_argcount - 1 != len(args):
@@ -193,12 +250,20 @@ class OMetaBase(object):
 
 
     def rule_anything(self):
+        """
+        Match a single item from the input of any kind.
+        """
         try:
             return self.input.next()
         except StopIteration:
             raise ParseError()
 
     def exactly(self, wanted):
+        """
+        Match a single item from the input equal to the given specimen.
+
+        @param wanted: What to match.
+        """
         try:
             val = self.input.next()
         except StopIteration:
@@ -212,6 +277,13 @@ class OMetaBase(object):
     rule_exactly = exactly
 
     def many(self, fn, *initial):
+        """
+        Call C{fn} until it fails to match the input. Collect the resulting
+        values into a list.
+
+        @param fn: A callable of no arguments.
+        @param initial: Initial values to populate the returned list with.
+        """
         ans = list(initial)
         while True:
             try:
@@ -225,6 +297,12 @@ class OMetaBase(object):
         return ans
 
     def _or(self, fns):
+        """
+        Call each of a list of functions in sequence until one succeeds,
+        rewinding the input between each.
+
+        @param fns: A list of no-argument callables.
+        """
         for f in fns:
             try:
                 m = self.input.mark()
@@ -236,6 +314,11 @@ class OMetaBase(object):
         raise ParseError()
 
     def _not(self, fn):
+        """
+        Call the given function. Raise ParseError iff it does not.
+
+        @param fn: A callable of no arguments.
+        """
         try:
             fn()
         except ParseError:
@@ -244,6 +327,9 @@ class OMetaBase(object):
             raise ParseError()
 
     def eatWhitespace(self):
+        """
+        Consume input until a non-whitespace character is reached.
+        """
         for c in self.input:
             if not c.isspace():
                 self.input.prev()
@@ -252,12 +338,23 @@ class OMetaBase(object):
     rule_spaces = eatWhitespace
 
     def pred(self, expr):
+        """
+        Call the given function, raising ParseError if it returns false.
+
+        @param expr: A callable of no arguments.
+        """
         if not expr():
             raise ParseError()
         else:
             return True
 
     def listpattern(self, expr):
+        """
+        Call the given function, treating the next object on the stack as an
+        iterable to be used for input.
+
+        @param expr: A callable of no arguments.
+        """
         oldInput = self.input
         m = self.input.mark()
         try:
@@ -277,11 +374,20 @@ class OMetaBase(object):
 
 
     def end(self):
+        """
+        Match the end of the stream.
+        """
         return self._not(self.rule_anything)
 
     rule_end = end
 
     def lookahead(self, f):
+        """
+        Execute the given callable, rewinding the stream no matter whether it
+        returns successfully or not.
+
+        @param f: A callable of no arguments.
+        """
         try:
             m = self.input.mark()
             x = f()
@@ -291,6 +397,9 @@ class OMetaBase(object):
 
 
     def newline(self):
+        """
+        Match any number of newlines in the input.
+        """
         for c in self.input:
             if c in '\r\n':
                 break
@@ -305,6 +414,9 @@ class OMetaBase(object):
 
 
     def token(self, tok):
+        """
+        Match and return the given string, consuming any preceding whitespace.
+        """
         m = self.input.mark()
         try:
             self.eatWhitespace()
@@ -319,6 +431,9 @@ class OMetaBase(object):
     rule_token = token
 
     def letter(self):
+        """
+        Match a single letter.
+        """
         try:
             x = self.input.next()
             if x.isalpha():
@@ -332,6 +447,9 @@ class OMetaBase(object):
     rule_letter = letter
 
     def letterOrDigit(self):
+        """
+        Match a single alphanumeric character.
+        """
         try:
             x = self.input.next()
         except StopIteration:
@@ -345,6 +463,9 @@ class OMetaBase(object):
     rule_letterOrDigit = letterOrDigit
 
     def digit(self):
+        """
+        Match a single digit.
+        """
         try:
             x = self.input.next()
         except StopIteration:
@@ -358,6 +479,9 @@ class OMetaBase(object):
     rule_digit = digit
 
     def hexdigit(self):
+        """
+        Match a single hex digit.
+        """
         try:
             x = self.input.next()
         except StopIteration:

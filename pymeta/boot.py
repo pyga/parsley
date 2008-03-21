@@ -3,6 +3,10 @@ import string
 from pymeta.builder import AstBuilder
 
 class BootOMetaGrammar(OMetaBase):
+    """
+    The bootstrap grammar, generated from L{pymeta.grammar.OMetaGrammar} via
+    L{pymeta.builder.PythonBuilder}.
+    """
     globals = globals()
 
     def __init__(self, input):

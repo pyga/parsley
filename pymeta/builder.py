@@ -4,7 +4,14 @@ from compiler import ast, compile as python_compile
 from compiler.pycodegen import ExpressionCodeGenerator
 
 class AstBuilder(object):
+    """
+    Builder of Python code objects via the 'compiler.ast' module.
+    """
     def __init__(self, name, grammar):
+        """
+        @param name: The grammar name.
+        @param grammar: A grammar object.
+        """
         self.name = name
         self.grammar = grammar
 
@@ -12,6 +19,9 @@ class AstBuilder(object):
         """
         Produce a callable of a single argument with name C{name} that returns
         the value of the given AST.
+
+        @param name: The name of the callable.
+        @param expr: The AST to compile.
         """
         f = self.function(name, expr)
         e = ast.Expression(f)
@@ -21,6 +31,12 @@ class AstBuilder(object):
 
 
     def compilePythonExpr(self, name, expr):
+        """
+        Compile an embedded Python expression.
+
+        @param name: The current rule name.
+        @param expr: The Python expression to compile.
+        """
         c = python_compile(expr, "<grammar rule %s>" % (name,), "eval")
         return ast.Stmt([
                 ast.CallFunc(ast.Name('eval'),
@@ -32,20 +48,30 @@ class AstBuilder(object):
         """
         Create a function of one argument with the given name returning the
         given expr.
+
+        @param name: The function name.
+        @param expr: The AST to insert into the function.
         """
 
         fexpr = ast.Stmt([ast.Assign([ast.AssName('__locals', 'OP_ASSIGN')],
-                                     ast.Dict([(ast.Const('self'), ast.Name('self'))])),
-                          ast.Assign([ast.Subscript(ast.Getattr(ast.Name('self'), 'locals'),
+                                     ast.Dict([(ast.Const('self'),
+                                                ast.Name('self'))])),
+                          ast.Assign([ast.Subscript(ast.Getattr(
+                                                  ast.Name('self'), 'locals'),
                                                     'OP_ASSIGN',
-                                                    [ast.Const(name.split('_',1)[1])])],
-                                 ast.Name('__locals')),
+                                                    [ast.Const(
+                                                     name.split('_',1)[1])])],
+                                     ast.Name('__locals')),
                           expr])
         f = ast.Lambda(['self'], [], 0, fexpr)
         f.filename = self.name
         return f
 
     def makeGrammar(self, rules):
+        """
+        Collect a list of (name, ast) tuples into a dict suitable for use as a
+        class' method dictionary.
+        """
         ruleMethods = dict([('rule_'+k, self._compileAstMethod('rule_'+k, v))
                              for (k, v) in rules])
 
@@ -116,6 +142,10 @@ class AstBuilder(object):
                             None, None)
 
     def _not(self, expr):
+        """
+        Create a call to self._not(lambda: expr).
+        """
+
         f = ast.Lambda([], [], 0, expr)
         f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
@@ -125,6 +155,10 @@ class AstBuilder(object):
 
 
     def lookahead(self, expr):
+        """
+        Create a call to self.lookahead(lambda: expr).
+        """
+
         f = ast.Lambda([], [], 0, expr)
         f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
@@ -134,6 +168,9 @@ class AstBuilder(object):
 
 
     def sequence(self, exprs):
+        """
+        Creates a sequence of exprs, returning the value of the last one.
+        """
         if len(exprs) > 0:
             stmtExprs = [ast.Discard(e) for e in exprs[:-1]] + [exprs[-1]]
             return ast.Stmt(stmtExprs)
@@ -141,6 +178,9 @@ class AstBuilder(object):
             return ast.Const(None)
 
     def bind(self, expr, name):
+        """
+        Generates code for binding a name to a value in the rule's locals dict.
+        """
         return ast.Stmt([
                  ast.Assign([ast.Subscript(ast.Name('__locals'),
                                            'OP_ASSIGN',
@@ -150,6 +190,10 @@ class AstBuilder(object):
                                'OP_APPLY', [ast.Const(name)])])
 
     def pred(self, expr):
+        """
+        Create a call to self.pred(lambda: expr).
+        """
+
         f = ast.Lambda([], [], 0, expr)
         f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
@@ -158,9 +202,16 @@ class AstBuilder(object):
                             None, None)
 
     def action(self, expr):
+        """
+        Compiled python code is not treated specially if its return value isn't
+        important.
+        """
         return expr
 
     def listpattern(self, exprs):
+        """
+        Create a call to self.listpattern(lambda: exprs).
+        """
         f = ast.Lambda([], [], 0, exprs)
         f.filename = self.name
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
@@ -170,6 +221,9 @@ class AstBuilder(object):
 
 
 class PythonBuilder(object):
+    """
+    Same idea as ASTBuilder but producing literal Python source instead.
+    """
     def __init__(self, name, grammar):
         self.name = name
         self.gensymCounter = 0

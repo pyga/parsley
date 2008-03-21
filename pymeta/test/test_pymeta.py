@@ -8,9 +8,22 @@ class HandyWrapper(object):
     Convenient grammar wrapper for parsing strings.
     """
     def __init__(self, klass):
+        """
+        @param klass: The grammar class to be wrapped.
+        """
         self.klass = klass
+
+
     def __getattr__(self, name):
+        """
+        Return a function that will instantiate a grammar and invoke the named
+        rule.
+        @param: Rule name.
+        """
         def doIt(str):
+            """
+            @param str: The string to be parsed by the wrapped grammar.
+            """
             obj = self.klass(str)
             ret = obj.apply(name)
             extra = list(obj.input)
@@ -32,11 +45,17 @@ class OMetaTestCase(unittest.TestCase):
 
     classTested = BootOMetaGrammar
 
-    def compile(self, *args):
-        g = self.classTested(*args)
+    def compile(self, grammar):
+        """
+        Produce an object capable of parsing via this grammar.
+
+        @param grammar: A string containing an OMeta grammar.
+        """
+        g = self.classTested(grammar)
         methodDict = g.parseGrammar()
         grammarClass = type("<grammar>", (OMetaBase,), methodDict)
         return HandyWrapper(grammarClass)
+
 
     def test_literals(self):
         """
@@ -106,6 +125,7 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.foo("xyz"), 'z')
         self.assertEqual(g.foo("xz"), 'z')
 
+
     def test_apply(self):
         """
         Other productions can be invoked from within a production.
@@ -125,6 +145,7 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.foo("1"), "1")
         self.assertRaises(ParseError, g.foo, "0")
 
+
     def test_lookahead(self):
         """
         Doubled negation does lookahead.
@@ -135,6 +156,7 @@ class OMetaTestCase(unittest.TestCase):
                          """)
         self.assertEqual(g.foo("11"), '1')
         self.assertEqual(g.foo("22"), '2')
+
 
     def test_ruleValue(self):
         """
@@ -169,6 +191,7 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['c'], '3')
 
+
     def test_predicate(self):
         """
         Python expressions can be used to determine the success or failure of a
@@ -183,12 +206,6 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.double_bits, "10")
         self.assertRaises(ParseError, g.double_bits, "01")
 
-    def test_action(self):
-        """
-        Python expressions can be run as actions with no effect on the result of the parse.
-        """
-        g = self.compile("foo ::= '1'*:ones !(False) !(ones.insert(0, '0')) => ''.join(ones)")
-        self.assertEqual(g.foo("111"), "0111")
 
     def test_parens(self):
         """
@@ -199,6 +216,18 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.foo("ac"), "c")
 
 
+    def test_action(self):
+        """
+        Python expressions can be run as actions with no effect on the result
+        of the parse.
+        """
+        g = self.compile("""
+                        foo ::= ('1'*:ones !(False) !(ones.insert(0, '0'))
+                                 => ''.join(ones))
+                        """)
+        self.assertEqual(g.foo("111"), "0111")
+
+
     def test_bindNameOnly(self):
         """
         A pattern consisting of only a bind name matches a single element and
@@ -206,6 +235,7 @@ class OMetaTestCase(unittest.TestCase):
         """
         g = self.compile("foo ::= '1' :x '2' => x")
         self.assertEqual(g.foo("132"), "3")
+
 
     def test_args(self):
         """
@@ -244,6 +274,7 @@ class OMetaTestCase(unittest.TestCase):
            """)
         self.assertEqual(g.interp([['3', '+', '5']]), 8)
 
+
     def test_recursion(self):
         """
         Rules can call themselves.
@@ -268,6 +299,7 @@ class OMetaTestCase(unittest.TestCase):
          self.assertEqual(g.num("3"), 3)
          self.assertEqual(g.num("32767"), 32767)
 
+
     def test_characterVsSequence(self):
         """
         Characters (in single-quotes) are not regarded as sequences.
@@ -285,6 +317,7 @@ class PyExtractorTest(unittest.TestCase):
     """
     Tests for finding Python expressions in OMeta grammars.
     """
+
     def findInGrammar(self, expr):
         """
         L{OMeta.pythonExpr()} can extract a single Python expression from a
@@ -292,6 +325,8 @@ class PyExtractorTest(unittest.TestCase):
         """
         o = OMetaBase(expr + "\nbaz ::= ...\n")
         self.assertEqual(o.pythonExpr()[0], expr)
+
+
     def test_expressions(self):
         """
         L{OMeta.pythonExpr()} can recognize various paired delimiters properly
@@ -313,6 +348,7 @@ class MetaclassTest(unittest.TestCase):
     """
     Test the definition of grammars in a class statement.
     """
+
 
     def test_grammarClass(self):
         #imported here to prevent OMetaGrammar from being constructed before
@@ -347,12 +383,20 @@ class MetaclassTest(unittest.TestCase):
         g = TestGrammar2("314159")
         self.assertEqual(g.apply("num"), 314159)
 
+
+
 class SelfHostingTest(OMetaTestCase):
     """
     Tests for the OMeta grammar parser defined with OMeta.
     """
     classTested = None
+
+
     def setUp(self):
+        """
+        Run the OMeta tests with the self-hosted grammar instead of the boot
+        one.
+        """
         #imported here to prevent OMetaGrammar from being constructed before
         #tests are run
         if self.classTested is None:

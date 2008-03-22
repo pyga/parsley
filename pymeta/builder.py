@@ -230,39 +230,71 @@ class PythonBuilder(object):
         self.grammar = grammar
 
     def _gensym(self, name):
+        """
+        Produce a unique name for a variable in generated code.
+        """
         self.gensymCounter += 1
         return "_G_%s_%s" % (name, self.gensymCounter)
 
     def _newThunkFor(self, name, expr):
+        """
+        Define a new function of no arguments.
+        @param name: The name of the rule generating this thunk.
+        @param expr: A list of lines of Python code.
+        """
         fname = self._gensym(name)
         return (self._function("def %s():" % (fname,), expr), fname)
 
     def _expr(self, e):
+        """
+        No unique handling of embedded Python expressions, presently.
+        """
         return e
 
     def _indent(self, line):
+        """
+        Indent a line of code.
+        """
         if line.isspace():
             return '\n'
         else:
             return "    " + line
 
     def _return(self, ex):
+        """
+        Generate a 'return' statement, if the given line does not contain one.
+        """
         if ex.strip().startswith("return"):
             return ex
         else:
             return 'return ' + ex
 
     def _function(self, head, body):
+        """
+        Generate a function.
+        @param head: The initial line defining the function.
+        @param body: A list of lines for the function body.
+        """
         body = list(body)
         return [head] + [self._indent(line) for line in body[:-1]] + [self._indent(self._return(body[-1]))]
 
 
     def _suite(self, head, body):
+        """
+        Generate a suite, indenting the body lines.
+        @param head: The initial line opening the suite.
+        @param body: A list of lines for the suite body.
+        """
         body = list(body)
         return [head] + [self._indent(line) for line in body]
 
 
     def makeGrammar(self, rules):
+        """
+        Produce a class from a collection of rules.
+
+        @param rules: A mapping of names to rule bodies.
+        """
         lines = list(itertools.chain(*[self._function("def rule_%s(self):"%(name,),
                                                       ["_locals = {'self': self}", "self.locals[%s] = _locals" % (name,)] + list(body)) + ['\n\n']
                                        for (name, body) in rules]))
@@ -271,6 +303,9 @@ class PythonBuilder(object):
         return module
 
     def compilePythonExpr(self, name, expr):
+        """
+        Generate code for running embedded Python expressions.
+        """
         return self._expr('eval(%r, self.globals, _locals)' %(expr,))
 
 
@@ -324,16 +359,25 @@ class PythonBuilder(object):
 
 
     def _not(self, expr):
+        """
+        Create a call to self._not(lambda: expr).
+        """
         fn, fname = self._newThunkFor("_not", expr)
         return self.sequence([fn, self._expr("self._not(%s)" %(fname))])
 
 
     def lookahead(self, expr):
+        """
+        Create a call to self.lookahead(lambda: expr).
+        """
         fn, fname = self._newThunkFor("lookahead", expr)
         return self.sequence([fn, self._expr("self.lookahead(%s)" %(fname))])
 
 
     def sequence(self, exprs):
+        """
+        Generate code for each statement in order.
+        """
         for ex in exprs:
             if not ex:
                 continue
@@ -344,6 +388,10 @@ class PythonBuilder(object):
                     yield subex
 
     def bind(self, exprs, name):
+        """
+        Bind the value of the last expression in 'exprs' to a name in the
+        _locals dict.
+        """
         bodyExprs = list(exprs)
         finalExpr = bodyExprs[-1]
         bodyExprs = bodyExprs[:-1]
@@ -351,12 +399,22 @@ class PythonBuilder(object):
 
 
     def pred(self, expr):
+        """
+        Generate a call to self.pred(lambda: expr).
+        """
+
         fn, fname = self._newThunkFor("pred", [expr])
         return self.sequence([fn, self._expr("self.pred(%s)" %(fname))])
 
     def action(self, expr):
+        """
+        Generate this embedded Python expression on its own line.
+        """
         return [expr]
 
     def listpattern(self, expr):
+        """
+        Generate a call to self.listpattern(lambda: expr).
+        """
         fn, fname = self._newThunkFor("listpattern", expr)
         return self.sequence([fn, self._expr("self.listpattern(%s)" %(fname))])

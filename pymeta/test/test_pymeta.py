@@ -351,25 +351,26 @@ class PyExtractorTest(unittest.TestCase):
         self.assertRaises(ParseError, o.pythonExpr)
 
 
-class MetaclassTest(unittest.TestCase):
+class MakeGrammarTest(unittest.TestCase):
     """
     Test the definition of grammars in a class statement.
     """
 
 
-    def test_grammarClass(self):
+    def test_makeGrammar(self):
         #imported here to prevent OMetaGrammar from being constructed before
         #tests are run
         from pymeta.grammar import OMeta
-        class TestGrammar(OMeta):
-            grammar = """
-            digit ::= :x ?('0' <= x <= '9') => int(x)
-            num ::= (<num>:n <digit>:d => n * 10 + d
-                   | <digit>)
-            """
-
+        results = []
+        grammar = """
+        digit ::= :x ?('0' <= x <= '9') => int(x)
+        num ::= (<num>:n <digit>:d !(results.append(True)) => n * 10 + d
+               | <digit>)
+        """
+        TestGrammar = OMeta.makeGrammar(grammar, {'results':results})
         g = TestGrammar("314159")
         self.assertEqual(g.apply("num"), 314159)
+        self.assertNotEqual(len(results), 0)
 
 
     def test_subclassing(self):
@@ -378,15 +379,17 @@ class MetaclassTest(unittest.TestCase):
         parent.
         """
         from pymeta.grammar import OMeta
-        class TestGrammar1(OMeta):
-            grammar = """
-            dig ::= :x ?('0' <= x <= '9') => int(x)
-            """
-        class TestGrammar2(TestGrammar1):
-            grammar = """
-            num ::= (<num>:n <dig>:d => n * 10 + d
-                    | <dig>)
-            """
+
+        grammar1 = """
+        dig ::= :x ?('0' <= x <= '9') => int(x)
+        """
+        TestGrammar1 = OMeta.makeGrammar(grammar1, {})
+
+        grammar2 = """
+        num ::= (<num>:n <dig>:d => n * 10 + d
+                | <dig>)
+        """
+        TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
         g = TestGrammar2("314159")
         self.assertEqual(g.apply("num"), 314159)
 

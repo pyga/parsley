@@ -1,5 +1,3 @@
-import string
-
 class ParseError(Exception):
     """
     ?Redo from start

@@ -220,6 +220,7 @@ class AstBuilder(object):
                             None, None)
 
 
+
 class PythonBuilder(object):
     """
     Same idea as ASTBuilder but producing literal Python source instead.
@@ -296,7 +297,7 @@ class PythonBuilder(object):
         @param rules: A mapping of names to rule bodies.
         """
         lines = list(itertools.chain(*[self._function("def rule_%s(self):"%(name,),
-                                                      ["_locals = {'self': self}", "self.locals[%s] = _locals" % (name,)] + list(body)) + ['\n\n']
+                                                      ["_locals = {'self': self}", "self.locals[%r] = _locals" % (name,)] + list(body)) + ['\n\n']
                                        for (name, body) in rules]))
         code = '\n'.join(self._suite("class %s(%s):" %(self.name, self.grammar.__class__.__name__), lines))
         module = "from %s import %s\n" % (self.grammar.__class__.__module__, self.grammar.__class__.__name__) + code

@@ -34,13 +34,15 @@ hexdigit ::= :x ?(x in string.hexdigits) => x
 
 character ::= <token "'"> :c <token "'"> => self.builder.exactly(c)
 
+string ::= <token '"'> (~('"') <anything>)*:c <token '"'> => self.builder.exactly(''.join(c))
+
 name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
 
 application ::= (<token '<'> <spaces> <name>:name
                   (' ' !(self.applicationArgs()):args
                      => self.builder.apply(name, self.name, *args)
                   |<token '>'>
-                     => self.builder.apply(name)))
+                     => self.builder.apply(name, self.name)))
 
 expr1 ::= (<application>
           |<ruleValue>
@@ -48,6 +50,7 @@ expr1 ::= (<application>
           |<semanticAction>
           |<number>
           |<character>
+          |<string>
           |<token '('> <expr>:e <token ')'> => e
           |<token '['> <expr>:e <token ']'> => self.builder.listpattern(e))
 
@@ -62,7 +65,7 @@ expr3 ::= ((<expr2>:e (<token '*'> => self.builder.many(e)
            (':' <name>:n => self.builder.bind(r, n)
            | => r)
           |<token ':'> <name>:n
-           => self.builder.bind(self.builder.apply("anything"), n))
+           => self.builder.bind(self.builder.apply("anything", self.name), n))
 
 expr4 ::= <expr3>*:es => self.builder.sequence(es)
 

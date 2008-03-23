@@ -312,6 +312,17 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
         self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
 
+
+    def test_string(self):
+        """
+        Strings in double quotes match string objects.
+        """
+        g = self.compile("""
+             interp ::= ["Foo" 1 2] => 3
+           """)
+        self.assertEqual(g.interp([["Foo", 1, 2]]), 3)
+
+
     def test_badGrammar(self):
         grammar = "not really a grammar at all!"
         self.assertRaises(ParseError, self.compile, grammar)

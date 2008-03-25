@@ -84,6 +84,11 @@ class AstBuilder(object):
         Create a call to self.apply(ruleName, *args).
         """
         args = [self.compilePythonExpr(codeName, arg) for arg in exprs]
+        if ruleName == "super":
+            return ast.CallFunc(ast.Getattr(ast.Name("self"),
+                                            "superApply"),
+                                [ast.Const(codeName)] + args,
+                                None, None)
         return ast.CallFunc(ast.Getattr(ast.Name("self"),
                                         "apply"),
                             [ast.Const(ruleName)] + args,
@@ -314,6 +319,9 @@ class PythonBuilder(object):
         Create a call to self.apply(ruleName, *args).
         """
         args = [self.compilePythonExpr(codeName, arg) for arg in exprs]
+        if ruleName == 'super':
+            return [self._expr('self.superApply("%s", %s)' % (codeName,
+                                                              ', '.join(args)))]
         return [self._expr('self.apply("%s", %s)' % (ruleName, ', '.join(args)))]
 
 

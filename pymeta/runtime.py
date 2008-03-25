@@ -179,17 +179,17 @@ class OMetaBase(object):
                 self.globals = globals
 
 
-    def getRule(self, name):
+    def superApply(self, ruleName, *args):
         """
-        Locate the named rule.
-        @param name: A rule name.
-        """
-        r = getattr(self, "rule_"+name, None)
-        if r is not None:
-            return r
-        else:
-            raise NameError("No rule named '%s'" %(name,))
+        Apply the named rule as defined on this object's superclass.
 
+        @param ruleName: A rule name.
+        """
+        r = getattr(super(self.__class__, self), "rule_"+ruleName, None)
+        if r is not None:
+            return self._apply(r, ruleName, args)
+        else:
+            raise NameError("No rule named '%s'" %(ruleName,))
 
     def apply(self, ruleName, *args):
         """
@@ -197,7 +197,20 @@ class OMetaBase(object):
 
         @param ruleName: A rule name.
         """
-        rule = self.getRule(ruleName)
+        r = getattr(self, "rule_"+ruleName, None)
+        if r is not None:
+            return self._apply(r, ruleName, args)
+        else:
+            raise NameError("No rule named '%s'" %(ruleName,))
+
+
+    def _apply(self, rule, ruleName, args):
+        """
+        Apply a rule method to some args.
+        @param rule: A method of this object.
+        @param ruleName: The name of the rule invoked.
+        @param args: A sequence of arguments to it.
+        """
         if args:
             if rule.func_code.co_argcount - 1 != len(args):
                 for arg in args[::-1]:

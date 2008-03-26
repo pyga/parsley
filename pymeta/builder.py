@@ -3,6 +3,59 @@ from types import FunctionType
 from compiler import ast, compile as python_compile
 from compiler.pycodegen import ExpressionCodeGenerator
 
+class TreeBuilder(object):
+    """
+    Produce an abstract syntax tree of OMeta operations.
+    """
+    def __init__(self, name, grammar):
+        self.name = name
+        self.grammar = grammar
+
+    def makeGrammar(self, rules):
+        return ["Grammar", rules]
+
+    def apply(self, ruleName, codeName=None, *exprs):
+        return ["Apply", ruleName, codeName or '', exprs]
+
+    def exactly(self, expr):
+        return ["Exactly", expr]
+
+    def many(self, expr):
+        return ["Many", expr]
+
+    def many1(self, expr):
+        return ["Many1", expr]
+
+    def optional(self, expr):
+        return ["Optional", expr]
+
+    def _or(self, exprs):
+        return ["Or"] + exprs
+
+    def _not(self, expr):
+        return ["Not", expr]
+
+    def lookahead(self, expr):
+        return ["Lookahead", expr]
+
+    def sequence(self, exprs):
+        return ["And"] + exprs
+
+    def bind(self, expr, name):
+        return ["Bind", name, expr]
+
+    def pred(self, expr):
+        return ["Predicate", expr]
+
+    def action(self, expr):
+        return ["Action", expr]
+
+    def listpattern(self, exprs):
+        return ["List", exprs]
+
+    def compilePythonExpr(self, name, expr):
+        return ["Python", name, expr]
+
 class AstBuilder(object):
     """
     Builder of Python code objects via the 'compiler.ast' module.
@@ -79,7 +132,7 @@ class AstBuilder(object):
         methodDict.update(ruleMethods)
         return methodDict
 
-    def apply(self, ruleName, codeName=None, *exprs):
+    def apply(self, ruleName, codeName='', *exprs):
         """
         Create a call to self.apply(ruleName, *args).
         """

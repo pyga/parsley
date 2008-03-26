@@ -90,6 +90,7 @@ rule ::= (<spaces> ~~(<name>:n) <rulePart n>:r
 
 grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
 """
+#don't be confused, emacs
 
 class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
     """
@@ -161,3 +162,27 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         """
         expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
         return self.builder.pred(expr)
+
+nullOptimizationGrammar = """
+
+opt ::= ( ["Apply" :ruleName :codeName [<anything>*:exprs]] => self.builder.apply(ruleName, codeName, *exprs)
+        | ["Exactly" :expr] => self.builder.exactly(expr)
+        | ["Many" <opt>:expr] => self.builder.many(expr)
+        | ["Many1" <opt>:expr] => self.builder.many1(expr)
+        | ["Optional" <opt>:expr] => self.builder.optional(expr)
+        | ["Or" <opt>*:exprs] => self.builder._or(exprs)
+        | ["And" <opt>*:exprs] => self.builder.sequence(exprs)
+        | ["Not" <opt>:expr]  => self.builder._not(expr)
+        | ["Lookahead" <opt>:expr] => self.builder.lookahead(expr)
+        | ["Bind" :name <opt>:expr] => self.builder.bind(expr, name)
+        | ["Predicate" <opt>:expr] => self.builder.pred(expr)
+        | ["Action" <opt>:expr] => self.builder.action(expr)
+        | ["Python" :name :code] => self.builder.compilePythonExpr(name, code)
+        | ["List" <opt>:exprs] => self.builder.listpattern(exprs)
+        )
+grammar ::= ["Grammar" [<rulePair>*:rs]] => self.builder.makeGrammar(rs)
+rulePair ::= [:name <opt>:rule] => (name, rule)
+
+"""
+
+NullOptimizer = OMeta.makeGrammar(nullOptimizationGrammar, {})

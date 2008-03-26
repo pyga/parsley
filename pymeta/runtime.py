@@ -172,6 +172,7 @@ class OMetaBase(object):
         embedded Python expressions.
         """
         self.input = IterBuffer(string)
+        self.locals = {}
         if self.globals is None:
             if globals is None:
                 self.globals = {}

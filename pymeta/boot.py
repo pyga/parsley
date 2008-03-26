@@ -61,6 +61,7 @@ class BootOMetaGrammar(OMetaBase):
 
     def rule_number(self):
         _locals = {'self': self}
+        self.locals['number'] = _locals
         self.apply("spaces", )
         def _G__or_1():
             self.exactly('-')
@@ -76,6 +77,7 @@ class BootOMetaGrammar(OMetaBase):
 
     def rule_barenumber(self):
         _locals = {'self': self}
+        self.locals['barenumber'] = _locals
         def _G__or_10():
             self.exactly('0')
             def _G__or_7():
@@ -98,7 +100,7 @@ class BootOMetaGrammar(OMetaBase):
             return self._or([_G__or_7, _G__or_8])
         def _G__or_11():
             def _G_many_9():
-                return self.apply("decdigit", )
+                return self.apply("digit", )
             _locals['ds'] = self.many(_G_many_9, _G_many_9())
             _locals['ds']
             return eval("int(''.join(ds))", self.globals, _locals)
@@ -107,6 +109,7 @@ class BootOMetaGrammar(OMetaBase):
 
     def rule_octaldigit(self):
         _locals = {'self': self}
+        self.locals['octaldigit'] = _locals
         _locals['x'] = self.apply("anything", )
         _locals['x']
         def _G_pred_12():
@@ -117,6 +120,7 @@ class BootOMetaGrammar(OMetaBase):
 
     def rule_hexdigit(self):
         _locals = {'self': self}
+        self.locals['hexdigit'] = _locals
         _locals['x'] = self.apply("anything", )
         _locals['x']
         def _G_pred_13():
@@ -125,18 +129,9 @@ class BootOMetaGrammar(OMetaBase):
         return eval('x', self.globals, _locals)
 
 
-    def rule_decdigit(self):
-        _locals = {'self': self}
-        _locals['x'] = self.apply("anything", )
-        _locals['x']
-        def _G_pred_14():
-            return eval('x in string.digits', self.globals, _locals)
-        self.pred(_G_pred_14)
-        return eval('x', self.globals, _locals)
-
-
     def rule_character(self):
         _locals = {'self': self}
+        self.locals['character'] = _locals
         self.apply("token", eval('"\'"', self.globals, _locals))
         _locals['c'] = self.apply("anything", )
         _locals['c']
@@ -144,13 +139,29 @@ class BootOMetaGrammar(OMetaBase):
         return eval('self.builder.exactly(c)', self.globals, _locals)
 
 
+    def rule_string(self):
+        _locals = {'self': self}
+        self.locals['string'] = _locals
+        self.apply("token", eval('\'"\'', self.globals, _locals))
+        def _G_many_15():
+            def _G__not_14():
+                return self.exactly('"')
+            self._not(_G__not_14)
+            return self.apply("anything", )
+        _locals['c'] = self.many(_G_many_15)
+        _locals['c']
+        self.apply("token", eval('\'"\'', self.globals, _locals))
+        return eval("self.builder.exactly(''.join(c))", self.globals, _locals)
+
+
     def rule_name(self):
         _locals = {'self': self}
+        self.locals['name'] = _locals
         _locals['x'] = self.apply("letter", )
         _locals['x']
-        def _G_many_15():
+        def _G_many_16():
             return self.apply("letterOrDigit", )
-        _locals['xs'] = self.many(_G_many_15)
+        _locals['xs'] = self.many(_G_many_16)
         _locals['xs']
         eval('xs.insert(0, x)', self.globals, _locals)
         return eval("''.join(xs)", self.globals, _locals)
@@ -158,120 +169,128 @@ class BootOMetaGrammar(OMetaBase):
 
     def rule_application(self):
         _locals = {'self': self}
+        self.locals['application'] = _locals
         self.apply("token", eval("'<'", self.globals, _locals))
         self.apply("spaces", )
         _locals['name'] = self.apply("name", )
         _locals['name']
-        def _G__or_16():
+        def _G__or_17():
             self.exactly(' ')
             _locals['args'] = eval('self.applicationArgs()', self.globals, _locals)
             _locals['args']
             return eval('self.builder.apply(name, self.name, *args)', self.globals, _locals)
-        def _G__or_17():
+        def _G__or_18():
             self.apply("token", eval("'>'", self.globals, _locals))
-            return eval('self.builder.apply(name)', self.globals, _locals)
-        return self._or([_G__or_16, _G__or_17])
+            return eval('self.builder.apply(name, self.name)', self.globals, _locals)
+        return self._or([_G__or_17, _G__or_18])
 
 
     def rule_expr1(self):
         _locals = {'self': self}
-        def _G__or_18():
-            return self.apply("application", )
+        self.locals['expr1'] = _locals
         def _G__or_19():
-            return self.apply("ruleValue", )
+            return self.apply("application", )
         def _G__or_20():
-            return self.apply("semanticPredicate", )
+            return self.apply("ruleValue", )
         def _G__or_21():
-            return self.apply("semanticAction", )
+            return self.apply("semanticPredicate", )
         def _G__or_22():
-            return self.apply("number", )
+            return self.apply("semanticAction", )
         def _G__or_23():
-            return self.apply("character", )
+            return self.apply("number", )
         def _G__or_24():
+            return self.apply("character", )
+        def _G__or_25():
+            return self.apply("string", )
+        def _G__or_26():
             self.apply("token", eval("'('", self.globals, _locals))
             _locals['e'] = self.apply("expr", )
             _locals['e']
             self.apply("token", eval("')'", self.globals, _locals))
             return eval('e', self.globals, _locals)
-        def _G__or_25():
+        def _G__or_27():
             self.apply("token", eval("'['", self.globals, _locals))
             _locals['e'] = self.apply("expr", )
             _locals['e']
             self.apply("token", eval("']'", self.globals, _locals))
             return eval('self.builder.listpattern(e)', self.globals, _locals)
-        return self._or([_G__or_18, _G__or_19, _G__or_20, _G__or_21, _G__or_22, _G__or_23, _G__or_24, _G__or_25])
+        return self._or([_G__or_19, _G__or_20, _G__or_21, _G__or_22, _G__or_23, _G__or_24, _G__or_25, _G__or_26, _G__or_27])
 
 
     def rule_expr2(self):
         _locals = {'self': self}
-        def _G__or_28():
+        self.locals['expr2'] = _locals
+        def _G__or_30():
             self.apply("token", eval("'~'", self.globals, _locals))
-            def _G__or_26():
+            def _G__or_28():
                 self.apply("token", eval("'~'", self.globals, _locals))
                 _locals['e'] = self.apply("expr2", )
                 _locals['e']
                 return eval('self.builder.lookahead(e)', self.globals, _locals)
-            def _G__or_27():
+            def _G__or_29():
                 _locals['e'] = self.apply("expr2", )
                 _locals['e']
                 return eval('self.builder._not(e)', self.globals, _locals)
-            return self._or([_G__or_26, _G__or_27])
-        def _G__or_29():
+            return self._or([_G__or_28, _G__or_29])
+        def _G__or_31():
             return self.apply("expr1", )
-        return self._or([_G__or_28, _G__or_29])
+        return self._or([_G__or_30, _G__or_31])
 
 
     def rule_expr3(self):
         _locals = {'self': self}
-        def _G__or_36():
+        self.locals['expr3'] = _locals
+        def _G__or_38():
             _locals['e'] = self.apply("expr2", )
             _locals['e']
-            def _G__or_30():
+            def _G__or_32():
                 self.apply("token", eval("'*'", self.globals, _locals))
                 return eval('self.builder.many(e)', self.globals, _locals)
-            def _G__or_31():
+            def _G__or_33():
                 self.apply("token", eval("'+'", self.globals, _locals))
                 return eval('self.builder.many1(e)', self.globals, _locals)
-            def _G__or_32():
+            def _G__or_34():
                 self.apply("token", eval("'?'", self.globals, _locals))
                 return eval('self.builder.optional(e)', self.globals, _locals)
-            def _G__or_33():
+            def _G__or_35():
                 return eval('e', self.globals, _locals)
-            _locals['r'] = self._or([_G__or_30, _G__or_31, _G__or_32, _G__or_33])
+            _locals['r'] = self._or([_G__or_32, _G__or_33, _G__or_34, _G__or_35])
             _locals['r']
-            def _G__or_34():
+            def _G__or_36():
                 self.exactly(':')
                 _locals['n'] = self.apply("name", )
                 _locals['n']
                 return eval('self.builder.bind(r, n)', self.globals, _locals)
-            def _G__or_35():
+            def _G__or_37():
                 return eval('r', self.globals, _locals)
-            return self._or([_G__or_34, _G__or_35])
-        def _G__or_37():
+            return self._or([_G__or_36, _G__or_37])
+        def _G__or_39():
             self.apply("token", eval("':'", self.globals, _locals))
             _locals['n'] = self.apply("name", )
             _locals['n']
-            return eval('self.builder.bind(self.builder.apply("anything"), n)', self.globals, _locals)
-        return self._or([_G__or_36, _G__or_37])
+            return eval('self.builder.bind(self.builder.apply("anything", self.name), n)', self.globals, _locals)
+        return self._or([_G__or_38, _G__or_39])
 
 
     def rule_expr4(self):
         _locals = {'self': self}
-        def _G_many_38():
+        self.locals['expr4'] = _locals
+        def _G_many_40():
             return self.apply("expr3", )
-        _locals['es'] = self.many(_G_many_38)
+        _locals['es'] = self.many(_G_many_40)
         _locals['es']
         return eval('self.builder.sequence(es)', self.globals, _locals)
 
 
     def rule_expr(self):
         _locals = {'self': self}
+        self.locals['expr'] = _locals
         _locals['e'] = self.apply("expr4", )
         _locals['e']
-        def _G_many_39():
+        def _G_many_41():
             self.apply("token", eval("'|'", self.globals, _locals))
             return self.apply("expr4", )
-        _locals['es'] = self.many(_G_many_39)
+        _locals['es'] = self.many(_G_many_41)
         _locals['es']
         eval('es.insert(0, e)', self.globals, _locals)
         return eval('self.builder._or(es)', self.globals, _locals)
@@ -279,70 +298,76 @@ class BootOMetaGrammar(OMetaBase):
 
     def rule_ruleValue(self):
         _locals = {'self': self}
+        self.locals['ruleValue'] = _locals
         self.apply("token", eval('"=>"', self.globals, _locals))
         return eval('self.ruleValueExpr()', self.globals, _locals)
 
 
     def rule_semanticPredicate(self):
         _locals = {'self': self}
+        self.locals['semanticPredicate'] = _locals
         self.apply("token", eval('"?("', self.globals, _locals))
         return eval('self.semanticPredicateExpr()', self.globals, _locals)
 
 
     def rule_semanticAction(self):
         _locals = {'self': self}
+        self.locals['semanticAction'] = _locals
         self.apply("token", eval('"!("', self.globals, _locals))
         return eval('self.semanticActionExpr()', self.globals, _locals)
 
 
     def rule_rulePart(self):
         _locals = {'self': self}
+        self.locals['rulePart'] = _locals
         _locals['requiredName'] = self.apply("anything", )
         _locals['requiredName']
         self.apply("spaces", )
         _locals['n'] = self.apply("name", )
         _locals['n']
-        def _G_pred_40():
+        def _G_pred_42():
             return eval('n == requiredName', self.globals, _locals)
-        self.pred(_G_pred_40)
+        self.pred(_G_pred_42)
         eval('setattr(self, "name", n)', self.globals, _locals)
         _locals['args'] = self.apply("expr4", )
         _locals['args']
-        def _G__or_41():
+        def _G__or_43():
             self.apply("token", eval('"::="', self.globals, _locals))
             _locals['e'] = self.apply("expr", )
             _locals['e']
             return eval('self.builder.sequence([args, e])', self.globals, _locals)
-        def _G__or_42():
+        def _G__or_44():
             return eval('args', self.globals, _locals)
-        return self._or([_G__or_41, _G__or_42])
+        return self._or([_G__or_43, _G__or_44])
 
 
     def rule_rule(self):
         _locals = {'self': self}
+        self.locals['rule'] = _locals
         self.apply("spaces", )
-        def _G_lookahead_43():
+        def _G_lookahead_45():
             _locals['n'] = self.apply("name", )
             return _locals['n']
-        self.lookahead(_G_lookahead_43)
+        self.lookahead(_G_lookahead_45)
         _locals['r'] = self.apply("rulePart", eval('n', self.globals, _locals))
         _locals['r']
-        def _G__or_45():
-            def _G_many_44():
+        def _G__or_47():
+            def _G_many_46():
                 return self.apply("rulePart", eval('n', self.globals, _locals))
-            _locals['rs'] = self.many(_G_many_44, _G_many_44())
+            _locals['rs'] = self.many(_G_many_46, _G_many_46())
             _locals['rs']
             return eval('(n, self.builder._or([r] + rs))', self.globals, _locals)
-        def _G__or_46():
+        def _G__or_48():
             return eval('(n, r)', self.globals, _locals)
-        return self._or([_G__or_45, _G__or_46])
+        return self._or([_G__or_47, _G__or_48])
 
 
     def rule_grammar(self):
         _locals = {'self': self}
-        def _G_many_47():
+        self.locals['grammar'] = _locals
+        def _G_many_49():
             return self.apply("rule", )
-        _locals['rs'] = self.many(_G_many_47)
+        _locals['rs'] = self.many(_G_many_49)
         _locals['rs']
         self.apply("spaces", )
         return eval('self.builder.makeGrammar(rs)', self.globals, _locals)

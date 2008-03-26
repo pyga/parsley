@@ -55,9 +55,9 @@ expr2 ::= (<token '~'> (<token '~'> <expr2>:e => self.builder.lookahead(e)
                        |<expr2>:e => self.builder._not(e))
           |<expr1>)
 
-expr3 ::= ((<expr2>:e (<token '*'> => self.builder.many(e)
-                      |<token '+'> => self.builder.many1(e)
-                      |<token '?'> => self.builder.optional(e)
+expr3 ::= ((<expr2>:e ('*' => self.builder.many(e)
+                      |'+' => self.builder.many1(e)
+                      |'?' => self.builder.optional(e)
                       | => e)):r
            (':' <name>:n => self.builder.bind(r, n)
            | => r)

@@ -1,3 +1,7 @@
+"""
+Public interface to OMeta, as well as the grammars used to compile grammar
+definitions.
+"""
 import sys, string
 from builder import AstBuilder
 from boot import BootOMetaGrammar
@@ -11,6 +15,13 @@ class OMeta(OMetaBase):
     """
 
     def makeGrammar(cls, grammar, globals, name="<OMeta grammar>"):
+        """
+        Define a new subclass with the rules in the given grammar.
+
+        @param grammar: A string containing a PyMeta grammar.
+        @param globals: A dict of names that should be accessible by this
+        grammar.
+        """
         if OMetaGrammar is None:
             g = BootOMetaGrammar(grammar)
         else:

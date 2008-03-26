@@ -1,3 +1,6 @@
+"""
+Code needed to run a grammar after it has been compiled.
+"""
 class ParseError(Exception):
     """
     ?Redo from start
@@ -28,7 +31,8 @@ class unicodeCharacter(unicode):
 
 class IterBuffer(object):
     """
-    Wrapper for an iterable that allows pushing items onto it.
+    Wrapper for an iterable that allows pushing items onto it. The basic input
+    mechanism used by OMeta grammars.
     """
 
     def __init__(self, iterable):
@@ -161,7 +165,8 @@ class LeftRecursion(object):
 
 class OMetaBase(object):
     """
-    Base class providing implementations of the fundamental OMeta operations.
+    Base class providing implementations of the fundamental OMeta
+    operations. Built-in rules are defined here.
     """
     globals = None
     def __init__(self, string, globals=None):

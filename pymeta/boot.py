@@ -1,3 +1,8 @@
+"""
+The definition of PyMeta's language is itself a PyMeta grammar, but something
+has to be able to read that. Most of the code in this module is generated from
+that grammar (in future versions, it will hopefully all be generated).
+"""
 from pymeta.runtime import OMetaBase, ParseError
 import string
 from pymeta.builder import AstBuilder

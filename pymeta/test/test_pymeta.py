@@ -1,3 +1,4 @@
+#
 from twisted.trial import unittest
 from pymeta.runtime import ParseError, OMetaBase
 from pymeta.boot import BootOMetaGrammar
@@ -364,7 +365,7 @@ class PyExtractorTest(unittest.TestCase):
 
 class MakeGrammarTest(unittest.TestCase):
     """
-    Test the definition of grammars in a class statement.
+    Test the definition of grammars via the 'makeGrammar' method.
     """
 
 
@@ -405,6 +406,17 @@ class MakeGrammarTest(unittest.TestCase):
         self.assertEqual(g.apply("num"), 314159)
 
 
+    def test_super(self):
+        """
+        Rules can call the implementation in a superclass.
+        """
+        from pymeta.grammar import OMeta
+        grammar1 = "expr ::= <letter>"
+        TestGrammar1 = OMeta.makeGrammar(grammar1, {})
+        grammar2 = "expr ::= <super> | <digit>"
+        TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
+        self.assertEqual(TestGrammar2("x").apply("expr"), "x")
+        self.assertEqual(TestGrammar2("3").apply("expr"), "3")
 
 class SelfHostingTest(OMetaTestCase):
     """

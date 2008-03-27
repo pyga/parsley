@@ -193,6 +193,7 @@ class OMetaBase(object):
         """
         r = getattr(super(self.__class__, self), "rule_"+ruleName, None)
         if r is not None:
+            self.input.setMemo(self.input.position, ruleName, None)
             return self._apply(r, ruleName, args)
         else:
             raise NameError("No rule named '%s'" %(ruleName,))

@@ -1,2 +1,4 @@
+0.1.1 (2008-03-27):
+ - Fixed a bug in 'super'.
 0.1 (2008-03-26):
  - Initial release.

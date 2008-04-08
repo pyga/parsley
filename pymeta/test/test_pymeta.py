@@ -1,8 +1,9 @@
-#
+import sys, linecache
+from types import ModuleType as module
 from twisted.trial import unittest
 from pymeta.runtime import ParseError, OMetaBase
 from pymeta.boot import BootOMetaGrammar
-from pymeta.builder import TreeBuilder, AstBuilder
+from pymeta.builder import TreeBuilder, AstBuilder, PythonBuilder
 
 class HandyWrapper(object):
     """
@@ -53,9 +54,9 @@ class OMetaTestCase(unittest.TestCase):
         @param grammar: A string containing an OMeta grammar.
         """
         g = self.classTested(grammar)
-        methodDict = g.parseGrammar()
-        grammarClass = type("<grammar>", (OMetaBase,), methodDict)
-        return HandyWrapper(grammarClass)
+        result = g.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {})
+        return HandyWrapper(result)
+
 
 
     def test_literals(self):
@@ -181,8 +182,7 @@ class OMetaTestCase(unittest.TestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         gg = self.classTested("stuff ::= '1':a ('2':b | '3':c)")
-        methodDict = gg.parseGrammar()
-        G = type("<grammar>", (OMetaBase,), methodDict)
+        G = gg.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff"), '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -324,9 +324,6 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.interp([["Foo", 1, 2]]), 3)
 
 
-    def test_badGrammar(self):
-        grammar = "not really a grammar at all!"
-        self.assertRaises(ParseError, self.compile, grammar)
 
 class PyExtractorTest(unittest.TestCase):
     """
@@ -451,7 +448,7 @@ class NullOptimizerTest(OMetaTestCase):
         """
         from pymeta.grammar import OMetaGrammar, NullOptimizer
         g = OMetaGrammar(grammar)
-        tree = g.parseGrammar(builder=TreeBuilder)
+        tree = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
         opt.builder = AstBuilder("<grammar>", opt)
         methodDict = opt.apply("grammar")

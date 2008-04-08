@@ -3,7 +3,7 @@ Public interface to OMeta, as well as the grammars used to compile grammar
 definitions.
 """
 import sys, string
-from builder import AstBuilder
+from builder import PythonBuilder
 from boot import BootOMetaGrammar
 from runtime import OMetaBase, ParseError
 
@@ -14,24 +14,20 @@ class OMeta(OMetaBase):
     Base class for grammar definitions.
     """
 
-    def makeGrammar(cls, grammar, globals, name="<OMeta grammar>"):
+    def makeGrammar(cls, grammar, globals, name="Grammar"):
         """
         Define a new subclass with the rules in the given grammar.
 
         @param grammar: A string containing a PyMeta grammar.
         @param globals: A dict of names that should be accessible by this
         grammar.
+        @param name: The name of the class to be generated.
         """
         if OMetaGrammar is None:
             g = BootOMetaGrammar(grammar)
         else:
             g = OMetaGrammar(grammar)
-
-        rules = g.parseGrammar(name)
-
-        grammarClass = type.__new__(type, name, (cls,), rules)
-        grammarClass.globals = globals
-        return grammarClass
+        return g.parseGrammar(name, PythonBuilder, cls, globals)
     makeGrammar = classmethod(makeGrammar)
 
 ometaGrammar = """
@@ -107,8 +103,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
     """
     The base grammar for parsing grammar definitions.
     """
-
-    def parseGrammar(self, name="Grammar", builder=AstBuilder):
+    def parseGrammar(self, name, builder, *args):
         """
         Entry point for converting a grammar to code (of some variety).
 
@@ -117,7 +112,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         @param builder: A class that implements the grammar-building interface
         (interface to be explicitly defined later)
         """
-        self.builder = builder(name, self)
+        self.builder = builder(name, self, *args)
         res = self.apply("grammar")
         x = list(self.input)
         if x:

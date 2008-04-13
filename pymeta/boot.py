@@ -19,8 +19,16 @@ class BootOMetaGrammar(OMetaBase):
         self._ruleNames = []
 
 
-    def parseGrammar(self, name="Grammar", builder=AstBuilder):
-        self.builder = builder(name, self)
+    def parseGrammar(self, name, builder, *args):
+        """
+        Entry point for converting a grammar to code (of some variety).
+
+        @param name: The name for this grammar.
+
+        @param builder: A class that implements the grammar-building interface
+        (interface to be explicitly defined later)
+        """
+        self.builder = builder(name, self, *args)
         res = self.apply("grammar")
         x = list(self.input)
         if x:

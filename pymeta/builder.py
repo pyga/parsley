@@ -1,4 +1,5 @@
-import itertools
+from types import ModuleType as module
+import itertools, linecache, sys
 from types import FunctionType
 from compiler import ast, compile as python_compile
 from compiler.pycodegen import ExpressionCodeGenerator
@@ -278,15 +279,26 @@ class AstBuilder(object):
                             None, None)
 
 
+class GeneratedCodeLoader(object):
+    """
+    Object for use as a module's __loader__, to display generated
+    source.
+    """
+    def __init__(self, source):
+        self.source = source
+    def get_source(self, name):
+        return self.source
 
 class PythonBuilder(object):
     """
     Same idea as ASTBuilder but producing literal Python source instead.
     """
-    def __init__(self, name, grammar):
+    def __init__(self, name, grammar, superclass, globals):
         self.name = name
+        self.superclass = superclass
         self.gensymCounter = 0
         self.grammar = grammar
+        self.globals = globals
 
     def _gensym(self, name):
         """
@@ -354,12 +366,26 @@ class PythonBuilder(object):
 
         @param rules: A mapping of names to rule bodies.
         """
-        lines = list(itertools.chain(*[self._function("def rule_%s(self):"%(name,),
-                                                      ["_locals = {'self': self}", "self.locals[%r] = _locals" % (name,)] + list(body)) + ['\n\n']
+        lines = list(itertools.chain(*[self._function(
+            "def rule_%s(self):" % (name,),
+            ["_locals = {'self': self}",
+             "self.locals[%r] = _locals" % (name,)] + list(body)) + ['\n\n']
                                        for (name, body) in rules]))
-        code = '\n'.join(self._suite("class %s(%s):" %(self.name, self.grammar.__class__.__name__), lines))
-        module = "from %s import %s\n" % (self.grammar.__class__.__module__, self.grammar.__class__.__name__) + code
-        return module
+        source = '\n'.join(self._suite(
+            "class %s(%s):" %(self.name, self.superclass.__name__),
+            lines))
+        modname = "pymeta_grammar__"+self.name
+        filename = "<generated_code>/"+modname+".py"
+        mod = module(modname)
+        mod.__dict__.update(self.globals)
+        mod.__dict__[self.superclass.__name__] = self.superclass
+        mod.__loader__ = GeneratedCodeLoader(source)
+        code = compile(source, filename, "exec")
+        eval(code, mod.__dict__)
+        mod.__dict__[self.name].globals = self.globals
+        sys.modules[modname] = mod
+        linecache.getlines(filename, mod.__dict__)
+        return mod.__dict__[self.name]
 
     def compilePythonExpr(self, name, expr):
         """
@@ -405,7 +431,7 @@ class PythonBuilder(object):
         """
         Try to parse an expr and continue if it fails.
         """
-        return self._or([expr, "True"])
+        return self._or([expr, ["True"]])
 
 
     def _or(self, exprs):

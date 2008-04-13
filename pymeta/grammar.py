@@ -34,7 +34,7 @@ class OMeta(OMetaBase):
         return grammarClass
     makeGrammar = classmethod(makeGrammar)
 
-ometaGrammar = """
+ometaGrammar = r"""
 number ::= <spaces> ('-' <barenumber>:x => self.builder.exactly(-x)
                     |<barenumber>:x => self.builder.exactly(x))
 barenumber ::= ('0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
@@ -43,9 +43,18 @@ barenumber ::= ('0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
 octaldigit ::= :x ?(x in string.octdigits) => x
 hexdigit ::= :x ?(x in string.hexdigits) => x
 
-character ::= <token "'"> :c <token "'"> => self.builder.exactly(c)
+escapedChar ::= '\\' ('n' => "\n"
+                     |'r' => "\r"
+                     |'t' => "\t"
+                     |'b' => "\b"
+                     |'f' => "\f"
+                     |'"' => '"'
+                     |'\'' => "'"
+                     |'\\' => "\\")
 
-string ::= <token '"'> (~('"') <anything>)*:c <token '"'> => self.builder.exactly(''.join(c))
+character ::= <token "'"> (<escapedChar> | <anything>):c <token "'"> => self.builder.exactly(c)
+
+string ::= <token '"'> (<escapedChar> | ~('"') <anything>)*:c <token '"'> => self.builder.exactly(''.join(c))
 
 name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
 

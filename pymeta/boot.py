@@ -134,12 +134,19 @@ class BootOMetaGrammar(OMetaBase):
         return eval('x', self.globals, _locals)
 
 
+    def rule_escapedChar(self):
+        self.exactly('\\')
+        x = "'\\" + self.apply("anything")+"'"
+        return eval(x)
+
     def rule_character(self):
         _locals = {'self': self}
         self.locals['character'] = _locals
         self.apply("token", eval('"\'"', self.globals, _locals))
-        _locals['c'] = self.apply("anything", )
-        _locals['c']
+        try:
+            _locals['c'] = self.apply("escapedChar")
+        except ParseError:
+            _locals['c'] = self.apply("anything", )
         self.apply("token", eval('"\'"', self.globals, _locals))
         return eval('self.builder.exactly(c)', self.globals, _locals)
 

@@ -66,6 +66,14 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.digit("1"), "1")
         self.assertRaises(ParseError, g.digit, "4")
 
+    def test_escapedLiterals(self):
+        """
+        Input matches can be made on escaped literal characters.
+        """
+        g = self.compile(r"newline ::= '\n'")
+        self.assertEqual(g.newline("\n"), "\n")
+
+
 
     def test_integers(self):
         """

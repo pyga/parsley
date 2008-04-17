@@ -375,9 +375,10 @@ class PythonBuilder(object):
             "class %s(%s):" %(self.name, self.superclass.__name__),
             lines))
         modname = "pymeta_grammar__"+self.name
-        filename = "<generated_code>/"+modname+".py"
+        filename = "/pymeta_generated_code/"+modname+".py"
         mod = module(modname)
         mod.__dict__.update(self.globals)
+        mod.__name__ = modname
         mod.__dict__[self.superclass.__name__] = self.superclass
         mod.__loader__ = GeneratedCodeLoader(source)
         code = compile(source, filename, "exec")
@@ -431,7 +432,7 @@ class PythonBuilder(object):
         """
         Try to parse an expr and continue if it fails.
         """
-        return self._or([expr, ["True"]])
+        return self._or([expr, ["None"]])
 
 
     def _or(self, exprs):

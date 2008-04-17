@@ -23,7 +23,7 @@ quotedString ::= (('"' | '\''):q (~<exactly q> <anything>)*:xs <exactly q>
                      => ''.join(xs))
 
 """
-TinyHTML = OMeta.makeGrammar(tinyHTMLGrammar, globals())
+TinyHTML = OMeta.makeGrammar(tinyHTMLGrammar, globals(), name="TinyHTML")
 
 def formatAttrs(attrs):
     """
@@ -39,7 +39,7 @@ tag ::= ([:name :attrs <contents>:t]
          | <anything>)
 """
 
-TinyHTMLUnparser = OMeta.makeGrammar(unparserGrammar, globals())
+TinyHTMLUnparser = OMeta.makeGrammar(unparserGrammar, globals(), name="TinyHTMLUnparser")
 
 linkExtractorGrammar = """
 contents ::= [<tag>*:t] => list(chain(*t))
@@ -49,7 +49,7 @@ tag ::= ( ["a" :attrs ?('href' in attrs) <contents>:t] => ([attrs['href']] + t)
         | :text => [])
 """
 
-LinkExtractor = OMeta.makeGrammar(linkExtractorGrammar, globals())
+LinkExtractor = OMeta.makeGrammar(linkExtractorGrammar, globals(), name="LinkExtractor")
 
 boringifierGrammar = """
 contents ::= [<tag>*:t] => list(chain(*t))
@@ -59,6 +59,6 @@ tag ::= ( ["b" <anything> <contents>:t] => t
         | :text => [text])
 """
 
-Boringifier = OMeta.makeGrammar(boringifierGrammar, globals())
+Boringifier = OMeta.makeGrammar(boringifierGrammar, globals(), name="Boringifier")
 
 testSource = "<html><title>Yes</title><body><h1>Man, HTML is <i>great</i>.</h1><p>How could you even <b>think</b> otherwise?</p><img src='HIPPO.JPG'></img><a href='http://twistedmatrix.com'>A Good Website</a></body></html>"

@@ -7,13 +7,11 @@ from builder import PythonBuilder
 from boot import BootOMetaGrammar
 from runtime import OMetaBase, ParseError
 
-OMetaGrammar = None
-
 class OMeta(OMetaBase):
     """
     Base class for grammar definitions.
     """
-
+    metagrammarClass = BootOMetaGrammar
     def makeGrammar(cls, grammar, globals, name="Grammar"):
         """
         Define a new subclass with the rules in the given grammar.
@@ -23,10 +21,7 @@ class OMeta(OMetaBase):
         grammar.
         @param name: The name of the class to be generated.
         """
-        if OMetaGrammar is None:
-            g = BootOMetaGrammar(grammar)
-        else:
-            g = OMetaGrammar(grammar)
+        g = cls.metagrammarClass(grammar)
         return g.parseGrammar(name, PythonBuilder, cls, globals)
     makeGrammar = classmethod(makeGrammar)
 
@@ -177,6 +172,8 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         """
         expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
         return self.builder.pred(expr)
+
+OMeta.metagrammarClass = OMetaGrammar
 
 nullOptimizationGrammar = """
 

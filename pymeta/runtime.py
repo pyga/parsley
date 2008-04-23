@@ -368,7 +368,8 @@ class OMetaBase(object):
         m = self.input.mark()
         try:
             try:
-                list = IterBuffer(self.rule_anything())
+                v = self.rule_anything()
+                list = IterBuffer(v)
                 self.input = list
             except TypeError:
                 oldInput.rewind(m)
@@ -377,9 +378,9 @@ class OMetaBase(object):
                 oldInput.unmark(m)
             r = expr()
             self.end()
+            return v
         finally:
             self.input = oldInput
-        return r
 
 
     def end(self):

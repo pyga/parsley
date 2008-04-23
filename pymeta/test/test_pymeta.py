@@ -283,6 +283,16 @@ class OMetaTestCase(unittest.TestCase):
            """)
         self.assertEqual(g.interp([['3', '+', '5']]), 8)
 
+    def test_listpatternresult(self):
+        """
+        The result of a list pattern is the entire list.
+        """
+        g = self.compile("""
+             digit  ::= :x ?(x.isdigit())          => int(x)
+             interp ::= [<digit>:x '+' <digit>:y]:z => (z, x + y)
+        """)
+        e = ['3', '+', '5']
+        self.assertEqual(g.interp([e]), (e, 8))
 
     def test_recursion(self):
         """

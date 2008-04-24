@@ -328,9 +328,11 @@ class OMetaBase(object):
 
         @param fn: A callable of no arguments.
         """
+        m = self.input.mark()
         try:
             fn()
         except ParseError:
+            self.input.rewind(m)
             return True
         else:
             raise ParseError()

@@ -30,9 +30,12 @@ class BootOMetaGrammar(OMetaBase):
         """
         self.builder = builder(name, self, *args)
         res = self.apply("grammar")
-        x = list(self.input)
-        if x:
-            x = repr(''.join(x))
+        try:
+            x = self.input.head()
+        except IndexError:
+            pass
+        else:
+            x = repr(''.join(self.input.data[self.input.position:]))
             raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
         return res
 
@@ -58,7 +61,7 @@ class BootOMetaGrammar(OMetaBase):
     def ruleValueExpr(self):
         expr, endchar = self.pythonExpr(endChars="\r\n)]")
         if str(endchar) in ")]":
-            self.input.prev()
+            self.input = self.input.prev()
         return self.builder.compilePythonExpr(self.name, expr)
 
 
@@ -151,9 +154,11 @@ class BootOMetaGrammar(OMetaBase):
         _locals = {'self': self}
         self.locals['character'] = _locals
         self.apply("token", eval('"\'"', self.globals, _locals))
+        m = self.input
         try:
             _locals['c'] = self.apply("escapedChar")
         except ParseError:
+            self.input = m
             _locals['c'] = self.apply("anything", )
         self.apply("token", eval('"\'"', self.globals, _locals))
         return eval('self.builder.exactly(c)', self.globals, _locals)

@@ -29,29 +29,69 @@ class unicodeCharacter(unicode):
         """
         raise TypeError("Characters are not iterable")
 
-class IterBuffer(object):
+class InputStream(object):
     """
-    Wrapper for an iterable that allows pushing items onto it. The basic input
-    mechanism used by OMeta grammars.
+    The basic input mechanism used by OMeta grammars.
     """
 
-    def __init__(self, iterable):
+    def fromIterable(cls, iterable):
         """
         @param iterable: Any iterable Python object.
         """
-        self.original = iterable
         if isinstance(iterable, str):
-            self.iterable = (character(c) for c in iterable)
+            data = [character(c) for c in iterable]
         elif isinstance(iterable, unicode):
-            self.iterable = (unicodeCharacter(c) for c in iterable)
+            data = [unicodeCharacter(c) for c in iterable]
         else:
-            self.iterable = iter(iterable)
-        self.buffer = []
-        self.markBuffers = []
-        self.markPositions = []
-        self.position = 0
+            data = list(iterable)
+        return cls(data, 0)
+    fromIterable = classmethod(fromIterable)
+
+    def __init__(self, data, position):
+        self.data = data
+        self.position = position
         self.memo = {}
-        self.args = []
+
+    def head(self):
+        if self.position >= len(self.data):
+            raise IndexError("out of range")
+        return self.data[self.position]
+
+    def tail(self):
+        return InputStream(self.data, self.position+1)
+
+    def prev(self):
+        return InputStream(self.data, self.position-1)
+
+    def getMemo(self, name):
+        """
+        Returns the memo record for the named rule.
+        @param name: A rule name.
+        """
+        return self.memo.get(name, None)
+
+
+    def setMemo(self, name, rec):
+        """
+        Store a memo record for the given value and position for the given
+        rule.
+        @param name: A rule name.
+        @param rec: A memo record.
+        """
+        self.memo[name] = rec
+        return rec
+
+class ArgInput(object):
+    def __init__(self, arg, parent):
+        self.arg = arg
+        self.parent = parent
+        self.memo = {}
+
+    def head(self):
+        return self.arg
+
+    def tail(self):
+        return self.parent
 
 
     def getMemo(self, name):
@@ -59,103 +99,19 @@ class IterBuffer(object):
         Returns the memo record for the named rule.
         @param name: A rule name.
         """
-        m = self.memo.get(self.position, None)
-        if m:
-            return m.get(name, None)
+        return self.memo.get(name, None)
 
 
-    def setMemo(self, pos, name, rec):
+    def setMemo(self, name, rec):
         """
         Store a memo record for the given value and position for the given
         rule.
-        @param pos: A position in the input.
         @param name: A rule name.
         @param rec: A memo record.
         """
-        self.memo.setdefault(pos, {})[name] = rec
+        self.memo[name] = rec
         return rec
 
-
-    def __iter__(self):
-        return self
-
-
-    def next(self):
-        """
-        Fetch the next item in the stream.
-        """
-        if self.args:
-            val = self.args.pop()
-        else:
-            if self.buffer:
-                val = self.buffer.pop()
-            else:
-                val = self.iterable.next()
-            for buf in self.markBuffers:
-                buf.append(val)
-        self.position += 1
-        self.lastThing = val
-        return val
-
-
-    def prev(self):
-        """
-        Rewind by a single item.
-        """
-        self.buffer.append(self.lastThing)
-        for buf in self.markBuffers:
-            if buf:
-                del buf[-1]
-        self.position -= 1
-        del self.lastThing
-
-    def push(self, obj):
-        """
-        Push an object onto the stream, such that it will be returned on the
-        next call to next().
-        """
-        self.position -= 1
-        self.args.append(obj)
-        if self.position in self.memo:
-            self.memo[self.position] = {}
-
-    def mark(self):
-        """
-        Mark a position in the stream.
-        """
-        self.markPositions.append(self.position)
-        self.markBuffers.append([])
-        return len(self.markBuffers)-1
-
-
-    def unmark(self, mark):
-        """
-        Register disinterest in returning to a previously marked stream
-        position.
-        """
-        del self.markBuffers[mark:]
-        del self.markPositions[mark:]
-
-
-    def rewind(self, mark):
-        """
-        Return to a previously marked position in the stream.
-        """
-        saved = self.markBuffers[mark][::-1]
-        self.buffer.extend(saved)
-        self.position = self.markPositions[mark]
-        self.unmark(mark)
-        if len(saved) > 0:
-            for buf in self.markBuffers:
-                del buf[-len(saved):]
-
-
-    def seekForwardTo(self, position):
-        """
-        Advance until the input reaches the requested position.
-        """
-        while position > self.position:
-            self.next()
 
 class LeftRecursion(object):
     """
@@ -176,7 +132,7 @@ class OMetaBase(object):
         @param globals: A dictionary of names to objects, for use in evaluating
         embedded Python expressions.
         """
-        self.input = IterBuffer(string)
+        self.input = InputStream.fromIterable(string)
         self.locals = {}
         if self.globals is None:
             if globals is None:
@@ -193,7 +149,7 @@ class OMetaBase(object):
         """
         r = getattr(super(self.__class__, self), "rule_"+ruleName, None)
         if r is not None:
-            self.input.setMemo(self.input.position, ruleName, None)
+            self.input.setMemo(ruleName, None)
             return self._apply(r, ruleName, args)
         else:
             raise NameError("No rule named '%s'" %(ruleName,))
@@ -207,6 +163,7 @@ class OMetaBase(object):
         r = getattr(self, "rule_"+ruleName, None)
         if r is not None:
             return self._apply(r, ruleName, args)
+
         else:
             raise NameError("No rule named '%s'" %(ruleName,))
 
@@ -221,40 +178,37 @@ class OMetaBase(object):
         if args:
             if rule.func_code.co_argcount - 1 != len(args):
                 for arg in args[::-1]:
-                    self.input.push(arg)
+                    self.input = ArgInput(arg, self.input)
                 return rule()
             else:
                 return rule(*args)
         memoRec = self.input.getMemo(ruleName)
         if memoRec is None:
-            m = self.input.mark()
-            oldPosition = self.input.position
+            oldPosition = self.input
             lr = LeftRecursion()
-            memoRec = self.input.setMemo(self.input.position, ruleName, lr)
+            memoRec = self.input.setMemo(ruleName, lr)
 
-            memoRec = self.input.setMemo(self.input.position, ruleName,
-                                         [rule(), self.input.position])
+            memoRec = self.input.setMemo(ruleName,
+                                         [rule(), self.input])
             if lr.detected:
-                sentinel = self.input.position
-                self.input.rewind(m)
+                sentinel = self.input
                 while True:
                     try:
-                        m = self.input.mark()
+                        self.input = oldPosition
                         ans = rule()
-                        if (self.input.position == sentinel):
+                        if (self.input == sentinel):
                             break
 
-                        memoRec = self.input.setMemo(oldPosition, ruleName,
-                                                     [ans, self.input.position])
-                        self.input.rewind(m)
+                        memoRec = oldPosition.setMemo(ruleName,
+                                                     [ans, self.input])
                     except ParseError:
                         break
-            self.input.unmark(m)
+            self.input = oldPosition
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
             raise ParseError()
-        self.input.seekForwardTo(memoRec[1])
+        self.input = memoRec[1]
         return memoRec[0]
 
 
@@ -263,8 +217,10 @@ class OMetaBase(object):
         Match a single item from the input of any kind.
         """
         try:
-            return self.input.next()
-        except StopIteration:
+            h = self.input.head()
+            self.input = self.input.tail()
+            return h
+        except IndexError:
             raise ParseError()
 
     def exactly(self, wanted):
@@ -273,14 +229,16 @@ class OMetaBase(object):
 
         @param wanted: What to match.
         """
+        i = self.input
         try:
-            val = self.input.next()
-        except StopIteration:
+            val = self.input.head()
+            self.input = self.input.tail()
+        except IndexError:
             raise ParseError()
         if wanted == val:
             return wanted
         else:
-            self.input.prev()
+            self.input = i
             raise ParseError()
 
     rule_exactly = exactly
@@ -296,13 +254,11 @@ class OMetaBase(object):
         ans = list(initial)
         while True:
             try:
-                m = self.input.mark()
+                m = self.input
                 ans.append(fn())
             except ParseError:
-                self.input.rewind(m)
+                self.input = m
                 break
-            else:
-                self.input.unmark(m)
         return ans
 
     def _or(self, fns):
@@ -314,12 +270,11 @@ class OMetaBase(object):
         """
         for f in fns:
             try:
-                m = self.input.mark()
+                m = self.input
                 ret = f()
-                self.input.unmark(m)
                 return ret
             except ParseError:
-                self.input.rewind(m)
+                self.input = m
         raise ParseError()
 
     def _not(self, fn):
@@ -328,11 +283,11 @@ class OMetaBase(object):
 
         @param fn: A callable of no arguments.
         """
-        m = self.input.mark()
+        m = self.input
         try:
             fn()
         except ParseError:
-            self.input.rewind(m)
+            self.input = m
             return True
         else:
             raise ParseError()
@@ -341,9 +296,15 @@ class OMetaBase(object):
         """
         Consume input until a non-whitespace character is reached.
         """
-        for c in self.input:
-            if not c.isspace():
-                self.input.prev()
+        while True:
+            try:
+                c = self.input.head()
+            except IndexError:
+                break
+            t = self.input.tail()
+            if c.isspace():
+                self.input = t
+            else:
                 break
         return True
     rule_spaces = eatWhitespace
@@ -366,23 +327,16 @@ class OMetaBase(object):
 
         @param expr: A callable of no arguments.
         """
+        v = self.rule_anything()
         oldInput = self.input
-        m = self.input.mark()
         try:
-            try:
-                v = self.rule_anything()
-                list = IterBuffer(v)
-                self.input = list
-            except TypeError:
-                oldInput.rewind(m)
-                raise ParseError()
-            else:
-                oldInput.unmark(m)
-            r = expr()
-            self.end()
-            return v
-        finally:
-            self.input = oldInput
+            self.input = InputStream.fromIterable(v)
+        except TypeError:
+            raise ParseError()
+        r = expr()
+        self.end()
+        self.input = oldInput
+        return v
 
 
     def end(self):
@@ -401,26 +355,25 @@ class OMetaBase(object):
         @param f: A callable of no arguments.
         """
         try:
-            m = self.input.mark()
+            m = self.input
             x = f()
             return x
         finally:
-            self.input.rewind(m)
+            self.input = m
 
 
     def token(self, tok):
         """
         Match and return the given string, consuming any preceding whitespace.
         """
-        m = self.input.mark()
+        m = self.input
         try:
             self.eatWhitespace()
             for c in tok:
                 self.exactly(c)
-            self.input.unmark(m)
             return tok
         except ParseError:
-            self.input.rewind(m)
+            self.input = m
             raise
 
     rule_token = token
@@ -430,14 +383,14 @@ class OMetaBase(object):
         Match a single letter.
         """
         try:
-            x = self.input.next()
+            x = self.input.head()
             if x.isalpha():
+                self.input = self.input.tail()
                 return x
             else:
-                self.input.prev()
-                raise ParseError
-        except StopIteration:
-            raise ParseError
+                raise ParseError()
+        except IndexError:
+            raise ParseError()
 
     rule_letter = letter
 
@@ -446,13 +399,13 @@ class OMetaBase(object):
         Match a single alphanumeric character.
         """
         try:
-            x = self.input.next()
-        except StopIteration:
+            x = self.input.head()
+        except IndexError:
             raise ParseError()
         if x.isalnum() or x == '_':
+            self.input = self.input.tail()
             return x
         else:
-            self.input.prev()
             raise ParseError()
 
     rule_letterOrDigit = letterOrDigit
@@ -462,13 +415,13 @@ class OMetaBase(object):
         Match a single digit.
         """
         try:
-            x = self.input.next()
-        except StopIteration:
+            x = self.input.head()
+        except IndexError:
             raise ParseError()
         if x.isdigit():
+            self.input = self.input.tail()
             return x
         else:
-            self.input.prev()
             raise ParseError()
 
     rule_digit = digit
@@ -483,7 +436,12 @@ class OMetaBase(object):
         delimiters = { "(": ")", "[": "]", "{": "}"}
         stack = []
         expr = []
-        for c in self.input:
+        while True:
+            try:
+                c = self.rule_anything()
+            except ParseError:
+                endchar = None
+                break
             if c in endChars and len(stack) == 0:
                 endchar = c
                 break
@@ -496,12 +454,11 @@ class OMetaBase(object):
                 elif c in delimiters.values():
                     raise ParseError()
                 elif c in "\"'":
-                    for strc in self.input:
+                    while True:
+                        strc = self.rule_anything()
                         expr.append(strc)
                         if strc == c:
                             break
-        else:
-            endchar = None
         if len(stack) > 0:
             raise ParseError()
         return ''.join(expr).strip(), endchar

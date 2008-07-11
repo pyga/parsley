@@ -28,8 +28,9 @@ class HandyWrapper(object):
             """
             obj = self.klass(str)
             ret = obj.apply(name)
-            extra = list(obj.input)
-            if not extra:
+            try:
+                extra = obj.input.head()
+            except IndexError:
                 try:
                     return ''.join(ret)
                 except TypeError:
@@ -455,7 +456,7 @@ class SelfHostingTest(OMetaTestCase):
 
 class NullOptimizerTest(OMetaTestCase):
     """
-    Tests of OMeta grammar compilation via the null optimizer..
+    Tests of OMeta grammar compilation via the null optimizer.
     """
 
     def compile(self, grammar):

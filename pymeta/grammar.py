@@ -118,9 +118,12 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         """
         self.builder = builder(name, self, *args)
         res = self.apply("grammar")
-        x = list(self.input)
-        if x:
-            x = repr(''.join(x))
+        try:
+            x = self.input.head()
+        except IndexError:
+            pass
+        else:
+            x = repr(''.join(self.input.data[self.input.position:]))
             raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
         return res
 
@@ -153,7 +156,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         """
         expr, endchar = self.pythonExpr(endChars="\r\n)]")
         if str(endchar) in ")]":
-            self.input.prev()
+            self.input = self.input.prev()
         return self.builder.compilePythonExpr(self.name, expr)
 
     def semanticActionExpr(self):

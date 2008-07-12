@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-"""Setup script for the Torc distribution."""
+"""Setup script for the PyMeta distribution."""
 from distutils.core import setup
 setup(
     name = "PyMeta",
-    version = "0.2.0",
+    version = "0.3.0",
     url = "http://launchpad.net/pymeta",
     description = "Pattern-matching language based on OMeta",
     author = "Allen Short",

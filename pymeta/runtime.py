@@ -51,6 +51,7 @@ class InputStream(object):
         self.data = data
         self.position = position
         self.memo = {}
+        self.tl = None
 
     def head(self):
         if self.position >= len(self.data):
@@ -58,7 +59,9 @@ class InputStream(object):
         return self.data[self.position]
 
     def tail(self):
-        return InputStream(self.data, self.position+1)
+        if self.tl is None:
+            self.tl = InputStream(self.data, self.position+1)
+        return self.tl
 
     def prev(self):
         return InputStream(self.data, self.position-1)

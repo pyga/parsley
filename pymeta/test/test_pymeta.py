@@ -342,7 +342,16 @@ class OMetaTestCase(unittest.TestCase):
            """)
         self.assertEqual(g.interp([["Foo", 1, 2]]), 3)
 
-
+    def test_argEscape(self):
+        """
+        Regression test for bug #239344.
+        """
+        g = self.compile("""
+            memo_arg :arg ::= <anything> ?(False)
+            trick ::= <letter> <memo_arg 'c'>
+            broken ::= <trick> | <anything>*
+        """)
+        self.assertEqual(g.broken('ab'), 'ab')
 
 class PyExtractorTest(unittest.TestCase):
     """

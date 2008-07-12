@@ -275,7 +275,7 @@ class BootOMetaGrammar(OMetaBase):
                 self.apply("token", eval("'+'", self.globals, _locals))
                 return eval('self.builder.many1(e)', self.globals, _locals)
             def _G__or_34():
-                self.apply("token", eval("'?'", self.globals, _locals))
+                self.apply("exactly", eval("'?'", self.globals, _locals))
                 return eval('self.builder.optional(e)', self.globals, _locals)
             def _G__or_35():
                 return eval('e', self.globals, _locals)

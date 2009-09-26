@@ -66,12 +66,14 @@ class BootOMetaGrammar(OMetaBase):
 
 
     def semanticActionExpr(self):
-        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        expr = self.builder.compilePythonExpr(self.name,
+                                              self.pythonExpr(')')[0])
         return self.builder.action(expr)
 
 
     def semanticPredicateExpr(self):
-        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        expr = self.builder.compilePythonExpr(self.name,
+                                              self.pythonExpr(')')[0])
         return self.builder.pred(expr)
 
 
@@ -201,7 +203,8 @@ class BootOMetaGrammar(OMetaBase):
         _locals['name']
         def _G__or_17():
             self.exactly(' ')
-            _locals['args'] = eval('self.applicationArgs()', self.globals, _locals)
+            _locals['args'] = eval('self.applicationArgs()',
+                                   self.globals, _locals)
             _locals['args']
             return eval('self.builder.apply(name, self.name, *args)', self.globals, _locals)
         def _G__or_18():

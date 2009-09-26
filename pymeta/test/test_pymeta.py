@@ -1,5 +1,3 @@
-import sys, linecache
-from types import ModuleType as module
 from twisted.trial import unittest
 from pymeta.runtime import ParseError, OMetaBase
 from pymeta.boot import BootOMetaGrammar
@@ -74,7 +72,6 @@ class OMetaTestCase(unittest.TestCase):
         """
         g = self.compile(r"newline ::= '\n'")
         self.assertEqual(g.newline("\n"), "\n")
-
 
 
     def test_integers(self):

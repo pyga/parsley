@@ -1,3 +1,5 @@
+# -*- test-case-name: pymeta.test.test_runtime -*-
+
 """
 Code needed to run a grammar after it has been compiled.
 """
@@ -5,6 +7,34 @@ class ParseError(Exception):
     """
     ?Redo from start
     """
+    def __init__(self, *a):
+        Exception.__init__(self, *a)
+        self.position = a[0]
+        self.error = a[1]
+
+    def __eq__(self, other):
+        if other.__class__ == self.__class__:
+            return self.args == other.args
+
+class EOFError(ParseError):
+    def __init__(self, position):
+        ParseError.__init__(self, position, eof())
+
+
+def expected(val):
+    """
+    Return an indication of expected input and the position where it was
+    expected and not encountered.
+    """
+
+    return {"expected": val}
+
+def eof():
+    """
+    Return an indication that the end of the input was reached.
+    """
+    return "EOF"
+
 
 class character(str):
     """
@@ -55,8 +85,8 @@ class InputStream(object):
 
     def head(self):
         if self.position >= len(self.data):
-            raise IndexError("out of range")
-        return self.data[self.position]
+            raise EOFError(self.position)
+        return self.data[self.position], self.position
 
     def tail(self):
         if self.tl is None:
@@ -220,9 +250,9 @@ class OMetaBase(object):
         Match a single item from the input of any kind.
         """
         try:
-            h = self.input.head()
+            h, p = self.input.head()
             self.input = self.input.tail()
-            return h
+            return h, p
         except IndexError:
             raise ParseError()
 
@@ -234,15 +264,15 @@ class OMetaBase(object):
         """
         i = self.input
         try:
-            val = self.input.head()
+            val, p = self.input.head()
             self.input = self.input.tail()
         except IndexError:
             raise ParseError()
         if wanted == val:
-            return wanted
+            return val, p
         else:
             self.input = i
-            raise ParseError()
+            raise ParseError(p, expected(wanted))
 
     rule_exactly = exactly
 
@@ -258,11 +288,12 @@ class OMetaBase(object):
         while True:
             try:
                 m = self.input
-                ans.append(fn())
-            except ParseError:
+                v, _ = fn()
+                ans.append(v)
+            except ParseError, e:
                 self.input = m
                 break
-        return ans
+        return ans, e
 
     def _or(self, fns):
         """
@@ -301,16 +332,17 @@ class OMetaBase(object):
         """
         while True:
             try:
-                c = self.input.head()
-            except IndexError:
+                c, e = self.input.head()
+            except EOFError, e:
                 break
             t = self.input.tail()
             if c.isspace():
                 self.input = t
             else:
                 break
-        return True
+        return True, e
     rule_spaces = eatWhitespace
+
 
     def pred(self, expr):
         """
@@ -373,8 +405,8 @@ class OMetaBase(object):
         try:
             self.eatWhitespace()
             for c in tok:
-                self.exactly(c)
-            return tok
+                v, e = self.exactly(c)
+            return tok, e
         except ParseError:
             self.input = m
             raise

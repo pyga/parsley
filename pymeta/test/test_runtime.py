@@ -1,6 +1,6 @@
 
 from twisted.trial import unittest
-from pymeta.runtime import OMetaBase, ParseError, expected
+from pymeta.runtime import OMetaBase, ParseError, expected, expectedOneOf
 
 class RuntimeTests(unittest.TestCase):
     """
@@ -16,7 +16,8 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
 
         for i, c in enumerate(data):
-            self.assertEqual((c, i), o.rule_anything())
+            v, e = o.rule_anything()
+            self.assertEqual((c, i), (v, e.position))
 
 
     def test_exactly(self):
@@ -27,7 +28,9 @@ class RuntimeTests(unittest.TestCase):
 
         data = "foo"
         o = OMetaBase(data)
-        self.assertEqual(o.rule_exactly("f"), ("f", 0))
+        v, e = o.rule_exactly("f")
+        self.assertEqual(v, "f")
+        self.assertEqual(e.position, 0)
 
     def test_exactlyFail(self):
         """
@@ -54,15 +57,27 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         v, e = o.rule_token("foo")
         self.assertEqual(v, "foo")
-        self.assertEqual(e, 4)
+        self.assertEqual(e.position, 4)
         v, e = o.rule_token("bar")
         self.assertEqual(v, "bar")
-        self.assertEqual(e, 8)
+        self.assertEqual(e.position, 8)
+
+
+    def test_tokenFailed(self):
+        """
+        On failure, L{OMetaBase.rule_token} produces an error indicating the
+        position where match failure occurred and the expected character.
+        """
+        data = "foozle"
+        o = OMetaBase(data)
+        e = self.assertRaises(ParseError, o.rule_token, "fog")
+        self.assertEqual(e.position, 2)
+        self.assertEqual(e.error, expected("g"))
 
 
     def test_many(self):
         """
-        C{OMetaBase.many} returns a list of parsed values and the error that
+        L{OMetaBase.many} returns a list of parsed values and the error that
         caused the end of the loop.
         """
 
@@ -73,7 +88,7 @@ class RuntimeTests(unittest.TestCase):
 
     def test_or(self):
         """
-        C{OMetaBase._or} returns the result of the first of its arguments to succeed.
+        L{OMetaBase._or} returns the result of the first of its arguments to succeed.
         """
 
         data = "a"
@@ -91,4 +106,77 @@ class RuntimeTests(unittest.TestCase):
         v, e = o._or(matchers)
         self.assertEqual(called, [True, True, False])
         self.assertEqual(v, 'a')
-        self.assertEqual(e, 0)
+        self.assertEqual(e.position, 0)
+
+
+    def test_orSimpleFailure(self):
+        """
+        When none of the alternatives passed to L{OMetaBase._or} succeed, the
+        one that got the furthest is returned.
+        """
+
+        data = "foozle"
+        o = OMetaBase(data)
+
+        e = self.assertRaises(ParseError, o._or,
+                              [lambda: o.token("fog"),
+                               lambda: o.token("foozik"),
+                               lambda: o.token("woozle")])
+        self.assertEqual(e.position, 4)
+        self.assertEqual(e.error, expected("i"))
+
+
+    def test_orFalseSuccess(self):
+        """
+        When a failing branch of L{OMetaBase._or} gets further than a
+        succeeding one, its error is returned instead of the success branch's.
+        """
+
+        data = "foozle"
+        o = OMetaBase(data)
+
+        v, e = o._or( [lambda: o.token("fog"),
+                               lambda: o.token("foozik"),
+                               lambda: o.token("f")])
+        self.assertEqual(e.position, 4)
+        self.assertEqual(e.error, expected("i"))
+
+    def test_orErrorTie(self):
+        """
+        When branches of L{OMetaBase._or} produce errors that tie for rightmost
+        position, they are merged.
+        """
+
+        data = "foozle"
+        o = OMetaBase(data)
+
+        v, e = o._or( [lambda: o.token("fog"),
+                               lambda: o.token("foz"),
+                               lambda: o.token("f")])
+        self.assertEqual(e.position, 2)
+        self.assertEqual(e.error, expectedOneOf(["g", "z"]))
+
+
+    def test_notError(self):
+        """
+        When L{OMetaBase._not} fails, its error contains the current input position and no error info.
+        """
+
+        data = "xy"
+        o = OMetaBase(data)
+        e = self.assertRaises(ParseError, o._not, lambda: o.exactly("x"))
+        print e, e.position
+        self.assertEqual(e.position, 1)
+        self.assertEqual(e.error, None)
+
+
+    def test_spaces(self):
+        """
+        L{OMetaBase.rule_spaces} provides error information.
+        """
+
+        data = "  xyz"
+        o = OMetaBase(data)
+        v, e = o.rule_spaces()
+
+        self.assertEqual(e.position, 2)

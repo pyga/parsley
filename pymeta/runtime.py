@@ -1,3 +1,4 @@
+
 # -*- test-case-name: pymeta.test.test_runtime -*-
 
 """
@@ -27,13 +28,39 @@ def expected(val):
     expected and not encountered.
     """
 
-    return {"expected": val}
+    return {"expected": [val]}
+
+def expectedOneOf(vals):
+    """
+    Return an indication of multiple possible expected inputs.
+    """
+
+    return {"expected": vals}
 
 def eof():
     """
     Return an indication that the end of the input was reached.
     """
     return "EOF"
+
+
+def joinErrors(errors):
+    """
+    Return the error from the branch that matched the most of the input.
+    """
+    errors.sort(reverse=True, key=lambda x: x.position)
+    results = []
+    pos = errors[0].position
+
+    for err in errors:
+        if pos == err.position:
+            e = err.error
+            if e is not None:
+                results.extend(e['expected'])
+        else:
+            break
+
+    return ParseError(pos, expectedOneOf(results))
 
 
 class character(str):
@@ -86,7 +113,7 @@ class InputStream(object):
     def head(self):
         if self.position >= len(self.data):
             raise EOFError(self.position)
-        return self.data[self.position], self.position
+        return self.data[self.position], ParseError(self.position, None)
 
     def tail(self):
         if self.tl is None:
@@ -249,12 +276,9 @@ class OMetaBase(object):
         """
         Match a single item from the input of any kind.
         """
-        try:
-            h, p = self.input.head()
-            self.input = self.input.tail()
-            return h, p
-        except IndexError:
-            raise ParseError()
+        h, p = self.input.head()
+        self.input = self.input.tail()
+        return h, p
 
     def exactly(self, wanted):
         """
@@ -263,16 +287,13 @@ class OMetaBase(object):
         @param wanted: What to match.
         """
         i = self.input
-        try:
-            val, p = self.input.head()
-            self.input = self.input.tail()
-        except IndexError:
-            raise ParseError()
+        val, p = self.input.head()
+        self.input = self.input.tail()
         if wanted == val:
             return val, p
         else:
             self.input = i
-            raise ParseError(p, expected(wanted))
+            raise ParseError(p.position, expected(wanted))
 
     rule_exactly = exactly
 
@@ -302,14 +323,18 @@ class OMetaBase(object):
 
         @param fns: A list of no-argument callables.
         """
+        errors = []
         for f in fns:
             try:
                 m = self.input
-                ret = f()
-                return ret
-            except ParseError:
+                ret, err = f()
+                errors.append(err)
+                return ret, joinErrors(errors)
+            except ParseError, e:
+                errors.append(e)
                 self.input = m
-        raise ParseError()
+        raise joinErrors(errors)
+
 
     def _not(self, fn):
         """
@@ -320,11 +345,11 @@ class OMetaBase(object):
         m = self.input
         try:
             fn()
-        except ParseError:
+        except ParseError, e:
             self.input = m
-            return True
+            return True, e
         else:
-            raise ParseError()
+            raise self.input.head()[1]
 
     def eatWhitespace(self):
         """

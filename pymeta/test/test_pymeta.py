@@ -361,7 +361,7 @@ class PyExtractorTest(unittest.TestCase):
         string, ignoring the text following it.
         """
         o = OMetaBase(expr + "\nbaz ::= ...\n")
-        self.assertEqual(o.pythonExpr()[0], expr)
+        self.assertEqual(o.pythonExpr()[0][0], expr)
 
 
     def test_expressions(self):

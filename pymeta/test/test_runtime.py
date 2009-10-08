@@ -1,6 +1,6 @@
 
 from twisted.trial import unittest
-from pymeta.runtime import OMetaBase, ParseError, expected, expectedOneOf
+from pymeta.runtime import OMetaBase, ParseError, expected, expectedOneOf, eof
 
 class RuntimeTests(unittest.TestCase):
     """
@@ -165,7 +165,6 @@ class RuntimeTests(unittest.TestCase):
         data = "xy"
         o = OMetaBase(data)
         e = self.assertRaises(ParseError, o._not, lambda: o.exactly("x"))
-        print e, e.position
         self.assertEqual(e.position, 1)
         self.assertEqual(e.error, None)
 
@@ -180,3 +179,80 @@ class RuntimeTests(unittest.TestCase):
         v, e = o.rule_spaces()
 
         self.assertEqual(e.position, 2)
+
+    def test_predSuccess(self):
+        """
+        L{OMetaBase.pred} returns True and empty error info on success.
+        """
+
+        o = OMetaBase("")
+        v, e = o.pred(lambda: True)
+        self.assertEqual((v, e), (True, ParseError(0, None)))
+
+
+    def test_predFailure(self):
+        """
+        L{OMetaBase.pred} returns True and empty error info on success.
+        """
+
+        o = OMetaBase("")
+        e = self.assertRaises(ParseError, o.pred, lambda: False)
+        self.assertEqual(e, ParseError(0, None))
+
+
+    def test_end(self):
+        """
+        L{OMetaBase.rule_end} matches the end of input and raises L{ParseError}
+        if input is left.
+        """
+        o = OMetaBase("abc")
+        e = self.assertRaises(ParseError, o.rule_end)
+        self.assertEqual(e, ParseError(1, None))
+        o.many(o.rule_anything)
+        self.assertEqual(o.rule_end(), (True, ParseError(3, None)))
+
+
+    def test_letter(self):
+        """
+        L{OMetaBase.rule_letter} matches letters.
+        """
+
+        o = OMetaBase("a1")
+        v, e = o.rule_letter()
+        self.assertEqual((v, e), ("a", ParseError(0, None)))
+        e = self.assertRaises(ParseError, o.rule_letter)
+        self.assertEqual(e, ParseError(1, expected("letter")))
+
+
+    def test_letterOrDigit(self):
+        """
+        L{OMetaBase.rule_letterOrDigit} matches alphanumerics.
+        """
+        o = OMetaBase("a1@")
+        v, e = o.rule_letterOrDigit()
+        self.assertEqual((v, e), ("a", ParseError(0, None)))
+        v, e = o.rule_letterOrDigit()
+        self.assertEqual((v, e), ("1", ParseError(1, None)))
+        e = self.assertRaises(ParseError, o.rule_letterOrDigit)
+        self.assertEqual(e, ParseError(2, expected("letter or digit")))
+
+
+    def test_digit(self):
+        """
+        L{OMetaBase.rule_digit} matches digits.
+        """
+        o = OMetaBase("1a")
+        v, e = o.rule_digit()
+        self.assertEqual((v, e), ("1", ParseError(0, None)))
+        e = self.assertRaises(ParseError, o.rule_digit)
+        self.assertEqual(e, ParseError(1, expected("digit")))
+
+
+
+    def test_listpattern(self):
+        """
+        L{OMetaBase.rule_listpattern} matches contents of lists.
+        """
+        o = OMetaBase([["a"]])
+        v, e = o.listpattern(lambda: o.exactly("a"))
+        self.assertEqual((v, e), (["a"], ParseError(0, None)))

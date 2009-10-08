@@ -15,7 +15,7 @@ class ParseError(Exception):
 
     def __eq__(self, other):
         if other.__class__ == self.__class__:
-            return self.args == other.args
+            return (self.position, self.error) == (other.position, other.error)
 
 class EOFError(ParseError):
     def __init__(self, position):
@@ -114,6 +114,9 @@ class InputStream(object):
         if self.position >= len(self.data):
             raise EOFError(self.position)
         return self.data[self.position], ParseError(self.position, None)
+
+    def nullError(self):
+        return ParseError(self.position, None)
 
     def tail(self):
         if self.tl is None:
@@ -347,9 +350,9 @@ class OMetaBase(object):
             fn()
         except ParseError, e:
             self.input = m
-            return True, e
+            return True, self.input.nullError()
         else:
-            raise self.input.head()[1]
+            raise self.input.nullError()
 
     def eatWhitespace(self):
         """
@@ -375,10 +378,11 @@ class OMetaBase(object):
 
         @param expr: A callable of no arguments.
         """
+        e = self.input.nullError()
         if not expr():
-            raise ParseError()
+            raise e
         else:
-            return True
+            return True, e
 
     def listpattern(self, expr):
         """
@@ -387,16 +391,18 @@ class OMetaBase(object):
 
         @param expr: A callable of no arguments.
         """
-        v = self.rule_anything()
+        v, e = self.rule_anything()
         oldInput = self.input
         try:
             self.input = InputStream.fromIterable(v)
         except TypeError:
-            raise ParseError()
-        r = expr()
+            e = self.input.nullError()
+            e.error = expected("an iterable")
+            raise e
+        expr()
         self.end()
         self.input = oldInput
-        return v
+        return v, e
 
 
     def end(self):
@@ -442,15 +448,12 @@ class OMetaBase(object):
         """
         Match a single letter.
         """
-        try:
-            x = self.input.head()
-            if x.isalpha():
-                self.input = self.input.tail()
-                return x
-            else:
-                raise ParseError()
-        except IndexError:
-            raise ParseError()
+        x, e = self.rule_anything()
+        if x.isalpha():
+            return x, e
+        else:
+            e.error = expected("letter")
+            raise e
 
     rule_letter = letter
 
@@ -458,15 +461,12 @@ class OMetaBase(object):
         """
         Match a single alphanumeric character.
         """
-        try:
-            x = self.input.head()
-        except IndexError:
-            raise ParseError()
+        x, e = self.rule_anything()
         if x.isalnum() or x == '_':
-            self.input = self.input.tail()
-            return x
+            return x, e
         else:
-            raise ParseError()
+            e.error = expected("letter or digit")
+            raise e
 
     rule_letterOrDigit = letterOrDigit
 
@@ -474,15 +474,12 @@ class OMetaBase(object):
         """
         Match a single digit.
         """
-        try:
-            x = self.input.head()
-        except IndexError:
-            raise ParseError()
+        x, e = self.rule_anything()
         if x.isdigit():
-            self.input = self.input.tail()
-            return x
+            return x, e
         else:
-            raise ParseError()
+            e.error = expected("digit")
+            raise e
 
     rule_digit = digit
 
@@ -498,8 +495,8 @@ class OMetaBase(object):
         expr = []
         while True:
             try:
-                c = self.rule_anything()
-            except ParseError:
+                c, e = self.rule_anything()
+            except ParseError, e:
                 endchar = None
                 break
             if c in endChars and len(stack) == 0:
@@ -515,10 +512,10 @@ class OMetaBase(object):
                     raise ParseError()
                 elif c in "\"'":
                     while True:
-                        strc = self.rule_anything()
+                        strc, stre = self.rule_anything()
                         expr.append(strc)
                         if strc == c:
                             break
         if len(stack) > 0:
             raise ParseError()
-        return ''.join(expr).strip(), endchar
+        return (''.join(expr).strip(), endchar), e

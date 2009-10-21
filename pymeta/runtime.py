@@ -1,4 +1,3 @@
-
 # -*- test-case-name: pymeta.test.test_runtime -*-
 
 """
@@ -28,20 +27,20 @@ def expected(val):
     expected and not encountered.
     """
 
-    return {"expected": [val]}
+    return [("expected", val)]
 
 def expectedOneOf(vals):
     """
     Return an indication of multiple possible expected inputs.
     """
 
-    return {"expected": vals}
+    return [("expected", x) for x in vals]
 
 def eof():
     """
     Return an indication that the end of the input was reached.
     """
-    return "EOF"
+    return [("message", "end of input")]
 
 
 def joinErrors(errors):
@@ -51,16 +50,15 @@ def joinErrors(errors):
     errors.sort(reverse=True, key=lambda x: x.position)
     results = []
     pos = errors[0].position
-
     for err in errors:
         if pos == err.position:
             e = err.error
             if e is not None:
-                results.extend(e['expected'])
+                results.extend(e)
         else:
             break
 
-    return ParseError(pos, expectedOneOf(results))
+    return ParseError(pos, results)
 
 
 class character(str):
@@ -151,6 +149,10 @@ class ArgInput(object):
         self.memo = {}
 
     def head(self):
+        try:
+            x, e = self.arg
+        except:
+            import pdb; pdb. set_trace()
         return self.arg
 
     def tail(self):
@@ -202,6 +204,11 @@ class OMetaBase(object):
                 self.globals = {}
             else:
                 self.globals = globals
+
+        self.currentError = self.input.nullError()
+
+    def considerError(self, error):
+        self.currentError = joinErrors(error, self.currentError)
 
 
     def superApply(self, ruleName, *args):

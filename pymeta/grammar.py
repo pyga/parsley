@@ -139,7 +139,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
                 arg, endchar = self.pythonExpr(" >")
                 if not arg:
                     break
-                args.append(arg)
+                args.append(self.builder.compilePythonExpr(arg))
                 if endchar == '>':
                     break
             except ParseError:

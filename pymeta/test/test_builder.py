@@ -7,9 +7,9 @@ def dd(txt):
     return dedent(txt).strip()
 
 
-class TreeBuilderTests(unittest.TestCase):
+class PythonWriterTests(unittest.TestCase):
     """
-    Tests for building an AST from a grammar.
+    Tests for generating Python source from an AST.
     """
 
 
@@ -34,19 +34,6 @@ class TreeBuilderTests(unittest.TestCase):
                             """))
 
 
-    def test_sequence(self):
-        """
-        Test generation of code for sequence patterns.
-        """
-        x = self.builder.exactly("x")
-        y = self.builder.exactly("y")
-        z = self.builder.sequence([x, y])
-        self.assertEqual(writePython(z),
-                         dd("""
-                            _G_exactly_1 = self.exactly('x')
-                            _G_exactly_2 = self.exactly('y')
-                            _G_exactly_2
-                            """))
 
     def test_apply(self):
         """
@@ -59,7 +46,6 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_apply_1 = self.apply("foo", 1, 2)
                             _G_apply_1
                             """))
-
 
 
 
@@ -93,6 +79,7 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_many_2
                             """))
 
+
     def test_many1(self):
         """
         Test generation of code for matching one or more instances of
@@ -108,6 +95,7 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_many1_2 = self.many(_G_many1_1, _G_many1_1())
                             _G_many1_2
                             """))
+
 
 
     def test_or(self):
@@ -129,7 +117,11 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_or_3
                             """))
 
+
     def test_optional(self):
+        """
+        Test code generation for optional terms.
+        """
         x = self.builder.optional(self.builder.exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
@@ -142,7 +134,11 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_or_3
                             """))
 
+
     def test_not(self):
+        """
+        Test code generation for negated terms.
+        """
         x = self.builder._not(self.builder.exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
@@ -153,7 +149,11 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_not_2
                             """))
 
+
     def test_lookahead(self):
+        """
+        Test code generation for lookahead expressions.
+        """
         x = self.builder.lookahead(self.builder.exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
@@ -163,3 +163,49 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_lookahead_2 = self.lookahead(_G_lookahead_1)
                             _G_lookahead_2
                             """))
+
+
+
+    def test_sequence(self):
+        """
+        Test generation of code for sequence patterns.
+        """
+        x = self.builder.exactly("x")
+        y = self.builder.exactly("y")
+        z = self.builder.sequence([x, y])
+        self.assertEqual(writePython(z),
+                         dd("""
+                            _G_exactly_1 = self.exactly('x')
+                            _G_exactly_2 = self.exactly('y')
+                            _G_exactly_2
+                            """))
+
+
+    def test_bind(self):
+        """
+        Test code generation for variable assignment.
+        """
+        x = self.builder.exactly("x")
+        b = self.builder.bind(x, "var")
+        self.assertEqual(writePython(b),
+                         dd("""
+                            _G_exactly_1 = self.exactly('x')
+                            _locals['var'] = _G_exactly_1
+                            _locals['var']
+                            """))
+
+
+    def test_pred(self):
+        """
+        Test code generation for predicate expressions.
+        """
+        x = self.builder.pred(self.builder.exactly("x"))
+        self.assertEqual(writePython(x),
+                         dd("""
+                            def _G_pred_1():
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            _G_pred_2 = self.pred(_G_pred_1)
+                            _G_pred_2
+                            """))
+

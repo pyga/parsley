@@ -266,24 +266,23 @@ class PythonWriter(object):
             v = self._generateNode(ex)
         return v
 
-    def bind(self, exprs, name):
+    def generate_Bind(self, name, expr):
         """
-        Bind the value of the last expression in 'exprs' to a name in the
-        _locals dict.
+        Bind the value of 'expr' to a name in the _locals dict.
         """
-        bodyExprs = list(exprs)
-        finalExpr = bodyExprs[-1]
-        bodyExprs = bodyExprs[:-1]
-        return self.sequence(bodyExprs + ["_locals['%s'] = %s" %(name, finalExpr), self._expr("_locals['%s']" %(name,))])
+        v = self._generateNode(expr)
+        ref = "_locals['%s']" % (name,)
+        self.lines.append("%s = %s" %(ref, v))
+        return ref
 
 
-    def pred(self, expr):
+    def generate_Predicate(self, expr):
         """
         Generate a call to self.pred(lambda: expr).
         """
 
-        fn, fname = self._newThunkFor("pred", [expr])
-        return self.sequence([fn, self._expr("self.pred(%s)" %(fname))])
+        fname = self._newThunkFor("pred", expr)
+        return self._expr("pred", "self.pred(%s)" %(fname,))
 
     def action(self, expr):
         """

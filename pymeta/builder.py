@@ -125,15 +125,6 @@ class PythonWriter(object):
         self.lines.append("%s = %s" % (name, e))
         return name
 
-    def _indent(self, line):
-        """
-        Indent a line of code.
-        """
-        if line.isspace():
-            return '\n'
-        else:
-            return "    " + line
-
 
     def _writeFunction(self, fname, arglist, flines):
         """
@@ -146,15 +137,6 @@ class PythonWriter(object):
         for line in flines:
             self.lines.append((" " * 4) + line)
         return fname
-
-    def _suite(self, head, body):
-        """
-        Generate a suite, indenting the body lines.
-        @param head: The initial line opening the suite.
-        @param body: A list of lines for the suite body.
-        """
-        body = list(body)
-        return [head] + [self._indent(line) for line in body]
 
 
     def makeGrammar(self, rules):

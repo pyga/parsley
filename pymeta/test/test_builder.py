@@ -117,6 +117,15 @@ class PythonWriterTests(unittest.TestCase):
                             _G_or_3
                             """))
 
+    def test_singleOr(self):
+        """
+        Test code generation for a sequence of alternatives.
+        """
+
+        x1 = self.builder._or([self.builder.exactly("x")])
+        x = self.builder.exactly("x")
+        self.assertEqual(writePython(x), writePython(x1))
+
 
     def test_optional(self):
         """

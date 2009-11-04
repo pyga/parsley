@@ -214,13 +214,14 @@ class PythonWriter(object):
         fname = self._newThunkFor("many", expr)
         return self._expr('many', 'self.many(%s)' % (fname,))
 
+    def generate_Many1(self, expr):
+        """
+        Create a call to self.many(lambda: expr).
+        """
+        fname = self._newThunkFor("many1", expr)
+        return self._expr('many1', 'self.many(%s, %s())' % (fname, fname))
 
-    def many1(self, expr):
-        """
-        Create a call to self.many((lambda: expr), expr).
-        """
-        fn, fname = self._newThunkFor("many", expr)
-        return self.sequence([fn, self._expr("self.many(%s, %s())" %(fname, fname))])
+
 
     def optional(self, expr):
         """

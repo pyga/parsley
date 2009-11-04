@@ -75,3 +75,21 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_apply_1 = self.superApply("main", 1, 2)
                             _G_apply_1
                             """))
+
+
+    def test_many(self):
+        """
+        Test generation of code for matching zero or more instances of
+        a pattern.
+        """
+
+        xs = self.builder.many(self.builder.exactly("x"))
+        self.assertEqual(writePython(xs),
+                         dd("""
+                            def _G_many_1():
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            _G_many_2 = self.many(_G_many_1)
+                            _G_many_2
+                            """))
+        

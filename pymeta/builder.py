@@ -1,3 +1,4 @@
+# -*- test-case-name: pymeta.test.test_builder -*-
 from types import ModuleType as module
 import itertools, linecache, sys
 
@@ -79,11 +80,16 @@ class PythonWriter(object):
         self.lines = []
         self.gensymCounter = 0
 
+    def _generate(self, retrn=False):
+        result = self._generateNode(self.tree)
+        if retrn:
+            self.lines.append("return " + result)
+        else:
+            self.lines.append(result)
+        return self.lines
 
     def output(self):
-        result = self._generateNode(self.tree)
-        self.lines.append(result)
-        return '\n'.join(self.lines)
+        return '\n'.join(self._generate())
 
     def _generateNode(self, node):
         name = node[0]
@@ -104,7 +110,8 @@ class PythonWriter(object):
         @param expr: A list of lines of Python code.
         """
         fname = self._gensym(name)
-        return (self._function("def %s():" % (fname,), expr), fname)
+        self._writeFunction(fname, (),  expr)
+        return fname
 
     def _expr(self, typ, e):
         """
@@ -124,24 +131,19 @@ class PythonWriter(object):
         else:
             return "    " + line
 
-    def _return(self, ex):
-        """
-        Generate a 'return' statement, if the given line does not contain one.
-        """
-        if ex.strip().startswith("return"):
-            return ex
-        else:
-            return 'return ' + ex
 
-    def _function(self, head, body):
+    def _writeFunction(self, fname, arglist, body):
         """
         Generate a function.
         @param head: The initial line defining the function.
         @param body: A list of lines for the function body.
         """
-        body = list(body)
-        return [head] + [self._indent(line) for line in body[:-1]] + [self._indent(self._return(body[-1]))]
-
+        subwriter = PythonWriter(body)
+        flines = subwriter._generate(retrn=True)
+        self.lines.append("def %s(%s):" % (fname, ", ".join(arglist)))
+        for line in flines:
+            self.lines.append((" " * 4) + line)
+        return None
 
     def _suite(self, head, body):
         """
@@ -205,12 +207,12 @@ class PythonWriter(object):
         return self._expr('exactly', 'self.exactly(%r)' % (literal,))
 
 
-    def many(self, expr):
+    def generate_Many(self, expr):
         """
         Create a call to self.many(lambda: expr).
         """
-        fn, fname = self._newThunkFor("many", expr)
-        return self.sequence([fn, "self.many(%s)" %(fname,)])
+        fname = self._newThunkFor("many", expr)
+        return self._expr('many', 'self.many(%s)' % (fname,))
 
 
     def many1(self, expr):

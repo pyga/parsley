@@ -141,3 +141,25 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_or_3 = self._or([_G_optional_1, _G_optional_2])
                             _G_or_3
                             """))
+
+    def test_not(self):
+        x = self.builder._not(self.builder.exactly("x"))
+        self.assertEqual(writePython(x),
+                         dd("""
+                            def _G_not_1():
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            _G_not_2 = self._not(_G_not_1)
+                            _G_not_2
+                            """))
+
+    def test_lookahead(self):
+        x = self.builder.lookahead(self.builder.exactly("x"))
+        self.assertEqual(writePython(x),
+                         dd("""
+                            def _G_lookahead_1():
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            _G_lookahead_2 = self.lookahead(_G_lookahead_1)
+                            _G_lookahead_2
+                            """))

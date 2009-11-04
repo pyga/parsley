@@ -242,20 +242,20 @@ class PythonWriter(object):
             return self._generateNode(exprs[0])
 
 
-    def _not(self, expr):
+    def generate_Not(self, expr):
         """
         Create a call to self._not(lambda: expr).
         """
-        fn, fname = self._newThunkFor("_not", expr)
-        return self.sequence([fn, self._expr("self._not(%s)" %(fname))])
+        fname = self._newThunkFor("not", expr)
+        return self._expr("not", "self._not(%s)" % (fname,))
 
 
-    def lookahead(self, expr):
+    def generate_Lookahead(self, expr):
         """
         Create a call to self.lookahead(lambda: expr).
         """
-        fn, fname = self._newThunkFor("lookahead", expr)
-        return self.sequence([fn, self._expr("self.lookahead(%s)" %(fname))])
+        fname = self._newThunkFor("lookahead", expr)
+        return self._expr("lookahead", "self.lookahead(%s)" %(fname,))
 
 
     def generate_And(self, exprs):

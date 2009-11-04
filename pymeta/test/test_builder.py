@@ -109,3 +109,35 @@ class TreeBuilderTests(unittest.TestCase):
                             _G_many1_2
                             """))
 
+
+    def test_or(self):
+        """
+        Test code generation for a sequence of alternatives.
+        """
+
+        xy = self.builder._or([self.builder.exactly("x"),
+                               self.builder.exactly("y")])
+        self.assertEqual(writePython(xy),
+                         dd("""
+                            def _G_or_1():
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            def _G_or_2():
+                                _G_exactly_1 = self.exactly('y')
+                                return _G_exactly_1
+                            _G_or_3 = self._or([_G_or_1, _G_or_2])
+                            _G_or_3
+                            """))
+
+    def test_optional(self):
+        x = self.builder.optional(self.builder.exactly("x"))
+        self.assertEqual(writePython(x),
+                         dd("""
+                            def _G_optional_1():
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            def _G_optional_2():
+                                pass
+                            _G_or_3 = self._or([_G_optional_1, _G_optional_2])
+                            _G_or_3
+                            """))

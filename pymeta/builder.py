@@ -29,7 +29,7 @@ class TreeBuilder(object):
         return ["Optional", expr]
 
     def _or(self, exprs):
-        return ["Or"] + exprs
+        return ["Or", exprs]
 
     def _not(self, expr):
         return ["Not", expr]
@@ -109,9 +109,10 @@ class PythonWriter(object):
         @param name: The name of the rule generating this thunk.
         @param expr: A list of lines of Python code.
         """
-        fname = self._gensym(name)
-        self._writeFunction(fname, (),  expr)
-        return fname
+        subwriter = PythonWriter(expr)
+        flines = subwriter._generate(retrn=True)
+        return self._writeFunction(name, (),  flines)
+
 
     def _expr(self, typ, e):
         """
@@ -132,18 +133,17 @@ class PythonWriter(object):
             return "    " + line
 
 
-    def _writeFunction(self, fname, arglist, body):
+    def _writeFunction(self, name, arglist, flines):
         """
         Generate a function.
         @param head: The initial line defining the function.
         @param body: A list of lines for the function body.
         """
-        subwriter = PythonWriter(body)
-        flines = subwriter._generate(retrn=True)
+        fname = self._gensym(name)
         self.lines.append("def %s(%s):" % (fname, ", ".join(arglist)))
         for line in flines:
             self.lines.append((" " * 4) + line)
-        return None
+        return fname
 
     def _suite(self, head, body):
         """
@@ -223,23 +223,23 @@ class PythonWriter(object):
 
 
 
-    def optional(self, expr):
+    def generate_Optional(self, expr):
         """
         Try to parse an expr and continue if it fails.
         """
-        return self._or([expr, ["None"]])
+        fnames = [self._newThunkFor("optional", expr), self._writeFunction("optional", (), ["pass"])]
+        return self._expr('or', 'self._or([%s])' % (', '.join(fnames)))
 
-
-    def _or(self, exprs):
+    def generate_Or(self, exprs):
         """
         Create a call to
         self._or([lambda: expr1, lambda: expr2, ... , lambda: exprN]).
         """
         if len(exprs) > 1:
-            fs, fnames = zip(*[self._newThunkFor("_or", expr) for expr in exprs])
-            return self.sequence(list(fs) + [self._expr("self._or([%s])" %(', '.join(fnames)))])
+            fnames = [self._newThunkFor("or", expr) for expr in exprs]
+            return self._expr('or', 'self._or([%s])' % (', '.join(fnames)))
         else:
-            return exprs[0]
+            return self._generateNode(exprs[0])
 
 
     def _not(self, expr):

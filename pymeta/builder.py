@@ -49,11 +49,11 @@ class TreeBuilder(object):
     def action(self, expr):
         return ["Action", expr]
 
+    def expr(self, expr):
+        return ["Python", expr]
+
     def listpattern(self, exprs):
         return ["List", exprs]
-
-    def compilePythonExpr(self, name, expr):
-        return ["Python", name, expr]
 
 
 def writePython(tree):
@@ -84,7 +84,7 @@ class PythonWriter(object):
         result = self._generateNode(self.tree)
         if retrn:
             self.lines.append("return " + result)
-        else:
+        elif result:
             self.lines.append(result)
         return self.lines
 
@@ -187,7 +187,7 @@ class PythonWriter(object):
         """
         Generate code for running embedded Python expressions.
         """
-        return self._expr('expr', 'eval(%r, self.globals, _locals)' %(expr,))
+        return self._expr('python', 'eval(%r, self.globals, _locals)' %(expr,))
 
 
     def generate_Apply(self, ruleName, codeName, args):
@@ -222,13 +222,13 @@ class PythonWriter(object):
         return self._expr('many1', 'self.many(%s, %s())' % (fname, fname))
 
 
-
     def generate_Optional(self, expr):
         """
         Try to parse an expr and continue if it fails.
         """
         fnames = [self._newThunkFor("optional", expr), self._writeFunction("optional", (), ["pass"])]
         return self._expr('or', 'self._or([%s])' % (', '.join(fnames)))
+
 
     def generate_Or(self, exprs):
         """
@@ -284,11 +284,19 @@ class PythonWriter(object):
         fname = self._newThunkFor("pred", expr)
         return self._expr("pred", "self.pred(%s)" %(fname,))
 
-    def action(self, expr):
+    def generate_Action(self, expr):
         """
         Generate this embedded Python expression on its own line.
         """
-        return [expr]
+        self.compilePythonExpr(expr)
+        return None
+
+    def generate_Python(self, expr):
+        """
+        Generate this embedded Python expression on its own line.
+        """
+        return self.compilePythonExpr(expr)
+
 
     def listpattern(self, expr):
         """

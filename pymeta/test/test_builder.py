@@ -209,3 +209,25 @@ class PythonWriterTests(unittest.TestCase):
                             _G_pred_2
                             """))
 
+
+    def test_action(self):
+        """
+        Test code generation for semantic actions.
+        """
+        x = self.builder.action("doStuff()")
+        self.assertEqual(writePython(x),
+                         dd("""
+                            _G_python_1 = eval('doStuff()', self.globals, _locals)
+                            """))
+
+
+    def test_expr(self):
+        """
+        Test code generation for semantic predicates.
+        """
+        x = self.builder.expr("returnStuff()")
+        self.assertEqual(writePython(x),
+                         dd("""
+                            _G_python_1 = eval('returnStuff()', self.globals, _locals)
+                            _G_python_1
+                            """))

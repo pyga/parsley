@@ -10,8 +10,8 @@ class TreeBuilder(object):
     def makeGrammar(self, rules):
         return ["Grammar", rules]
 
-    def rule(self, expressions):
-        return ["Rule", expressions]
+    def rule(self, name, expr):
+        return ["Rule", name, expr]
 
     def apply(self, ruleName, codeName, *exprs):
         return ["Apply", ruleName, codeName, exprs]
@@ -111,7 +111,9 @@ class PythonWriter(object):
         """
         subwriter = PythonWriter(expr)
         flines = subwriter._generate(retrn=True)
-        return self._writeFunction(name, (),  flines)
+        fname = self._gensym(name)
+        self._writeFunction(fname, (),  flines) 
+        return fname
 
 
     def _expr(self, typ, e):
@@ -133,13 +135,13 @@ class PythonWriter(object):
             return "    " + line
 
 
-    def _writeFunction(self, name, arglist, flines):
+    def _writeFunction(self, fname, arglist, flines):
         """
         Generate a function.
         @param head: The initial line defining the function.
         @param body: A list of lines for the function body.
         """
-        fname = self._gensym(name)
+
         self.lines.append("def %s(%s):" % (fname, ", ".join(arglist)))
         for line in flines:
             self.lines.append((" " * 4) + line)
@@ -226,8 +228,10 @@ class PythonWriter(object):
         """
         Try to parse an expr and continue if it fails.
         """
-        fnames = [self._newThunkFor("optional", expr), self._writeFunction("optional", (), ["pass"])]
-        return self._expr('or', 'self._or([%s])' % (', '.join(fnames)))
+        realf = self._newThunkFor("optional", expr)
+        passf = self._gensym("optional")
+        self._writeFunction(passf, (), ["pass"])
+        return self._expr('or', 'self._or([%s])' % (', '.join([realf, passf])))
 
 
     def generate_Or(self, exprs):
@@ -303,4 +307,22 @@ class PythonWriter(object):
         Generate a call to self.listpattern(lambda: expr).
         """
         fname = self._newThunkFor("listpattern", expr)
-        return  self._expr("listpattern", "self.listpattern(%s)" %(fname))
+        return  self._expr("listpattern", "self.listpattern(%s)" %(fname,))
+
+
+    def generate_Rule(self, name, expr):
+        rulelines = ["_locals = {'self': self}"]
+        subwriter = PythonWriter(expr)
+        flines = subwriter._generate(retrn=True)
+        rulelines.extend(flines)
+        self._writeFunction("rule_" + name, ("self",), rulelines)
+        
+
+
+    def generate_Grammar(self, rules):
+        self.lines.append("class Grammar(OMetaBase):")
+        for rule in rules:
+            self._generateNode(rule)
+            self.lines.extend(['', ''])
+        self.lines[1:] = [line and (' ' * 4 + line) for line in self.lines[1:]]
+        del self.lines[-2:]

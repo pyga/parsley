@@ -245,3 +245,41 @@ class PythonWriterTests(unittest.TestCase):
                             _G_listpattern_2 = self.listpattern(_G_listpattern_1)
                             _G_listpattern_2
                             """))
+
+
+    def test_rule(self):
+        """
+        Test generation of entire rules.
+        """
+
+        x = self.builder.rule("foo", self.builder.exactly("x"))
+        self.assertEqual(writePython(x),
+                         dd("""
+                            def rule_foo(self):
+                                _locals = {'self': self}
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            """))
+
+
+    def test_grammar(self):
+        """
+        Test generation of an entire grammar.
+        """
+        r1 = self.builder.rule("foo", self.builder.exactly("x"))
+        r2 = self.builder.rule("baz", self.builder.exactly("y"))
+        x = self.builder.makeGrammar([r1, r2])
+        self.assertEqual(writePython(x),
+                         dd("""
+                            class Grammar(OMetaBase):
+                                def rule_foo(self):
+                                    _locals = {'self': self}
+                                    _G_exactly_1 = self.exactly('x')
+                                    return _G_exactly_1
+
+
+                                def rule_baz(self):
+                                    _locals = {'self': self}
+                                    _G_exactly_1 = self.exactly('y')
+                                    return _G_exactly_1
+                            """))

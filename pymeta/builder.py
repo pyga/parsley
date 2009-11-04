@@ -298,9 +298,9 @@ class PythonWriter(object):
         return self.compilePythonExpr(expr)
 
 
-    def listpattern(self, expr):
+    def generate_List(self, expr):
         """
         Generate a call to self.listpattern(lambda: expr).
         """
-        fn, fname = self._newThunkFor("listpattern", expr)
-        return self.sequence([fn, self._expr("self.listpattern(%s)" %(fname))])
+        fname = self._newThunkFor("listpattern", expr)
+        return  self._expr("listpattern", "self.listpattern(%s)" %(fname))

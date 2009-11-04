@@ -231,3 +231,17 @@ class PythonWriterTests(unittest.TestCase):
                             _G_python_1 = eval('returnStuff()', self.globals, _locals)
                             _G_python_1
                             """))
+
+    def test_listpattern(self):
+        """
+        Test code generation for list patterns.
+        """
+        x = self.builder.listpattern(self.builder.exactly("x"))
+        self.assertEqual(writePython(x),
+                         dd("""
+                            def _G_listpattern_1():
+                                _G_exactly_1 = self.exactly('x')
+                                return _G_exactly_1
+                            _G_listpattern_2 = self.listpattern(_G_listpattern_1)
+                            _G_listpattern_2
+                            """))

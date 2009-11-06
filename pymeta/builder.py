@@ -1,14 +1,19 @@
 # -*- test-case-name: pymeta.test.test_builder -*-
+import linecache, sys
 from types import ModuleType as module
-import itertools, linecache, sys
+
 
 class TreeBuilder(object):
     """
     Produce an abstract syntax tree of OMeta operations.
     """
 
+    def __init__(self, name, grammar=None, *args):
+        self.name = name
+
+
     def makeGrammar(self, rules):
-        return ["Grammar", rules]
+        return ["Grammar", self.name, rules]
 
     def rule(self, name, expr):
         return ["Rule", name, expr]
@@ -56,20 +61,6 @@ class TreeBuilder(object):
         return ["List", exprs]
 
 
-def writePython(tree):
-    pw = PythonWriter(tree)
-    return pw.output()
-
-
-class GeneratedCodeLoader(object):
-    """
-    Object for use as a module's __loader__, to display generated
-    source.
-    """
-    def __init__(self, source):
-        self.source = source
-    def get_source(self, name):
-        return self.source
 
 class PythonWriter(object):
     """
@@ -80,6 +71,7 @@ class PythonWriter(object):
         self.lines = []
         self.gensymCounter = 0
 
+
     def _generate(self, retrn=False):
         result = self._generateNode(self.tree)
         if retrn:
@@ -88,13 +80,16 @@ class PythonWriter(object):
             self.lines.append(result)
         return self.lines
 
+
     def output(self):
         return '\n'.join(self._generate())
+
 
     def _generateNode(self, node):
         name = node[0]
         args =  node[1:]
         return getattr(self, "generate_"+name)(*args)
+
 
     def _gensym(self, name):
         """
@@ -102,6 +97,7 @@ class PythonWriter(object):
         """
         self.gensymCounter += 1
         return "_G_%s_%s" % (name, self.gensymCounter)
+
 
     def _newThunkFor(self, name, expr):
         """
@@ -112,7 +108,7 @@ class PythonWriter(object):
         subwriter = PythonWriter(expr)
         flines = subwriter._generate(retrn=True)
         fname = self._gensym(name)
-        self._writeFunction(fname, (),  flines) 
+        self._writeFunction(fname, (),  flines)
         return fname
 
 
@@ -139,34 +135,6 @@ class PythonWriter(object):
         return fname
 
 
-    def makeGrammar(self, rules):
-        """
-        Produce a class from a collection of rules.
-
-        @param rules: A mapping of names to rule bodies.
-        """
-        lines = list(itertools.chain(*[self._function(
-            "def rule_%s(self):" % (name,),
-            ["_locals = {'self': self}",
-             "self.locals[%r] = _locals" % (name,)] + list(body)) + ['\n\n']
-                                       for (name, body) in rules]))
-        source = '\n'.join(self._suite(
-            "class %s(%s):" %(self.name, self.superclass.__name__),
-            lines))
-        modname = "pymeta_grammar__"+self.name
-        filename = "/pymeta_generated_code/"+modname+".py"
-        mod = module(modname)
-        mod.__dict__.update(self.globals)
-        mod.__name__ = modname
-        mod.__dict__[self.superclass.__name__] = self.superclass
-        mod.__loader__ = GeneratedCodeLoader(source)
-        code = compile(source, filename, "exec")
-        eval(code, mod.__dict__)
-        mod.__dict__[self.name].globals = self.globals
-        sys.modules[modname] = mod
-        linecache.getlines(filename, mod.__dict__)
-        return mod.__dict__[self.name]
-
     def compilePythonExpr(self, expr):
         """
         Generate code for running embedded Python expressions.
@@ -174,15 +142,16 @@ class PythonWriter(object):
         return self._expr('python', 'eval(%r, self.globals, _locals)' %(expr,))
 
 
-    def generate_Apply(self, ruleName, codeName, args):
+    def generate_Apply(self, ruleName, codeName, rawArgs):
         """
         Create a call to self.apply(ruleName, *args).
         """
+        args = [self.compilePythonExpr(x) for x in rawArgs]
         if ruleName == 'super':
             return self._expr('apply', 'self.superApply("%s", %s)' % (codeName,
                                                               ', '.join(args)))
-        return self._expr('apply', 'self.apply("%s", %s)' % (ruleName, ', '.join(args)))
-
+        return self._expr('apply', 'self.apply("%s", %s)' % (ruleName,
+                                                             ', '.join(args)))
 
     def generate_Exactly(self, literal):
         """
@@ -197,6 +166,7 @@ class PythonWriter(object):
         """
         fname = self._newThunkFor("many", expr)
         return self._expr('many', 'self.many(%s)' % (fname,))
+
 
     def generate_Many1(self, expr):
         """
@@ -248,9 +218,11 @@ class PythonWriter(object):
         """
         Generate code for each statement in order.
         """
+        v = None
         for ex in exprs:
             v = self._generateNode(ex)
         return v
+
 
     def generate_Bind(self, name, expr):
         """
@@ -270,12 +242,14 @@ class PythonWriter(object):
         fname = self._newThunkFor("pred", expr)
         return self._expr("pred", "self.pred(%s)" %(fname,))
 
+
     def generate_Action(self, expr):
         """
         Generate this embedded Python expression on its own line.
         """
         self.compilePythonExpr(expr)
         return None
+
 
     def generate_Python(self, expr):
         """
@@ -293,18 +267,54 @@ class PythonWriter(object):
 
 
     def generate_Rule(self, name, expr):
-        rulelines = ["_locals = {'self': self}"]
+        rulelines = ["_locals = {'self': self}",
+                     "self.locals[%r] = _locals" % (name,)]
         subwriter = PythonWriter(expr)
         flines = subwriter._generate(retrn=True)
         rulelines.extend(flines)
         self._writeFunction("rule_" + name, ("self",), rulelines)
-        
 
 
-    def generate_Grammar(self, rules):
-        self.lines.append("class Grammar(OMetaBase):")
+    def generate_Grammar(self, name, rules):
+        self.lines.append("class %s(GrammarBase):" % (name,))
         for rule in rules:
             self._generateNode(rule)
             self.lines.extend(['', ''])
         self.lines[1:] = [line and (' ' * 4 + line) for line in self.lines[1:]]
         del self.lines[-2:]
+
+
+
+def writePython(tree):
+    pw = PythonWriter(tree)
+    return pw.output()
+
+
+class GeneratedCodeLoader(object):
+    """
+    Object for use as a module's __loader__, to display generated
+    source.
+    """
+    def __init__(self, source):
+        self.source = source
+    def get_source(self, name):
+        return self.source
+
+
+
+def moduleFromGrammar(tree, className, superclass, globalsDict):
+    source = writePython(tree)
+    modname = "pymeta_grammar__" + className
+    filename = "/pymeta_generated_code/" + modname + ".py"
+    mod = module(modname)
+    mod.__dict__.update(globalsDict)
+    mod.__name__ = modname
+    mod.__dict__[superclass.__name__] = superclass
+    mod.__dict__["GrammarBase"] = superclass
+    mod.__loader__ = GeneratedCodeLoader(source)
+    code = compile(source, filename, "exec")
+    eval(code, mod.__dict__)
+    mod.__dict__[className].globals = globalsDict
+    sys.modules[modname] = mod
+    linecache.getlines(filename, mod.__dict__)
+    return mod.__dict__[className]

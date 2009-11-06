@@ -18,7 +18,7 @@ class PythonWriterTests(unittest.TestCase):
         Create a L{PythonBuilder}.
         """
 
-        self.builder = TreeBuilder()
+        self.builder = TreeBuilder("BuilderTest")
 
 
     def test_exactly(self):
@@ -40,11 +40,13 @@ class PythonWriterTests(unittest.TestCase):
         Test generation of code for rule application.
         """
 
-        x = self.builder.apply("foo", "main", "1", "2")
+        x = self.builder.apply("foo", "main", "1", "x")
         self.assertEqual(writePython(x),
                          dd("""
-                            _G_apply_1 = self.apply("foo", 1, 2)
-                            _G_apply_1
+                            _G_python_1 = eval('1', self.globals, _locals)
+                            _G_python_2 = eval('x', self.globals, _locals)
+                            _G_apply_3 = self.apply("foo", _G_python_1, _G_python_2)
+                            _G_apply_3
                             """))
 
 
@@ -55,11 +57,13 @@ class PythonWriterTests(unittest.TestCase):
         the current rule.
         """
 
-        x = self.builder.apply("super", "main", "1", "2")
+        x = self.builder.apply("super", "main", "1", "x")
         self.assertEqual(writePython(x),
                          dd("""
-                            _G_apply_1 = self.superApply("main", 1, 2)
-                            _G_apply_1
+                            _G_python_1 = eval('1', self.globals, _locals)
+                            _G_python_2 = eval('x', self.globals, _locals)
+                            _G_apply_3 = self.superApply("main", _G_python_1, _G_python_2)
+                            _G_apply_3
                             """))
 
 
@@ -266,6 +270,7 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def rule_foo(self):
                                 _locals = {'self': self}
+                                self.locals['foo'] = _locals
                                 _G_exactly_1 = self.exactly('x')
                                 return _G_exactly_1
                             """))
@@ -280,15 +285,17 @@ class PythonWriterTests(unittest.TestCase):
         x = self.builder.makeGrammar([r1, r2])
         self.assertEqual(writePython(x),
                          dd("""
-                            class Grammar(OMetaBase):
+                            class BuilderTest(GrammarBase):
                                 def rule_foo(self):
                                     _locals = {'self': self}
+                                    self.locals['foo'] = _locals
                                     _G_exactly_1 = self.exactly('x')
                                     return _G_exactly_1
 
 
                                 def rule_baz(self):
                                     _locals = {'self': self}
+                                    self.locals['baz'] = _locals
                                     _G_exactly_1 = self.exactly('y')
                                     return _G_exactly_1
                             """))

@@ -186,18 +186,18 @@ opt ::= ( ["Apply" :ruleName :codeName [<anything>*:exprs]] => self.builder.appl
         | ["Many" <opt>:expr] => self.builder.many(expr)
         | ["Many1" <opt>:expr] => self.builder.many1(expr)
         | ["Optional" <opt>:expr] => self.builder.optional(expr)
-        | ["Or" <opt>*:exprs] => self.builder._or(exprs)
-        | ["And" <opt>*:exprs] => self.builder.sequence(exprs)
+        | ["Or" [<opt>*:exprs]] => self.builder._or(exprs)
+        | ["And" [<opt>*:exprs]] => self.builder.sequence(exprs)
         | ["Not" <opt>:expr]  => self.builder._not(expr)
         | ["Lookahead" <opt>:expr] => self.builder.lookahead(expr)
         | ["Bind" :name <opt>:expr] => self.builder.bind(expr, name)
         | ["Predicate" <opt>:expr] => self.builder.pred(expr)
-        | ["Action" <opt>:expr] => self.builder.action(expr)
+        | ["Action" :code] => self.builder.action(code)
         | ["Python" :code] => self.builder.expr(code)
         | ["List" <opt>:exprs] => self.builder.listpattern(exprs)
         )
-grammar ::= ["Grammar" [<rulePair>*:rs]] => self.builder.makeGrammar(rs)
-rulePair ::= [:name <opt>:rule] => (name, rule)
+grammar ::= ["Grammar" :name [<rulePair>*:rs]] => self.builder.makeGrammar(rs)
+rulePair ::= ["Rule" :name <opt>:rule] => self.builder.rule(name, rule)
 
 """
 

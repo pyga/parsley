@@ -478,7 +478,7 @@ class NullOptimizerTest(OMetaTestCase):
         g = OMetaGrammar(grammar)
         tree = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
-        opt.builder = TreeBuilder("<grammar>", opt)
+        opt.builder = TreeBuilder("TestGrammar", opt)
         tree = opt.apply("grammar")
         grammarClass = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(grammarClass)

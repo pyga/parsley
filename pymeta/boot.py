@@ -3,9 +3,9 @@ The definition of PyMeta's language is itself a PyMeta grammar, but something
 has to be able to read that. Most of the code in this module is generated from
 that grammar (in future versions, it will hopefully all be generated).
 """
-from pymeta.runtime import OMetaBase, ParseError
 import string
-from pymeta.builder import AstBuilder
+from pymeta.runtime import OMetaBase, ParseError
+
 
 class BootOMetaGrammar(OMetaBase):
     """
@@ -47,7 +47,7 @@ class BootOMetaGrammar(OMetaBase):
                 arg, endchar = self.pythonExpr(" >")
                 if not arg:
                     break
-                args.append(arg)
+                args.append(self.builder.expr(arg))
                 if endchar == '>':
                     break
             except ParseError:
@@ -62,16 +62,15 @@ class BootOMetaGrammar(OMetaBase):
         expr, endchar = self.pythonExpr(endChars="\r\n)]")
         if str(endchar) in ")]":
             self.input = self.input.prev()
-        return self.builder.compilePythonExpr(self.name, expr)
+        return self.builder.expr(expr)
 
 
     def semanticActionExpr(self):
-        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
-        return self.builder.action(expr)
+        return self.builder.action(self.pythonExpr(')')[0])
 
 
     def semanticPredicateExpr(self):
-        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        expr = self.builder.expr(self.pythonExpr(')')[0])
         return self.builder.pred(expr)
 
 
@@ -381,9 +380,9 @@ class BootOMetaGrammar(OMetaBase):
                 return self.apply("rulePart", eval('n', self.globals, _locals))
             _locals['rs'] = self.many(_G_many_46, _G_many_46())
             _locals['rs']
-            return eval('(n, self.builder._or([r] + rs))', self.globals, _locals)
+            return eval('self.builder.rule(n, self.builder._or([r] + rs))', self.globals, _locals)
         def _G__or_48():
-            return eval('(n, r)', self.globals, _locals)
+            return eval('self.builder.rule(n, r)', self.globals, _locals)
         return self._or([_G__or_47, _G__or_48])
 
 

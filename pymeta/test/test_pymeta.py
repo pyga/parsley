@@ -1,9 +1,7 @@
-import sys, linecache
-from types import ModuleType as module
 from twisted.trial import unittest
 from pymeta.runtime import ParseError, OMetaBase
 from pymeta.boot import BootOMetaGrammar
-from pymeta.builder import TreeBuilder, AstBuilder, PythonBuilder
+from pymeta.builder import TreeBuilder, moduleFromGrammar
 
 class HandyWrapper(object):
     """
@@ -55,7 +53,8 @@ class OMetaTestCase(unittest.TestCase):
         @param grammar: A string containing an OMeta grammar.
         """
         g = self.classTested(grammar)
-        result = g.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {})
+        tree = g.parseGrammar('TestGrammar', TreeBuilder)
+        result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(result)
 
 
@@ -191,7 +190,8 @@ class OMetaTestCase(unittest.TestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         gg = self.classTested("stuff ::= '1':a ('2':b | '3':c)")
-        G = gg.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {})
+        t = gg.parseGrammar('TestGrammar', TreeBuilder)
+        G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff"), '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -478,7 +478,7 @@ class NullOptimizerTest(OMetaTestCase):
         g = OMetaGrammar(grammar)
         tree = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
-        opt.builder = AstBuilder("<grammar>", opt)
-        methodDict = opt.apply("grammar")
-        grammarClass = type("<grammar>", (OMetaBase,), methodDict)
+        opt.builder = TreeBuilder("TestGrammar", opt)
+        tree = opt.apply("grammar")
+        grammarClass = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(grammarClass)

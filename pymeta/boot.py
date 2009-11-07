@@ -47,7 +47,7 @@ class BootOMetaGrammar(OMetaBase):
                 arg, endchar = self.pythonExpr(" >")
                 if not arg:
                     break
-                args.append(arg)
+                args.append(self.builder.expr(arg))
                 if endchar == '>':
                     break
             except ParseError:

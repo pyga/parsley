@@ -201,4 +201,4 @@ rulePair ::= [:name <opt>:rule] => (name, rule)
 
 """
 
-NullOptimizer = OMeta.makeGrammar(nullOptimizationGrammar, {})
+NullOptimizer = OMeta.makeGrammar(nullOptimizationGrammar, {}, name="NullOptimizer")

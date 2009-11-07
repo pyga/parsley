@@ -40,8 +40,10 @@ class PythonWriterTests(unittest.TestCase):
         Test generation of code for rule application.
         """
 
-        x = self.builder.apply("foo", "main", "1", "x")
-        self.assertEqual(writePython(x),
+        one = self.builder.expr("1")
+        x = self.builder.expr("x")
+        a = self.builder.apply("foo", "main", one, x)
+        self.assertEqual(writePython(a),
                          dd("""
                             _G_python_1 = eval('1', self.globals, _locals)
                             _G_python_2 = eval('x', self.globals, _locals)
@@ -56,9 +58,10 @@ class PythonWriterTests(unittest.TestCase):
         Test generation of code for calling the superclass' implementation of
         the current rule.
         """
-
-        x = self.builder.apply("super", "main", "1", "x")
-        self.assertEqual(writePython(x),
+        one = self.builder.expr("1")
+        x = self.builder.expr("x")
+        a = self.builder.apply("super", "main", one, x)
+        self.assertEqual(writePython(a),
                          dd("""
                             _G_python_1 = eval('1', self.globals, _locals)
                             _G_python_2 = eval('x', self.globals, _locals)
@@ -231,6 +234,7 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             _G_python_1 = eval('doStuff()', self.globals, _locals)
+                            _G_python_1
                             """))
 
 

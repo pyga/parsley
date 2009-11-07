@@ -139,6 +139,7 @@ class PythonWriter(object):
         """
         Generate code for running embedded Python expressions.
         """
+        
         return self._expr('python', 'eval(%r, self.globals, _locals)' %(expr,))
 
 
@@ -146,7 +147,7 @@ class PythonWriter(object):
         """
         Create a call to self.apply(ruleName, *args).
         """
-        args = [self.compilePythonExpr(x) for x in rawArgs]
+        args = [self._generateNode(x) for x in rawArgs]
         if ruleName == 'super':
             return self._expr('apply', 'self.superApply("%s", %s)' % (codeName,
                                                               ', '.join(args)))
@@ -247,8 +248,7 @@ class PythonWriter(object):
         """
         Generate this embedded Python expression on its own line.
         """
-        self.compilePythonExpr(expr)
-        return None
+        return self.compilePythonExpr(expr)
 
 
     def generate_Python(self, expr):

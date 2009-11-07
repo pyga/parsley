@@ -208,7 +208,7 @@ class OMetaBase(object):
         self.currentError = self.input.nullError()
 
     def considerError(self, error):
-        self.currentError = joinErrors(error, self.currentError)
+        self.currentError = joinErrors([error, self.currentError])
 
 
     def superApply(self, ruleName, *args):

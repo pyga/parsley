@@ -22,7 +22,7 @@ class OMeta(OMetaBase):
         @param name: The name of the class to be generated.
         """
         g = cls.metagrammarClass(grammar)
-        return g.parseGrammar(name, PythonBuilder, cls, globals)
+        return g.parseGrammar(name, PythonBuilder, cls, globals, False)
     makeGrammar = classmethod(makeGrammar)
 
 ometaGrammar = r"""

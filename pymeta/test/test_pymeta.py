@@ -1,7 +1,7 @@
 from twisted.trial import unittest
 from pymeta.runtime import ParseError, OMetaBase
 from pymeta.boot import BootOMetaGrammar
-from pymeta.builder import TreeBuilder, AstBuilder, PythonBuilder
+from pymeta.builder import PythonBuilder
 
 class HandyWrapper(object):
     """
@@ -53,7 +53,7 @@ class OMetaTestCase(unittest.TestCase):
         @param grammar: A string containing an OMeta grammar.
         """
         g = self.classTested(grammar)
-        result = g.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {})
+        result = g.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {}, False)
         return HandyWrapper(result)
 
 
@@ -458,24 +458,3 @@ class SelfHostingTest(OMetaTestCase):
             from pymeta.grammar import OMetaGrammar
             self.classTested = OMetaGrammar
 
-
-
-class NullOptimizerTest(OMetaTestCase):
-    """
-    Tests of OMeta grammar compilation via the null optimizer.
-    """
-
-    def compile(self, grammar):
-        """
-        Produce an object capable of parsing via this grammar.
-
-        @param grammar: A string containing an OMeta grammar.
-        """
-        from pymeta.grammar import OMetaGrammar, NullOptimizer
-        g = OMetaGrammar(grammar)
-        tree = g.parseGrammar('TestGrammar', TreeBuilder)
-        opt = NullOptimizer([tree])
-        opt.builder = AstBuilder("<grammar>", opt)
-        methodDict = opt.apply("grammar")
-        grammarClass = type("<grammar>", (OMetaBase,), methodDict)
-        return HandyWrapper(grammarClass)

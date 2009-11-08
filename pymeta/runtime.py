@@ -11,6 +11,8 @@ class ParseError(Exception):
         Exception.__init__(self, *a)
         self.position = a[0]
         self.error = a[1]
+        if len(a) > 2:
+            self.message = a[2]
 
     def __eq__(self, other):
         if other.__class__ == self.__class__:
@@ -54,7 +56,9 @@ def joinErrors(errors):
         if pos == err.position:
             e = err.error
             if e is not None:
-                results.extend(e)
+                for item in e:
+                    if item not in results:
+                        results.append(item)
         else:
             break
 
@@ -147,13 +151,14 @@ class ArgInput(object):
         self.arg = arg
         self.parent = parent
         self.memo = {}
+        self.err = parent.nullError()
 
     def head(self):
         try:
-            x, e = self.arg
+            x = self.arg
         except:
             import pdb; pdb. set_trace()
-        return self.arg
+        return self.arg, self.err
 
     def tail(self):
         return self.parent
@@ -208,7 +213,8 @@ class OMetaBase(object):
         self.currentError = self.input.nullError()
 
     def considerError(self, error):
-        self.currentError = joinErrors([error, self.currentError])
+        if error is not None:
+            self.currentError = joinErrors([error, self.currentError])
 
 
     def superApply(self, ruleName, *args):
@@ -258,8 +264,14 @@ class OMetaBase(object):
             lr = LeftRecursion()
             memoRec = self.input.setMemo(ruleName, lr)
 
-            memoRec = self.input.setMemo(ruleName,
-                                         [rule(), self.input])
+            #print "Calling", rule
+            try:
+                memoRec = self.input.setMemo(ruleName,
+                                             [rule(), self.input])
+            except ParseError:
+                #print "Failed", rule
+                raise
+            #print "Success", rule
             if lr.detected:
                 sentinel = self.input
                 while True:
@@ -277,7 +289,7 @@ class OMetaBase(object):
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
-            raise ParseError()
+            raise ParseError(None, None)
         self.input = memoRec[1]
         return memoRec[0]
 
@@ -315,7 +327,9 @@ class OMetaBase(object):
         @param fn: A callable of no arguments.
         @param initial: Initial values to populate the returned list with.
         """
-        ans = list(initial)
+        ans = []
+        for x, e in initial:
+            ans.append(x)
         while True:
             try:
                 m = self.input
@@ -385,8 +399,8 @@ class OMetaBase(object):
 
         @param expr: A callable of no arguments.
         """
-        e = self.input.nullError()
-        if not expr():
+        val, e = expr()
+        if not val:
             raise e
         else:
             return True, e

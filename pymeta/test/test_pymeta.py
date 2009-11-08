@@ -1,7 +1,7 @@
 from twisted.trial import unittest
-from pymeta.runtime import ParseError, OMetaBase
+from pymeta.runtime import ParseError, OMetaBase, EOFError
 from pymeta.boot import BootOMetaGrammar
-from pymeta.builder import PythonBuilder
+from pymeta.builder import TreeBuilder, moduleFromGrammar
 
 class HandyWrapper(object):
     """
@@ -25,16 +25,16 @@ class HandyWrapper(object):
             @param str: The string to be parsed by the wrapped grammar.
             """
             obj = self.klass(str)
-            ret = obj.apply(name)
+            ret, err = obj.apply(name)
             try:
-                extra = obj.input.head()
-            except IndexError:
+                extra, err = obj.input.head()
+            except EOFError:
                 try:
                     return ''.join(ret)
                 except TypeError:
                     return ret
             else:
-                raise ParseError("trailing garbage in input: %s" % (extra,))
+                raise ParseError(err.args[0], err.args[1], "trailing garbage in input: %r" % (extra,))
         return doIt
 
 
@@ -53,7 +53,8 @@ class OMetaTestCase(unittest.TestCase):
         @param grammar: A string containing an OMeta grammar.
         """
         g = self.classTested(grammar)
-        result = g.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {}, False)
+        tree = g.parseGrammar('TestGrammar', TreeBuilder)
+        result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(result)
 
 
@@ -65,6 +66,19 @@ class OMetaTestCase(unittest.TestCase):
         g = self.compile("digit ::= '1'")
         self.assertEqual(g.digit("1"), "1")
         self.assertRaises(ParseError, g.digit, "4")
+
+
+    def test_multipleRules(self):
+        """
+        Grammars with more than one rule work properly.
+        """
+        g = self.compile("""
+                          digit ::= '1'
+                          aLetter ::= 'a'
+                          """)
+        self.assertEqual(g.digit("1"), "1")
+        self.assertRaises(ParseError, g.digit, "4")        
+
 
     def test_escapedLiterals(self):
         """
@@ -188,13 +202,14 @@ class OMetaTestCase(unittest.TestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         gg = self.classTested("stuff ::= '1':a ('2':b | '3':c)")
-        G = gg.parseGrammar('TestGrammar', PythonBuilder, OMetaBase, {})
+        t = gg.parseGrammar('TestGrammar', TreeBuilder)
+        G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
         g = G("12")
-        self.assertEqual(g.apply("stuff"), '2')
+        self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['b'], '2')
         g = G("13")
-        self.assertEqual(g.apply("stuff"), '3')
+        self.assertEqual(g.apply("stuff")[0], '3')
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['c'], '3')
 
@@ -228,10 +243,7 @@ class OMetaTestCase(unittest.TestCase):
         Python expressions can be run as actions with no effect on the result
         of the parse.
         """
-        g = self.compile("""
-                        foo ::= ('1'*:ones !(False) !(ones.insert(0, '0'))
-                                 => ''.join(ones))
-                        """)
+        g = self.compile("""foo ::= ('1'*:ones !(False) !(ones.insert(0, '0')) => ''.join(ones))""")
         self.assertEqual(g.foo("111"), "0111")
 
 
@@ -458,3 +470,24 @@ class SelfHostingTest(OMetaTestCase):
             from pymeta.grammar import OMetaGrammar
             self.classTested = OMetaGrammar
 
+
+
+class NullOptimizerTest(OMetaTestCase):
+    """
+    Tests of OMeta grammar compilation via the null optimizer.
+    """
+
+    def compile(self, grammar):
+        """
+        Produce an object capable of parsing via this grammar.
+
+        @param grammar: A string containing an OMeta grammar.
+        """
+        from pymeta.grammar import OMetaGrammar, NullOptimizer
+        g = OMetaGrammar(grammar)
+        tree = g.parseGrammar('TestGrammar', TreeBuilder)
+        opt = NullOptimizer([tree])
+        opt.builder = TreeBuilder("TestGrammar", opt)
+        tree = opt.apply("grammar")
+        grammarClass = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
+        return HandyWrapper(grammarClass)

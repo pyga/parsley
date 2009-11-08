@@ -2,8 +2,8 @@
 Public interface to OMeta, as well as the grammars used to compile grammar
 definitions.
 """
-import sys, string
-from builder import PythonBuilder
+import string
+from builder import TreeBuilder, moduleFromGrammar
 from boot import BootOMetaGrammar
 from runtime import OMetaBase, ParseError
 
@@ -22,7 +22,9 @@ class OMeta(OMetaBase):
         @param name: The name of the class to be generated.
         """
         g = cls.metagrammarClass(grammar)
-        return g.parseGrammar(name, PythonBuilder, cls, globals, False)
+        tree = g.parseGrammar(name, TreeBuilder)
+        return moduleFromGrammar(tree, name, cls, globals)
+    
     makeGrammar = classmethod(makeGrammar)
 
 ometaGrammar = r"""
@@ -53,7 +55,7 @@ application ::= (<token '<'> <spaces> <name>:name
                   (' ' !(self.applicationArgs()):args
                      => self.builder.apply(name, self.name, *args)
                   |<token '>'>
-                     => self.builder.apply(name, self.name)))
+q                     => self.builder.apply(name, self.name)))
 
 expr1 ::= (<application>
           |<ruleValue>
@@ -96,8 +98,8 @@ rulePart :requiredName ::= (<spaces> <name>:n ?(n == requiredName)
                                => self.builder.sequence([args, e])
                             |  => args))
 rule ::= (<spaces> ~~(<name>:n) <rulePart n>:r
-          (<rulePart n>+:rs => (n, self.builder._or([r] + rs))
-          |                     => (n, r)))
+          (<rulePart n>+:rs => self.builder.rule(n, self.builder._or([r] + rs))
+          |                     => self.builder.rule(n, r)))
 
 grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
 """
@@ -136,10 +138,10 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         args = []
         while True:
             try:
-                arg, endchar = self.pythonExpr(" >")
+                (arg, endchar), err = self.pythonExpr(" >")
                 if not arg:
                     break
-                args.append(arg)
+                args.append(self.builder.expr(arg))
                 if endchar == '>':
                     break
             except ParseError:
@@ -154,18 +156,17 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         Find and generate code for a Python expression terminated by a close
         paren/brace or end of line.
         """
-        expr, endchar = self.pythonExpr(endChars="\r\n)]")
+        (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
         if str(endchar) in ")]":
             self.input = self.input.prev()
-        return self.builder.compilePythonExpr(self.name, expr)
+        return self.builder.expr(expr)
 
     def semanticActionExpr(self):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value is ignored.
         """
-        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
-        return self.builder.action(expr)
+        return self.builder.action(self.pythonExpr(')')[0][0])
 
     def semanticPredicateExpr(self):
         """
@@ -173,7 +174,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         close-paren, whose return value determines the success of the pattern
         it's in.
         """
-        expr = self.builder.compilePythonExpr(self.name, self.pythonExpr(')')[0])
+        expr = self.builder.expr(self.pythonExpr(')')[0][0])
         return self.builder.pred(expr)
 
 OMeta.metagrammarClass = OMetaGrammar
@@ -185,19 +186,19 @@ opt ::= ( ["Apply" :ruleName :codeName [<anything>*:exprs]] => self.builder.appl
         | ["Many" <opt>:expr] => self.builder.many(expr)
         | ["Many1" <opt>:expr] => self.builder.many1(expr)
         | ["Optional" <opt>:expr] => self.builder.optional(expr)
-        | ["Or" <opt>*:exprs] => self.builder._or(exprs)
-        | ["And" <opt>*:exprs] => self.builder.sequence(exprs)
+        | ["Or" [<opt>*:exprs]] => self.builder._or(exprs)
+        | ["And" [<opt>*:exprs]] => self.builder.sequence(exprs)
         | ["Not" <opt>:expr]  => self.builder._not(expr)
         | ["Lookahead" <opt>:expr] => self.builder.lookahead(expr)
         | ["Bind" :name <opt>:expr] => self.builder.bind(expr, name)
         | ["Predicate" <opt>:expr] => self.builder.pred(expr)
-        | ["Action" <opt>:expr] => self.builder.action(expr)
-        | ["Python" :name :code] => self.builder.compilePythonExpr(name, code)
+        | ["Action" :code] => self.builder.action(code)
+        | ["Python" :code] => self.builder.expr(code)
         | ["List" <opt>:exprs] => self.builder.listpattern(exprs)
         )
-grammar ::= ["Grammar" [<rulePair>*:rs]] => self.builder.makeGrammar(rs)
-rulePair ::= [:name <opt>:rule] => (name, rule)
+grammar ::= ["Grammar" :name [<rulePair>*:rs]] => self.builder.makeGrammar(rs)
+rulePair ::= ["Rule" :name <opt>:rule] => self.builder.rule(name, rule)
 
 """
 
-NullOptimizer = OMeta.makeGrammar(nullOptimizationGrammar, {})
+NullOptimizer = OMeta.makeGrammar(nullOptimizationGrammar, {}, name="NullOptimizer")

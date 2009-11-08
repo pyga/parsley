@@ -1,4 +1,5 @@
 
+
 from twisted.trial import unittest
 from pymeta.runtime import OMetaBase, ParseError, expected, expectedOneOf, eof
 
@@ -186,7 +187,7 @@ class RuntimeTests(unittest.TestCase):
         """
 
         o = OMetaBase("")
-        v, e = o.pred(lambda: True)
+        v, e = o.pred(lambda: (True, ParseError(0, None)))
         self.assertEqual((v, e), (True, ParseError(0, None)))
 
 
@@ -196,7 +197,7 @@ class RuntimeTests(unittest.TestCase):
         """
 
         o = OMetaBase("")
-        e = self.assertRaises(ParseError, o.pred, lambda: False)
+        e = self.assertRaises(ParseError, o.pred, lambda: (False, ParseError(0, None)))
         self.assertEqual(e, ParseError(0, None))
 
 

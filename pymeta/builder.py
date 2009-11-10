@@ -2,6 +2,7 @@
 import linecache, sys
 from types import ModuleType as module
 
+import itertools, linecache, sys
 
 class TreeBuilder(object):
     """
@@ -75,7 +76,7 @@ class PythonWriter(object):
     def _generate(self, retrn=False):
         result = self._generateNode(self.tree)
         if retrn:
-            self.lines.append("return " + result)
+            self.lines.append("return (%s, self.currentError)" % (result,))
         elif result:
             self.lines.append(result)
         return self.lines
@@ -105,8 +106,9 @@ class PythonWriter(object):
         @param name: The name of the rule generating this thunk.
         @param expr: A list of lines of Python code.
         """
+        
         subwriter = PythonWriter(expr)
-        flines = subwriter._generate(retrn=True)
+        flines  = subwriter._generate(retrn=True)
         fname = self._gensym(name)
         self._writeFunction(fname, (),  flines)
         return fname
@@ -118,7 +120,8 @@ class PythonWriter(object):
         variable name bound to its value.
         """
         name = self._gensym(typ)
-        self.lines.append("%s = %s" % (name, e))
+        self.lines.append("%s, lastError = %s" % (name, e))
+        self.lines.append("self.considerError(lastError)")
         return name
 
 
@@ -140,7 +143,7 @@ class PythonWriter(object):
         Generate code for running embedded Python expressions.
         """
         
-        return self._expr('python', 'eval(%r, self.globals, _locals)' %(expr,))
+        return self._expr('python', 'eval(%r, self.globals, _locals), None' %(expr,))
 
 
     def generate_Apply(self, ruleName, codeName, rawArgs):
@@ -183,7 +186,7 @@ class PythonWriter(object):
         """
         realf = self._newThunkFor("optional", expr)
         passf = self._gensym("optional")
-        self._writeFunction(passf, (), ["pass"])
+        self._writeFunction(passf, (), ["return (None, self.input.nullError())"])
         return self._expr('or', 'self._or([%s])' % (', '.join([realf, passf])))
 
 
@@ -270,7 +273,7 @@ class PythonWriter(object):
         rulelines = ["_locals = {'self': self}",
                      "self.locals[%r] = _locals" % (name,)]
         subwriter = PythonWriter(expr)
-        flines = subwriter._generate(retrn=True)
+        flines  = subwriter._generate(retrn=True)
         rulelines.extend(flines)
         self._writeFunction("rule_" + name, ("self",), rulelines)
 

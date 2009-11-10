@@ -1,5 +1,5 @@
 from twisted.trial import unittest
-from pymeta.runtime import ParseError, OMetaBase
+from pymeta.runtime import ParseError, OMetaBase, EOFError
 from pymeta.boot import BootOMetaGrammar
 from pymeta.builder import TreeBuilder, moduleFromGrammar
 
@@ -25,16 +25,16 @@ class HandyWrapper(object):
             @param str: The string to be parsed by the wrapped grammar.
             """
             obj = self.klass(str)
-            ret = obj.apply(name)
+            ret, err = obj.apply(name)
             try:
-                extra = obj.input.head()
-            except IndexError:
+                extra, err = obj.input.head()
+            except EOFError:
                 try:
                     return ''.join(ret)
                 except TypeError:
                     return ret
             else:
-                raise ParseError("trailing garbage in input: %s" % (extra,))
+                raise ParseError(err.args[0], err.args[1], "trailing garbage in input: %r" % (extra,))
         return doIt
 
 
@@ -67,13 +67,25 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.digit("1"), "1")
         self.assertRaises(ParseError, g.digit, "4")
 
+
+    def test_multipleRules(self):
+        """
+        Grammars with more than one rule work properly.
+        """
+        g = self.compile("""
+                          digit ::= '1'
+                          aLetter ::= 'a'
+                          """)
+        self.assertEqual(g.digit("1"), "1")
+        self.assertRaises(ParseError, g.digit, "4")        
+
+
     def test_escapedLiterals(self):
         """
         Input matches can be made on escaped literal characters.
         """
         g = self.compile(r"newline ::= '\n'")
         self.assertEqual(g.newline("\n"), "\n")
-
 
 
     def test_integers(self):
@@ -193,11 +205,11 @@ class OMetaTestCase(unittest.TestCase):
         t = gg.parseGrammar('TestGrammar', TreeBuilder)
         G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
         g = G("12")
-        self.assertEqual(g.apply("stuff"), '2')
+        self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['b'], '2')
         g = G("13")
-        self.assertEqual(g.apply("stuff"), '3')
+        self.assertEqual(g.apply("stuff")[0], '3')
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['c'], '3')
 
@@ -231,10 +243,7 @@ class OMetaTestCase(unittest.TestCase):
         Python expressions can be run as actions with no effect on the result
         of the parse.
         """
-        g = self.compile("""
-                        foo ::= ('1'*:ones !(False) !(ones.insert(0, '0'))
-                                 => ''.join(ones))
-                        """)
+        g = self.compile("""foo ::= ('1'*:ones !(False) !(ones.insert(0, '0')) => ''.join(ones))""")
         self.assertEqual(g.foo("111"), "0111")
 
 
@@ -364,7 +373,7 @@ class PyExtractorTest(unittest.TestCase):
         string, ignoring the text following it.
         """
         o = OMetaBase(expr + "\nbaz ::= ...\n")
-        self.assertEqual(o.pythonExpr()[0], expr)
+        self.assertEqual(o.pythonExpr()[0][0], expr)
 
 
     def test_expressions(self):
@@ -406,7 +415,7 @@ class MakeGrammarTest(unittest.TestCase):
         """
         TestGrammar = OMeta.makeGrammar(grammar, {'results':results})
         g = TestGrammar("314159")
-        self.assertEqual(g.apply("num"), 314159)
+        self.assertEqual(g.apply("num")[0], 314159)
         self.assertNotEqual(len(results), 0)
 
 
@@ -428,7 +437,7 @@ class MakeGrammarTest(unittest.TestCase):
         """
         TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
         g = TestGrammar2("314159")
-        self.assertEqual(g.apply("num"), 314159)
+        self.assertEqual(g.apply("num")[0], 314159)
 
 
     def test_super(self):
@@ -440,8 +449,8 @@ class MakeGrammarTest(unittest.TestCase):
         TestGrammar1 = OMeta.makeGrammar(grammar1, {})
         grammar2 = "expr ::= <super> | <digit>"
         TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
-        self.assertEqual(TestGrammar2("x").apply("expr"), "x")
-        self.assertEqual(TestGrammar2("3").apply("expr"), "3")
+        self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
+        self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
 
 class SelfHostingTest(OMetaTestCase):
     """
@@ -476,9 +485,9 @@ class NullOptimizerTest(OMetaTestCase):
         """
         from pymeta.grammar import OMetaGrammar, NullOptimizer
         g = OMetaGrammar(grammar)
-        tree = g.parseGrammar('TestGrammar', TreeBuilder)
+        tree  = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
         opt.builder = TreeBuilder("TestGrammar", opt)
-        tree = opt.apply("grammar")
+        tree, err = opt.apply("grammar")
         grammarClass = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(grammarClass)

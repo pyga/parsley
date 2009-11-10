@@ -29,7 +29,8 @@ class PythonWriterTests(unittest.TestCase):
         x = self.builder.exactly("x")
         self.assertEqual(writePython(x),
                          dd("""
-                            _G_exactly_1 = self.exactly('x')
+                            _G_exactly_1, lastError = self.exactly('x')
+                            self.considerError(lastError)
                             _G_exactly_1
                             """))
 
@@ -45,9 +46,12 @@ class PythonWriterTests(unittest.TestCase):
         a = self.builder.apply("foo", "main", one, x)
         self.assertEqual(writePython(a),
                          dd("""
-                            _G_python_1 = eval('1', self.globals, _locals)
-                            _G_python_2 = eval('x', self.globals, _locals)
-                            _G_apply_3 = self.apply("foo", _G_python_1, _G_python_2)
+                            _G_python_1, lastError = eval('1', self.globals, _locals), None
+                            self.considerError(lastError)
+                            _G_python_2, lastError = eval('x', self.globals, _locals), None
+                            self.considerError(lastError)
+                            _G_apply_3, lastError = self.apply("foo", _G_python_1, _G_python_2)
+                            self.considerError(lastError)
                             _G_apply_3
                             """))
 
@@ -63,9 +67,12 @@ class PythonWriterTests(unittest.TestCase):
         a = self.builder.apply("super", "main", one, x)
         self.assertEqual(writePython(a),
                          dd("""
-                            _G_python_1 = eval('1', self.globals, _locals)
-                            _G_python_2 = eval('x', self.globals, _locals)
-                            _G_apply_3 = self.superApply("main", _G_python_1, _G_python_2)
+                            _G_python_1, lastError = eval('1', self.globals, _locals), None
+                            self.considerError(lastError)
+                            _G_python_2, lastError = eval('x', self.globals, _locals), None
+                            self.considerError(lastError)
+                            _G_apply_3, lastError = self.superApply("main", _G_python_1, _G_python_2)
+                            self.considerError(lastError)
                             _G_apply_3
                             """))
 
@@ -80,9 +87,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(xs),
                          dd("""
                             def _G_many_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
-                            _G_many_2 = self.many(_G_many_1)
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
+                            _G_many_2, lastError = self.many(_G_many_1)
+                            self.considerError(lastError)
                             _G_many_2
                             """))
 
@@ -97,9 +106,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(xs),
                          dd("""
                             def _G_many1_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
-                            _G_many1_2 = self.many(_G_many1_1, _G_many1_1())
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
+                            _G_many1_2, lastError = self.many(_G_many1_1, _G_many1_1())
+                            self.considerError(lastError)
                             _G_many1_2
                             """))
 
@@ -115,12 +126,15 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(xy),
                          dd("""
                             def _G_or_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
                             def _G_or_2():
-                                _G_exactly_1 = self.exactly('y')
-                                return _G_exactly_1
-                            _G_or_3 = self._or([_G_or_1, _G_or_2])
+                                _G_exactly_1, lastError = self.exactly('y')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
+                            _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
+                            self.considerError(lastError)
                             _G_or_3
                             """))
 
@@ -142,11 +156,13 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_optional_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
                             def _G_optional_2():
-                                pass
-                            _G_or_3 = self._or([_G_optional_1, _G_optional_2])
+                                return (None, self.input.nullError())
+                            _G_or_3, lastError = self._or([_G_optional_1, _G_optional_2])
+                            self.considerError(lastError)
                             _G_or_3
                             """))
 
@@ -159,9 +175,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_not_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
-                            _G_not_2 = self._not(_G_not_1)
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
+                            _G_not_2, lastError = self._not(_G_not_1)
+                            self.considerError(lastError)
                             _G_not_2
                             """))
 
@@ -174,9 +192,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_lookahead_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
-                            _G_lookahead_2 = self.lookahead(_G_lookahead_1)
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
+                            _G_lookahead_2, lastError = self.lookahead(_G_lookahead_1)
+                            self.considerError(lastError)
                             _G_lookahead_2
                             """))
 
@@ -191,8 +211,10 @@ class PythonWriterTests(unittest.TestCase):
         z = self.builder.sequence([x, y])
         self.assertEqual(writePython(z),
                          dd("""
-                            _G_exactly_1 = self.exactly('x')
-                            _G_exactly_2 = self.exactly('y')
+                            _G_exactly_1, lastError = self.exactly('x')
+                            self.considerError(lastError)
+                            _G_exactly_2, lastError = self.exactly('y')
+                            self.considerError(lastError)
                             _G_exactly_2
                             """))
 
@@ -205,7 +227,8 @@ class PythonWriterTests(unittest.TestCase):
         b = self.builder.bind(x, "var")
         self.assertEqual(writePython(b),
                          dd("""
-                            _G_exactly_1 = self.exactly('x')
+                            _G_exactly_1, lastError = self.exactly('x')
+                            self.considerError(lastError)
                             _locals['var'] = _G_exactly_1
                             _locals['var']
                             """))
@@ -219,9 +242,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_pred_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
-                            _G_pred_2 = self.pred(_G_pred_1)
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
+                            _G_pred_2, lastError = self.pred(_G_pred_1)
+                            self.considerError(lastError)
                             _G_pred_2
                             """))
 
@@ -233,7 +258,8 @@ class PythonWriterTests(unittest.TestCase):
         x = self.builder.action("doStuff()")
         self.assertEqual(writePython(x),
                          dd("""
-                            _G_python_1 = eval('doStuff()', self.globals, _locals)
+                            _G_python_1, lastError = eval('doStuff()', self.globals, _locals), None
+                            self.considerError(lastError)
                             _G_python_1
                             """))
 
@@ -245,7 +271,8 @@ class PythonWriterTests(unittest.TestCase):
         x = self.builder.expr("returnStuff()")
         self.assertEqual(writePython(x),
                          dd("""
-                            _G_python_1 = eval('returnStuff()', self.globals, _locals)
+                            _G_python_1, lastError = eval('returnStuff()', self.globals, _locals), None
+                            self.considerError(lastError)
                             _G_python_1
                             """))
 
@@ -257,9 +284,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_listpattern_1():
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
-                            _G_listpattern_2 = self.listpattern(_G_listpattern_1)
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
+                            _G_listpattern_2, lastError = self.listpattern(_G_listpattern_1)
+                            self.considerError(lastError)
                             _G_listpattern_2
                             """))
 
@@ -275,8 +304,9 @@ class PythonWriterTests(unittest.TestCase):
                             def rule_foo(self):
                                 _locals = {'self': self}
                                 self.locals['foo'] = _locals
-                                _G_exactly_1 = self.exactly('x')
-                                return _G_exactly_1
+                                _G_exactly_1, lastError = self.exactly('x')
+                                self.considerError(lastError)
+                                return (_G_exactly_1, self.currentError)
                             """))
 
 
@@ -293,13 +323,15 @@ class PythonWriterTests(unittest.TestCase):
                                 def rule_foo(self):
                                     _locals = {'self': self}
                                     self.locals['foo'] = _locals
-                                    _G_exactly_1 = self.exactly('x')
-                                    return _G_exactly_1
+                                    _G_exactly_1, lastError = self.exactly('x')
+                                    self.considerError(lastError)
+                                    return (_G_exactly_1, self.currentError)
 
 
                                 def rule_baz(self):
                                     _locals = {'self': self}
                                     self.locals['baz'] = _locals
-                                    _G_exactly_1 = self.exactly('y')
-                                    return _G_exactly_1
+                                    _G_exactly_1, lastError = self.exactly('y')
+                                    self.considerError(lastError)
+                                    return (_G_exactly_1, self.currentError)
                             """))

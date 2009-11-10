@@ -5,7 +5,7 @@ definitions.
 import string
 from builder import TreeBuilder, moduleFromGrammar
 from boot import BootOMetaGrammar
-from runtime import OMetaBase, ParseError
+from runtime import OMetaBase, ParseError, EOFError
 
 class OMeta(OMetaBase):
     """
@@ -119,10 +119,10 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         (interface to be explicitly defined later)
         """
         self.builder = builder(name, self, *args)
-        res = self.apply("grammar")
+        res, err = self.apply("grammar")
         try:
             x = self.input.head()
-        except IndexError:
+        except EOFError:
             pass
         else:
             x = repr(''.join(self.input.data[self.input.position:]))
@@ -138,7 +138,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         args = []
         while True:
             try:
-                arg, endchar = self.pythonExpr(" >")
+                (arg, endchar), err = self.pythonExpr(" >")
                 if not arg:
                     break
                 args.append(self.builder.expr(arg))
@@ -156,7 +156,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         Find and generate code for a Python expression terminated by a close
         paren/brace or end of line.
         """
-        expr, endchar = self.pythonExpr(endChars="\r\n)]")
+        (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
         if str(endchar) in ")]":
             self.input = self.input.prev()
         return self.builder.expr(expr)
@@ -166,7 +166,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value is ignored.
         """
-        return self.builder.action(self.pythonExpr(')')[0])
+        return self.builder.action(self.pythonExpr(')')[0][0])
 
     def semanticPredicateExpr(self):
         """
@@ -174,7 +174,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         close-paren, whose return value determines the success of the pattern
         it's in.
         """
-        expr = self.builder.expr(self.pythonExpr(')')[0])
+        expr = self.builder.expr(self.pythonExpr(')')[0][0])
         return self.builder.pred(expr)
 
 OMeta.metagrammarClass = OMetaGrammar

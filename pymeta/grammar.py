@@ -5,7 +5,7 @@ definitions.
 import string
 from builder import TreeBuilder, moduleFromGrammar
 from boot import BootOMetaGrammar
-from runtime import OMetaBase, ParseError
+from runtime import OMetaBase, ParseError, EOFError
 
 class OMeta(OMetaBase):
     """
@@ -55,7 +55,7 @@ application ::= (<token '<'> <spaces> <name>:name
                   (' ' !(self.applicationArgs()):args
                      => self.builder.apply(name, self.name, *args)
                   |<token '>'>
-q                     => self.builder.apply(name, self.name)))
+                     => self.builder.apply(name, self.name)))
 
 expr1 ::= (<application>
           |<ruleValue>
@@ -119,10 +119,10 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         (interface to be explicitly defined later)
         """
         self.builder = builder(name, self, *args)
-        res = self.apply("grammar")
+        res, err = self.apply("grammar")
         try:
             x = self.input.head()
-        except IndexError:
+        except EOFError:
             pass
         else:
             x = repr(''.join(self.input.data[self.input.position:]))

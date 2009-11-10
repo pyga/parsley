@@ -530,7 +530,7 @@ class OMetaBase(object):
                 elif len(stack) > 0 and c == stack[-1]:
                     stack.pop()
                 elif c in delimiters.values():
-                    raise ParseError()
+                    raise ParseError(self.input.position, expected("Python expression"))
                 elif c in "\"'":
                     while True:
                         strc, stre = self.rule_anything()
@@ -538,5 +538,5 @@ class OMetaBase(object):
                         if strc == c:
                             break
         if len(stack) > 0:
-            raise ParseError()
+            raise ParseError(self.input.position, expected("Python expression"))
         return (''.join(expr).strip(), endchar), e

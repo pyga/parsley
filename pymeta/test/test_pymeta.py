@@ -415,7 +415,7 @@ class MakeGrammarTest(unittest.TestCase):
         """
         TestGrammar = OMeta.makeGrammar(grammar, {'results':results})
         g = TestGrammar("314159")
-        self.assertEqual(g.apply("num"), 314159)
+        self.assertEqual(g.apply("num")[0], 314159)
         self.assertNotEqual(len(results), 0)
 
 
@@ -437,7 +437,7 @@ class MakeGrammarTest(unittest.TestCase):
         """
         TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
         g = TestGrammar2("314159")
-        self.assertEqual(g.apply("num"), 314159)
+        self.assertEqual(g.apply("num")[0], 314159)
 
 
     def test_super(self):
@@ -449,8 +449,8 @@ class MakeGrammarTest(unittest.TestCase):
         TestGrammar1 = OMeta.makeGrammar(grammar1, {})
         grammar2 = "expr ::= <super> | <digit>"
         TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
-        self.assertEqual(TestGrammar2("x").apply("expr"), "x")
-        self.assertEqual(TestGrammar2("3").apply("expr"), "3")
+        self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
+        self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
 
 class SelfHostingTest(OMetaTestCase):
     """
@@ -485,9 +485,9 @@ class NullOptimizerTest(OMetaTestCase):
         """
         from pymeta.grammar import OMetaGrammar, NullOptimizer
         g = OMetaGrammar(grammar)
-        tree = g.parseGrammar('TestGrammar', TreeBuilder)
+        tree  = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
         opt.builder = TreeBuilder("TestGrammar", opt)
-        tree = opt.apply("grammar")
+        tree, err = opt.apply("grammar")
         grammarClass = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(grammarClass)

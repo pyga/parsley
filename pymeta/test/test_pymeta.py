@@ -77,7 +77,7 @@ class OMetaTestCase(unittest.TestCase):
                           aLetter ::= 'a'
                           """)
         self.assertEqual(g.digit("1"), "1")
-        self.assertRaises(ParseError, g.digit, "4")        
+        self.assertRaises(ParseError, g.digit, "4")
 
 
     def test_escapedLiterals(self):
@@ -175,6 +175,12 @@ class OMetaTestCase(unittest.TestCase):
         """
         g = self.compile("foo ::= '1' => 7")
         self.assertEqual(g.foo('1'), 7)
+
+
+    def test_ruleValueEscape(self):
+        g = self.compile(r"""escapedChar ::= '\'' => '\\\''""")
+
+        self.assertEqual(g.escapedChar("'"), "\\'")
 
 
     def test_lookahead(self):

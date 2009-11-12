@@ -514,6 +514,7 @@ class OMetaBase(object):
         delimiters = { "(": ")", "[": "]", "{": "}"}
         stack = []
         expr = []
+        lastc = None
         while True:
             try:
                 c, e = self.rule_anything()
@@ -532,11 +533,17 @@ class OMetaBase(object):
                 elif c in delimiters.values():
                     raise ParseError(self.input.position, expected("Python expression"))
                 elif c in "\"'":
+                    lastc = None
                     while True:
                         strc, stre = self.rule_anything()
                         expr.append(strc)
-                        if strc == c:
+                        if strc == '\\':
+                            strc, stre = self.rule_anything()
+                            expr.append(strc)
+                        elif strc == c and lastc != '\\':
                             break
+                        lastc = strc
+            
         if len(stack) > 0:
             raise ParseError(self.input.position, expected("Python expression"))
         return (''.join(expr).strip(), endchar), e

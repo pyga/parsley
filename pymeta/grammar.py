@@ -126,7 +126,9 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
             pass
         else:
             x = repr(''.join(self.input.data[self.input.position:]))
-            raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
+            # XXX is the position usage here correct?
+            raise ParseError(self.input.position,
+                             "Grammar parse failed. Leftover bits: %s" % (x,))
         return res
 
 

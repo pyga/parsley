@@ -1,7 +1,7 @@
 
 
 from twisted.trial import unittest
-from pymeta.runtime import OMetaBase, ParseError, expected, expectedOneOf, eof
+from pymeta.runtime import OMetaBase, ParseError, expected, eof
 
 class RuntimeTests(unittest.TestCase):
     """
@@ -43,7 +43,7 @@ class RuntimeTests(unittest.TestCase):
         data = "foo"
         o = OMetaBase(data)
         e = self.assertRaises(ParseError, o.rule_exactly, "g")
-        self.assertEquals(e.error, expected("g"))
+        self.assertEquals(e.error, expected(None, "g"))
         self.assertEquals(e.position, 0)
 
 
@@ -73,7 +73,7 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         e = self.assertRaises(ParseError, o.rule_token, "fog")
         self.assertEqual(e.position, 2)
-        self.assertEqual(e.error, expected("g"))
+        self.assertEqual(e.error, expected("token", "'fog'"))
 
 
     def test_many(self):
@@ -84,7 +84,7 @@ class RuntimeTests(unittest.TestCase):
 
         data = "ooops"
         o  = OMetaBase(data)
-        self.assertEqual(o.many(lambda: o.rule_exactly('o')), (['o'] * 3, ParseError(3, expected('o'))))
+        self.assertEqual(o.many(lambda: o.rule_exactly('o')), (['o'] * 3, ParseError(3, expected(None, 'o'))))
 
 
     def test_or(self):
@@ -124,7 +124,7 @@ class RuntimeTests(unittest.TestCase):
                                lambda: o.token("foozik"),
                                lambda: o.token("woozle")])
         self.assertEqual(e.position, 4)
-        self.assertEqual(e.error, expected("i"))
+        self.assertEqual(e.error, expected("token",  "'foozik'"))
 
 
     def test_orFalseSuccess(self):
@@ -140,7 +140,7 @@ class RuntimeTests(unittest.TestCase):
                                lambda: o.token("foozik"),
                                lambda: o.token("f")])
         self.assertEqual(e.position, 4)
-        self.assertEqual(e.error, expected("i"))
+        self.assertEqual(e.error, expected("token", "'foozik'"))
 
     def test_orErrorTie(self):
         """
@@ -155,7 +155,7 @@ class RuntimeTests(unittest.TestCase):
                                lambda: o.token("foz"),
                                lambda: o.token("f")])
         self.assertEqual(e.position, 2)
-        self.assertEqual(e.error, expectedOneOf(["g", "z"]))
+        self.assertEqual(e.error, [expected("token", "'fog'")[0], expected("token", "'foz'")[0]])
 
 
     def test_notError(self):

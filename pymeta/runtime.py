@@ -23,20 +23,14 @@ class EOFError(ParseError):
         ParseError.__init__(self, position, eof())
 
 
-def expected(val):
+def expected(typ, val=None):
     """
     Return an indication of expected input and the position where it was
     expected and not encountered.
     """
 
-    return [("expected", val)]
+    return [("expected", typ, val)]
 
-def expectedOneOf(vals):
-    """
-    Return an indication of multiple possible expected inputs.
-    """
-
-    return [("expected", x) for x in vals]
 
 def eof():
     """
@@ -315,7 +309,7 @@ class OMetaBase(object):
             return val, p
         else:
             self.input = i
-            raise ParseError(p.position, expected(wanted))
+            raise ParseError(p.position, expected(None, wanted))
 
     rule_exactly = exactly
 
@@ -459,9 +453,10 @@ class OMetaBase(object):
             for c in tok:
                 v, e = self.exactly(c)
             return tok, e
-        except ParseError:
+        except ParseError, e:
             self.input = m
-            raise
+            
+            raise ParseError(e.position, expected("token", repr(tok)))
 
     rule_token = token
 

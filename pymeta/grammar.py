@@ -119,7 +119,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         (interface to be explicitly defined later)
         """
         self.builder = builder(name, self, *args)
-        res, err = self.apply("grammar")
+        res = self.apply("grammar")
         try:
             x = self.input.head()
         except EOFError:

@@ -154,7 +154,7 @@ class PythonWriter(object):
         if ruleName == 'super':
             return self._expr('apply', 'self.superApply("%s", %s)' % (codeName,
                                                               ', '.join(args)))
-        return self._expr('apply', 'self.apply("%s", %s)' % (ruleName,
+        return self._expr('apply', 'self._apply("%s", %s)' % (ruleName,
                                                              ', '.join(args)))
 
     def generate_Exactly(self, literal):

@@ -50,7 +50,7 @@ class PythonWriterTests(unittest.TestCase):
                             self.considerError(lastError)
                             _G_python_2, lastError = eval('x', self.globals, _locals), None
                             self.considerError(lastError)
-                            _G_apply_3, lastError = self.apply("foo", _G_python_1, _G_python_2)
+                            _G_apply_3, lastError = self._apply("foo", _G_python_1, _G_python_2)
                             self.considerError(lastError)
                             _G_apply_3
                             """))

@@ -1,3 +1,4 @@
+# -*- test-case-name: pymeta.test.test_pymeta -*-
 """
 Public interface to OMeta, as well as the grammars used to compile grammar
 definitions.
@@ -176,6 +177,31 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         """
         expr = self.builder.expr(self.pythonExpr(')')[0][0])
         return self.builder.pred(expr)
+
+
+    def eatWhitespace(self):
+        """
+        Consume input until a non-whitespace character is reached.
+        """
+        consumingComment = False
+        while True:
+            try:
+                c, e = self.input.head()
+            except EOFError, e:
+                break
+            t = self.input.tail()
+            if c.isspace() or consumingComment:
+                self.input = t
+                if c == '\n':
+                    consumingComment = False
+            elif c == '#':
+                consumingComment = True
+            else:
+                break
+        return True, e
+    rule_spaces = eatWhitespace
+
+
 
 OMeta.metagrammarClass = OMetaGrammar
 

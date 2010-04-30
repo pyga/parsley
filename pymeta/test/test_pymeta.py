@@ -362,6 +362,21 @@ class OMetaTestCase(unittest.TestCase):
         """)
         self.assertEqual(g.broken('ab'), 'ab')
 
+
+    def test_comments(self):
+        """
+        Comments in grammars are accepted and ignored.
+        """
+        g = self.compile("""
+        #comment here
+        digit ::= ( '0' #second comment
+                  | '1') #another one
+        bits ::= <digit>+   #last one
+        """)
+        self.assertEqual(g.bits('0110110'), '0110110')
+
+
+
 class PyExtractorTest(unittest.TestCase):
     """
     Tests for finding Python expressions in OMeta grammars.
@@ -515,8 +530,9 @@ class ErrorReportingTests(unittest.TestCase):
         adjective ::= <token "crazy"> | <token "clever"> | <token "awesome">
         feeling ::= <token "likes"> | <token "loves"> | <token "hates">
         animal ::= <token "monkey"> | <token "horse"> | <token "unicorn">
-        person ::= (<token "crazy"> <token "horse">) | <token "hacker">
-        target ::= <token "bananas"> | <token "robots"> | <token "americans"> | <token "bacon">
+        person ::= <token "crazy horse"> | <token "hacker">
+        target ::= (<token "bananas"> | <token "robots"> | <token "americans">
+                   | <token "bacon">)
         """)
 
         #some warmup
@@ -525,19 +541,30 @@ class ErrorReportingTests(unittest.TestCase):
         g.start("crazy horse hates americans")
         g.start("hacker likes robots")
 
-        e = self.assertRaises(ParseError, g.start, "clever hacker likes bacon")
+        e = self.assertRaises(ParseError, g.start,
+                              "clever hacker likes bacon")
         self.assertEqual(e.position, 8)
         self.assertEqual(e.error, [('expected', "token", "'horse'")])
 
-        e = self.assertRaises(ParseError, g.start, "crazy horse likes some grass")
+        e = self.assertRaises(ParseError, g.start,
+                              "crazy horse likes some grass")
 
         #matching "some" means second branch of 'start' is taken
         self.assertEqual(e.position, 23)
-        self.assertEqual(e.error, [('expected', "token", "'bananas'"), ('expected', "token", "'robots'"), ('expected', "token", "'americans'"), ('expected', 'token', "'bacon'")])
+        self.assertEqual(e.error, [('expected', "token", "'bananas'"),
+                                   ('expected', "token", "'robots'"),
+                                   ('expected', "token", "'americans'"),
+                                   ('expected', 'token', "'bacon'")])
 
-        e = self.assertRaises(ParseError, g.start, "crazy horse likes mountains")
+        e = self.assertRaises(ParseError, g.start,
+                              "crazy horse likes mountains")
 
-        #no "some" means first branch of 'start' is taken... but second is also viable
+        #no "some" means first branch of 'start' is taken...
+        #but second is also viable
         self.assertEqual(e.position, 18)
-        self.assertEqual(e.error, [('expected', "token", "'bananas'"), ('expected', "token", "'robots'"), ('expected', "token", "'americans'"), ('expected', 'token', "'bacon'"), ('expected', "token", "'some'")])
+        self.assertEqual(e.error, [('expected', "token", "'bananas'"),
+                                   ('expected', "token", "'robots'"),
+                                   ('expected', "token", "'americans'"),
+                                   ('expected', 'token', "'bacon'"),
+                                   ('expected', "token", "'some'")])
 

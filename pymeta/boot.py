@@ -75,6 +75,29 @@ class BootOMetaGrammar(OMetaBase):
         return self.builder.pred(expr)
 
 
+    def eatWhitespace(self):
+        """
+        Consume input until a non-whitespace character is reached.
+        """
+        consumingComment = False
+        while True:
+            try:
+                c, e = self.input.head()
+            except EOFError, e:
+                break
+            t = self.input.tail()
+            if c.isspace() or consumingComment:
+                self.input = t
+                if c == '\n':
+                    consumingComment = False
+            elif c == '#':
+                consumingComment = True
+            else:
+                break
+        return True, e
+    rule_spaces = eatWhitespace
+
+
     def rule_number(self):
         _locals = {'self': self}
         self.locals['number'] = _locals

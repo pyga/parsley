@@ -36,8 +36,9 @@ class BootOMetaGrammar(OMetaBase):
         except EOFError:
             pass
         else:
-            x = repr(''.join(self.input.data[self.input.position:]))
-            raise ValueError("Grammar parse failed. Error: %s Leftover bits: %s" % (err, x,))
+            x = ''.join(self.input.data[self.input.position:])
+            raise ParseError(self.input.position,
+                             [("leftover", x)])
         return res
 
 

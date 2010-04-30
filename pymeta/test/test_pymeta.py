@@ -434,6 +434,16 @@ class MakeGrammarTest(unittest.TestCase):
         self.assertNotEqual(len(results), 0)
 
 
+    def test_brokenGrammar(self):
+        from pymeta.grammar import OMeta
+        grammar = """
+        andHandler ::= <handler>:h1 'and' <handler>:h2 => And(h1, h2)
+        """
+        e = self.assertRaises(ParseError, OMeta.makeGrammar, grammar, {})
+        self.assertEquals(e.position, 37)
+        self.assertEquals(e.error, [("leftover", grammar[37:])])
+
+
     def test_subclassing(self):
         """
         A subclass of an OMeta subclass should be able to call rules on its

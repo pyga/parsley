@@ -126,8 +126,9 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         except EOFError:
             pass
         else:
-            x = repr(''.join(self.input.data[self.input.position:]))
-            raise ParseError("Grammar parse failed. Leftover bits: %s" % (x,))
+            x = ''.join(self.input.data[self.input.position:])
+            raise ParseError(self.input.position,
+                             [("leftover", x)])
         return res
 
 

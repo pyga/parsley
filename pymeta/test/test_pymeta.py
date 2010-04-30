@@ -464,22 +464,29 @@ class MakeGrammarTest(unittest.TestCase):
     def test_subclassing(self):
         """
         A subclass of an OMeta subclass should be able to call rules on its
-        parent.
+        parent, and access variables in its scope.
         """
         from pymeta.grammar import OMeta
 
         grammar1 = """
-        dig ::= :x ?('0' <= x <= '9') => int(x)
+        dig ::= :x ?(a <= x <= b) => int(x)
         """
-        TestGrammar1 = OMeta.makeGrammar(grammar1, {})
+        TestGrammar1 = OMeta.makeGrammar(grammar1, {'a':'0', 'b':'9'})
 
         grammar2 = """
-        num ::= (<num>:n <dig>:d => n * 10 + d
+        num ::= (<num>:n <dig>:d => n * base + d
                 | <dig>)
         """
-        TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
+        TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {'base':10})
         g = TestGrammar2("314159")
         self.assertEqual(g.apply("num"), 314159)
+
+        grammar3 = """
+        dig ::= :x ?(a <= x <= b or c <= x <= d) => int(x, base)
+        """
+        TestGrammar3 = TestGrammar2.makeGrammar(grammar3, {'c':'a', 'd':'f', 'base':16})
+        g = TestGrammar3("abc123")
+        self.assertEqual(g.apply("num"), 11256099)
 
 
     def test_super(self):

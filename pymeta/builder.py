@@ -317,7 +317,9 @@ def moduleFromGrammar(tree, className, superclass, globalsDict):
     mod.__loader__ = GeneratedCodeLoader(source)
     code = compile(source, filename, "exec")
     eval(code, mod.__dict__)
-    mod.__dict__[className].globals = globalsDict
+    fullGlobals = dict(getattr(mod.__dict__[className], "globals", None) or {})
+    fullGlobals.update(globalsDict)
+    mod.__dict__[className].globals = fullGlobals
     sys.modules[modname] = mod
     linecache.getlines(filename, mod.__dict__)
     return mod.__dict__[className]

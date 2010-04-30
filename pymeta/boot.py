@@ -5,7 +5,7 @@ has to be able to read that. Most of the code in this module is generated from
 that grammar (in future versions, it will hopefully all be generated).
 """
 import string
-from pymeta.runtime import OMetaBase, ParseError, EOFError
+from pymeta.runtime import OMetaBase, ParseError, EOFError, expected
 
 
 class BootOMetaGrammar(OMetaBase):
@@ -57,7 +57,7 @@ class BootOMetaGrammar(OMetaBase):
         if args:
             return args
         else:
-            raise ParseError()
+            raise ParseError(self.input.position, expected("python expression"))
 
 
     def ruleValueExpr(self):

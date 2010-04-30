@@ -44,7 +44,7 @@ escapedChar ::= '\\' ('n' => "\n"
                      |'f' => "\f"
                      |'"' => '"'
                      |'\'' => "'"
-                     |'\\' => "\\")
+                     |'\\' => '\\')
 
 character ::= <token "'"> (<escapedChar> | <anything>):c <token "'"> => self.builder.exactly(c)
 

@@ -77,7 +77,7 @@ class OMetaTestCase(unittest.TestCase):
                           aLetter ::= 'a'
                           """)
         self.assertEqual(g.digit("1"), "1")
-        self.assertRaises(ParseError, g.digit, "4")        
+        self.assertRaises(ParseError, g.digit, "4")
 
 
     def test_escapedLiterals(self):
@@ -177,6 +177,23 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.foo('1'), 7)
 
 
+    def test_ruleValueEscapeQuotes(self):
+        """
+        Escaped quotes are handled properly in Python expressions.
+        """
+        g = self.compile(r"""escapedChar ::= '\'' => '\\\''""")
+        self.assertEqual(g.escapedChar("'"), "\\'")
+
+        
+    def test_ruleValueEscapeSlashes(self):
+        """
+        Escaped slashes are handled properly in Python expressions.
+        """
+        g = self.compile(r"""escapedChar ::= '\\' => '\\'""")
+        self.assertEqual(g.escapedChar("\\"), "\\")
+
+        
+        
     def test_lookahead(self):
         """
         Doubled negation does lookahead.

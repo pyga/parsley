@@ -18,6 +18,44 @@ class ParseError(Exception):
         if other.__class__ == self.__class__:
             return (self.position, self.error) == (other.position, other.error)
 
+
+    def formatReason(self):
+        #deal with multiple 'expected' or one 'eof' or 'leftover'
+        #also hey shouldn't we use the returned error in the leftover case?
+        if len(self.error) == 1:
+            if self.error[0][2] == None:
+                return 'expected a ' + self.error[0][1]
+            else:
+                return 'expected the %s %s' % (self.error[0][1], self.error[0][2])
+        else:
+            bits = []
+            for s in self.error:
+                desc = repr(s[2])
+                if s[1] is not None:
+                    desc = "%s %s" % (s[1], desc)
+                bits.append(desc)
+                
+            return "expected one of %s, or %s" % (', '.join(bits[:-1]), bits[-1])
+        
+    def formatError(self, input):
+        """
+        Return a pretty string containing error info about string parsing failure.
+        """
+        lines = input.split('\n')
+        counter = 0
+        lineNo = 1
+        columnNo = 0
+        for line in lines:
+            newCounter = counter + len(line)
+            if newCounter > self.position:
+                columnNo = self.position - counter
+                break
+            else:
+                counter += len(line) + 1
+                lineNo += 1
+        reason = self.formatReason()
+        return '\n' + line + '\n' + (' ' * columnNo + '^') + "\nParse error at line %s, column %s: %s\n" % (lineNo, columnNo, reason)
+        
 class EOFError(ParseError):
     def __init__(self, position):
         ParseError.__init__(self, position, eof())

@@ -1,5 +1,6 @@
+from textwrap import dedent
 from twisted.trial import unittest
-from pymeta.runtime import ParseError, OMetaBase, EOFError
+from pymeta.runtime import ParseError, OMetaBase, EOFError, expected
 from pymeta.boot import BootOMetaGrammar
 from pymeta.builder import TreeBuilder, moduleFromGrammar
 
@@ -25,16 +26,16 @@ class HandyWrapper(object):
             @param str: The string to be parsed by the wrapped grammar.
             """
             obj = self.klass(str)
-            ret = obj.apply(name)
+            ret, err = obj._apply(name)
             try:
-                extra, err = obj.input.head()
+                extra, _ = obj.input.head()
             except EOFError:
                 try:
                     return ''.join(ret)
                 except TypeError:
                     return ret
             else:
-                raise ParseError(err.args[0], err.args[1], "trailing garbage in input: %r" % (extra,))
+                raise err
         return doIt
 
 
@@ -557,6 +558,10 @@ class ErrorReportingTests(unittest.TestCase):
 
 
     def test_rawReporting(self):
+        """
+        Errors from parsing contain enough info to figure out what was
+        expected and where.
+        """
         g = self.compile("""
 
         start ::= ( (<person> <feeling> <target>)
@@ -602,3 +607,42 @@ class ErrorReportingTests(unittest.TestCase):
                                    ('expected', 'token', "'bacon'"),
                                    ('expected', "token", "'some'")])
 
+
+    def test_formattedReporting(self):
+        """
+        Parse errors can be formatted into a nice human-readable view
+        containing the erroneous input and possible fixes.
+        """
+        g = self.compile("""
+        dig ::= '1' | '2' | '3'
+        bits ::= <dig>+
+        """)
+
+        input = "123x321"
+        e = self.assertRaises(ParseError, g.bits, input)
+        self.assertEqual(e.formatError(input),
+                         dedent("""
+                         123x321
+                            ^
+                         Parse error at line 1, column 3: expected one of '1', '2', or '3'
+                         """))
+        
+        input = "foo\nbaz\nboz\ncharlie\nbuz"
+        e = ParseError(12, expected('token', 'foo') + expected(None, 'b'))
+        
+        self.assertEqual(e.formatError(input),
+                         dedent("""
+                         charlie
+                         ^
+                         Parse error at line 4, column 0: expected one of token 'foo', or 'b'
+                         """))
+
+        input = '123x321'
+        e = ParseError(3, expected('digit'))
+        self.assertEqual(e.formatError(input),
+                         dedent("""
+                         123x321
+                            ^
+                         Parse error at line 1, column 3: expected a digit
+                         """))
+        

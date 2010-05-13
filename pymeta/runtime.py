@@ -196,6 +196,11 @@ class ArgInput(object):
         return self.parent
 
 
+
+    def nullError(self):
+        return self.parent.nullError()
+    
+
     def getMemo(self, name):
         """
         Returns the memo record for the named rule.

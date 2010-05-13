@@ -280,8 +280,8 @@ class OMetaTestCase(unittest.TestCase):
         """
         g = self.compile("""
               digit ::= ('0' | '1' | '2'):d => int(d)
-              foo :x ::= (?(x > 1) '9' | ?(x <= 1) '8'):d => int(d)
-              baz ::= <digit>:a <foo a>:b => [a, b]
+              foo :x :ignored ::= (?(x > 1) '9' | ?(x <= 1) '8'):d => int(d)
+              baz ::= <digit>:a <foo a None>:b => [a, b]
             """)
         self.assertEqual(g.baz("18"), [1, 8])
         self.assertEqual(g.baz("08"), [0, 8])

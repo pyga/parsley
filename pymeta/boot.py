@@ -36,9 +36,7 @@ class BootOMetaGrammar(OMetaBase):
         except EOFError:
             pass
         else:
-            x = ''.join(self.input.data[self.input.position:])
-            raise ParseError(self.input.position,
-                             [("leftover", x)])
+            raise err
         return res
 
 

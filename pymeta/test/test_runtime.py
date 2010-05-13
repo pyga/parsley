@@ -73,7 +73,7 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         e = self.assertRaises(ParseError, o.rule_token, "fog")
         self.assertEqual(e.position, 2)
-        self.assertEqual(e.error, expected("token", "'fog'"))
+        self.assertEqual(e.error, expected("token", "fog"))
 
 
     def test_many(self):
@@ -124,7 +124,7 @@ class RuntimeTests(unittest.TestCase):
                                lambda: o.token("foozik"),
                                lambda: o.token("woozle")])
         self.assertEqual(e.position, 4)
-        self.assertEqual(e.error, expected("token",  "'foozik'"))
+        self.assertEqual(e.error, expected("token",  "foozik"))
 
 
     def test_orFalseSuccess(self):
@@ -140,7 +140,7 @@ class RuntimeTests(unittest.TestCase):
                                lambda: o.token("foozik"),
                                lambda: o.token("f")])
         self.assertEqual(e.position, 4)
-        self.assertEqual(e.error, expected("token", "'foozik'"))
+        self.assertEqual(e.error, expected("token", "foozik"))
 
     def test_orErrorTie(self):
         """
@@ -155,7 +155,7 @@ class RuntimeTests(unittest.TestCase):
                                lambda: o.token("foz"),
                                lambda: o.token("f")])
         self.assertEqual(e.position, 2)
-        self.assertEqual(e.error, [expected("token", "'fog'")[0], expected("token", "'foz'")[0]])
+        self.assertEqual(e.error, [expected("token", "fog")[0], expected("token", "foz")[0]])
 
 
     def test_notError(self):

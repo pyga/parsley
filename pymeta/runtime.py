@@ -20,8 +20,6 @@ class ParseError(Exception):
 
 
     def formatReason(self):
-        #deal with multiple 'expected' or one 'eof' or 'leftover'
-        #also hey shouldn't we use the returned error in the leftover case?
         if len(self.error) == 1:
             if self.error[0][2] == None:
                 return 'expected a ' + self.error[0][1]
@@ -30,9 +28,12 @@ class ParseError(Exception):
         else:
             bits = []
             for s in self.error:
-                desc = repr(s[2])
-                if s[1] is not None:
-                    desc = "%s %s" % (s[1], desc)
+                if s[2] is None:
+                    desc = "a " + s[1]
+                else:
+                    desc = repr(s[2])
+                    if s[1] is not None:
+                        desc = "%s %s" % (s[1], desc)                
                 bits.append(desc)
                 
             return "expected one of %s, or %s" % (', '.join(bits[:-1]), bits[-1])
@@ -499,7 +500,7 @@ class OMetaBase(object):
         except ParseError, e:
             self.input = m
             
-            raise ParseError(e.position, expected("token", repr(tok)))
+            raise ParseError(e.position, expected("token", tok))
 
     rule_token = token
 

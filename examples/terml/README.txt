@@ -48,3 +48,16 @@ Traceback (most recent call last):
     raise joinErrors(errors)
 pymeta.runtime.ParseError: (21, [('expected', 'token', "'}'")])
 
+>>> terml.parser.parseTerm("foo(())")
+
+foo(())
+    ^
+Parse error at line 1, column 4: expected one of ')', token '[', token '"', token "'", '0', a digit, a letter, '_', '$', '.', '<', ':', token '${', token '$', token '@{', token '@', token '{', '-', ' ', '\t', '\x0c', or '#'
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "terml/parser.py", line 202, in parseTerm
+    return _parseTerm(termString)
+  File "terml/parser.py", line 192, in _parseTerm
+    raise error
+pymeta.runtime.ParseError: (4, [('expected', None, ')'), ('expected', 'token', '['), ('expected', 'token', '"'), ('expected', 'token', "'"), ('expected', None, '0'), ('expected', 'digit', None), ('expected', 'letter', None), ('expected', None, '_'), ('expected', None, '$'), ('expected', None, '.'), ('expected', None, '<'), ('expected', None, ':'), ('expected', 'token', '${'), ('expected', 'token', '$'), ('expected', 'token', '@{'), ('expected', 'token', '@'), ('expected', 'token', '{'), ('expected', None, '-'), ('expected', None, ' '), ('expected', None, '\t'), ('expected', None, '\x0c'), ('expected', None, '#')])

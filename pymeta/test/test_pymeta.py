@@ -458,8 +458,8 @@ class MakeGrammarTest(unittest.TestCase):
         andHandler ::= <handler>:h1 'and' <handler>:h2 => And(h1, h2)
         """
         e = self.assertRaises(ParseError, OMeta.makeGrammar, grammar, {})
-        self.assertEquals(e.position, 37)
-        self.assertEquals(e.error, [("leftover", grammar[37:])])
+        self.assertEquals(e.position, 39)
+        self.assertEquals(e.error, [("expected", "token", "'")])
 
 
     def test_subclassing(self):
@@ -583,17 +583,17 @@ class ErrorReportingTests(unittest.TestCase):
         e = self.assertRaises(ParseError, g.start,
                               "clever hacker likes bacon")
         self.assertEqual(e.position, 8)
-        self.assertEqual(e.error, [('expected', "token", "'horse'")])
+        self.assertEqual(e.error, [('expected', "token", "horse")])
 
         e = self.assertRaises(ParseError, g.start,
                               "crazy horse likes some grass")
 
         #matching "some" means second branch of 'start' is taken
         self.assertEqual(e.position, 23)
-        self.assertEqual(e.error, [('expected', "token", "'bananas'"),
-                                   ('expected', "token", "'robots'"),
-                                   ('expected', "token", "'americans'"),
-                                   ('expected', 'token', "'bacon'")])
+        self.assertEqual(e.error, [('expected', "token", "bananas"),
+                                   ('expected', "token", "robots"),
+                                   ('expected', "token", "americans"),
+                                   ('expected', 'token', "bacon")])
 
         e = self.assertRaises(ParseError, g.start,
                               "crazy horse likes mountains")
@@ -601,11 +601,11 @@ class ErrorReportingTests(unittest.TestCase):
         #no "some" means first branch of 'start' is taken...
         #but second is also viable
         self.assertEqual(e.position, 18)
-        self.assertEqual(e.error, [('expected', "token", "'bananas'"),
-                                   ('expected', "token", "'robots'"),
-                                   ('expected', "token", "'americans'"),
-                                   ('expected', 'token', "'bacon'"),
-                                   ('expected', "token", "'some'")])
+        self.assertEqual(e.error, [('expected', "token", "bananas"),
+                                   ('expected', "token", "robots"),
+                                   ('expected', "token", "americans"),
+                                   ('expected', 'token', "bacon"),
+                                   ('expected', "token", "some")])
 
 
     def test_formattedReporting(self):

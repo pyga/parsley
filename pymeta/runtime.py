@@ -263,14 +263,11 @@ class OMetaBase(object):
         r = getattr(super(self.__class__, self), "rule_"+ruleName, None)
         if r is not None:
             self.input.setMemo(ruleName, None)
-            return self._invokeRule(r, ruleName, args)
+            return self._apply(r, ruleName, args)
         else:
             raise NameError("No rule named '%s'" %(ruleName,))
 
     def apply(self, ruleName, *args):
-        return self._apply(ruleName, *args)[0]
-
-    def _apply(self, ruleName, *args):
         """
         Apply the named rule, optionally with some arguments.
 
@@ -278,13 +275,13 @@ class OMetaBase(object):
         """
         r = getattr(self, "rule_"+ruleName, None)
         if r is not None:
-            return self._invokeRule(r, ruleName, args)
+            return self._apply(r, ruleName, args)
 
         else:
             raise NameError("No rule named '%s'" %(ruleName,))
 
 
-    def _invokeRule(self, rule, ruleName, args):
+    def _apply(self, rule, ruleName, args):
         """
         Apply a rule method to some args.
         @param rule: A method of this object.

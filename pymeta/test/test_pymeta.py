@@ -26,7 +26,7 @@ class HandyWrapper(object):
             @param str: The string to be parsed by the wrapped grammar.
             """
             obj = self.klass(str)
-            ret, err = obj._apply(name)
+            ret, err = obj.apply(name)
             try:
                 extra, _ = obj.input.head()
             except EOFError:
@@ -223,11 +223,11 @@ class OMetaTestCase(unittest.TestCase):
         t = gg.parseGrammar('TestGrammar', TreeBuilder)
         G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
         g = G("12")
-        self.assertEqual(g.apply("stuff"), '2')
+        self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['b'], '2')
         g = G("13")
-        self.assertEqual(g.apply("stuff"), '3')
+        self.assertEqual(g.apply("stuff")[0], '3')
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['c'], '3')
 
@@ -448,7 +448,7 @@ class MakeGrammarTest(unittest.TestCase):
         """
         TestGrammar = OMeta.makeGrammar(grammar, {'results':results})
         g = TestGrammar("314159")
-        self.assertEqual(g.apply("num"), 314159)
+        self.assertEqual(g.apply("num")[0], 314159)
         self.assertNotEqual(len(results), 0)
 
 
@@ -480,14 +480,14 @@ class MakeGrammarTest(unittest.TestCase):
         """
         TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {'base':10})
         g = TestGrammar2("314159")
-        self.assertEqual(g.apply("num"), 314159)
+        self.assertEqual(g.apply("num")[0], 314159)
 
         grammar3 = """
         dig ::= :x ?(a <= x <= b or c <= x <= d) => int(x, base)
         """
         TestGrammar3 = TestGrammar2.makeGrammar(grammar3, {'c':'a', 'd':'f', 'base':16})
         g = TestGrammar3("abc123")
-        self.assertEqual(g.apply("num"), 11256099)
+        self.assertEqual(g.apply("num")[0], 11256099)
 
 
     def test_super(self):
@@ -499,8 +499,8 @@ class MakeGrammarTest(unittest.TestCase):
         TestGrammar1 = OMeta.makeGrammar(grammar1, {})
         grammar2 = "expr ::= <super> | <digit>"
         TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
-        self.assertEqual(TestGrammar2("x").apply("expr"), "x")
-        self.assertEqual(TestGrammar2("3").apply("expr"), "3")
+        self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
+        self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
 
 class SelfHostingTest(OMetaTestCase):
     """
@@ -538,7 +538,7 @@ class NullOptimizerTest(OMetaTestCase):
         tree  = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
         opt.builder = TreeBuilder("TestGrammar", opt)
-        tree = opt.apply("grammar")
+        tree, err = opt.apply("grammar")
         grammarClass = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(grammarClass)
 

@@ -1,7 +1,7 @@
 include README
 include LICENSE
 include NEWS
-include examples/*.py
+graft examples
 graft pymeta
 graft bin
 graft extras

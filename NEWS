@@ -1,3 +1,21 @@
+0.4.0 (2010-05-15):
+
+ - Builders now work from a grammar AST, rather than being driven by
+   the grammar parser directly.
+ - All parse operations now carry error information, including what
+   was expected to be parsed and where.
+  * Consequently, ParseError now has a 'formatError' method that takes
+    the input string and returns a human-readable description the
+    parse failure.
+ - New example: TermL parser, in examples/terml.
+ - New script, bin/generate_parser. Takes a file containing a PyMeta
+   grammar as input and writes a Python module file.
+
+ - A couple bugfixes:
+ #248643 subclassed grammars don't inherit base namespace
+ #564135 makeGrammar error handling for nonsensical grammars is broken
+
+
 0.3.0 (2008-07-12):
  - Input stream now implemented like the Javascript version, with immutable
    position objects.

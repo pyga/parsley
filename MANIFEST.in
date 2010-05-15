@@ -3,4 +3,6 @@ include LICENSE
 include NEWS
 include examples/*.py
 graft pymeta
+graft bin
+graft extras
 global-exclude *.pyc

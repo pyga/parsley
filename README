@@ -52,6 +52,9 @@ Basic syntax
 ``=> pythonExpression``
   Evaluate the given Python expression and return its result.
 
+Comments like Python comments are supported as well, starting with #
+and extending to the end of the line.
+
 Interface
 =========
 
@@ -73,5 +76,6 @@ stuff ::= (<ones> | <twos>)+
 """
 >>> Example = OMeta.makeGrammar(exampleGrammar, {})
 >>> g = Example("11221111")
->>> g.apply("stuff")
+>>> result, error = g.apply("stuff")
+>>> result
 [1, 2, 1, 1]

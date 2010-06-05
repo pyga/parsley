@@ -1,5 +1,4 @@
 # -*- test-case-name: pymeta.test.test_runtime -*-
-
 """
 Code needed to run a grammar after it has been compiled.
 """
@@ -33,11 +32,11 @@ class ParseError(Exception):
                 else:
                     desc = repr(s[2])
                     if s[1] is not None:
-                        desc = "%s %s" % (s[1], desc)                
+                        desc = "%s %s" % (s[1], desc)
                 bits.append(desc)
-                
+
             return "expected one of %s, or %s" % (', '.join(bits[:-1]), bits[-1])
-        
+
     def formatError(self, input):
         """
         Return a pretty string containing error info about string parsing failure.
@@ -55,8 +54,11 @@ class ParseError(Exception):
                 counter += len(line) + 1
                 lineNo += 1
         reason = self.formatReason()
-        return '\n' + line + '\n' + (' ' * columnNo + '^') + "\nParse error at line %s, column %s: %s\n" % (lineNo, columnNo, reason)
-        
+        return ('\n' + line + '\n' + (' ' * columnNo + '^') +
+                "\nParse error at line %s, column %s: %s\n" % (lineNo,
+                                                               columnNo,
+                                                               reason))
+
 class EOFError(ParseError):
     def __init__(self, position):
         ParseError.__init__(self, position, eof())

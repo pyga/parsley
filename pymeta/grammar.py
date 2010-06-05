@@ -53,7 +53,7 @@ string ::= <token '"'> (<escapedChar> | ~('"') <anything>)*:c <token '"'> => sel
 name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
 
 application ::= (<token '<'> <spaces> <name>:name
-                  (' ' !(self.applicationArgs()):args
+                  (' ' !(self.applicationArgs(finalChar='>')):args
                      => self.builder.apply(name, self.name, *args)
                   |<token '>'>
                      => self.builder.apply(name, self.name)))
@@ -86,7 +86,7 @@ expr4 ::= <expr3>*:es => self.builder.sequence(es)
 expr ::= <expr4>:e (<token '|'> <expr4>)*:es !(es.insert(0, e))
           => self.builder._or(es)
 
-ruleValue ::= <token "=>"> => self.ruleValueExpr()
+ruleValue ::= <token "=>"> => self.ruleValueExpr(False)
 
 semanticPredicate ::= <token "?("> => self.semanticPredicateExpr()
 
@@ -105,10 +105,91 @@ rule ::= (<spaces> ~~(<name>:n) <rulePart n>:r
 grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
 """
 #don't be confused, emacs
+v2Grammar = r"""
+hspace  ::= (' ' | '\t')
+vspace ::= (<token "\r\n"> | '\r' | '\n')
+emptyline ::= <hspace>* <vspace>
+indentation ::= <emptyline>* <hspace>+
+noindentation ::= <emptyline>* ~~~<hspace>
 
-class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
+number ::= <spaces> ('-' <barenumber>:x => self.builder.exactly(-x)
+                    |<barenumber>:x => self.builder.exactly(x))
+barenumber ::= '0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
+                    |<octaldigit>*:ds => int('0'+''.join(ds), 8))
+               |<digit>+:ds => int(''.join(ds))
+octaldigit ::= :x ?(x in string.octdigits) => x
+hexdigit ::= :x ?(x in string.hexdigits) => x
+
+escapedChar ::= '\\' ('n' => "\n"
+                     |'r' => "\r"
+                     |'t' => "\t"
+                     |'b' => "\b"
+                     |'f' => "\f"
+                     |'"' => '"'
+                     |'\'' => "'"
+                     |'\\' => "\\")
+
+character ::= <token "'"> (<escapedChar> | <anything>):c <token "'"> => self.builder.exactly(c)
+
+string ::= <token '"'> (<escapedChar> | ~('"') <anything>)*:c <token '"'> => self.builder.exactly(''.join(c))
+
+name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
+
+application ::= <indentation>? <name>:name
+                  ('(' !(self.applicationArgs(finalChar=')')):args
+                    => self.builder.apply(name, self.name, *args)
+                  | => self.builder.apply(name, self.name))
+
+expr1 ::= <application>
+          |<ruleValue>
+          |<semanticPredicate>
+          |<semanticAction>
+          |<number>
+          |<character>
+          |<string>
+          |<token '('> <expr>:e <token ')'> => e
+          |<token '['> <expr>:e <token ']'> => self.builder.listpattern(e)
+
+expr2 ::= <token '~'> (<token '~'> <expr2>:e => self.builder.lookahead(e)
+                       |<expr2>:e => self.builder._not(e))
+          |<expr1>
+
+expr3 ::= (<expr2>:e ('*' => self.builder.many(e)
+                      |'+' => self.builder.many1(e)
+                      |'?' => self.builder.optional(e)
+                      | => e)):r
+           (':' <name>:n => self.builder.bind(r, n)
+           | => r)
+          |<token ':'> <name>:n
+           => self.builder.bind(self.builder.apply("anything", self.name), n)
+
+expr4 ::= <expr3>*:es => self.builder.sequence(es)
+
+expr ::= <expr4>:e (<token '|'> <expr4>)*:es !(es.insert(0, e))
+          => self.builder._or(es)
+
+ruleValue ::= <token "->"> => self.ruleValueExpr(True)
+
+semanticPredicate ::= <token "?("> => self.semanticPredicateExpr()
+
+semanticAction ::= <token "!("> => self.semanticActionExpr()
+
+rulePart :requiredName ::= <noindentation> <name>:n ?(n == requiredName)
+                            !(setattr(self, "name", n))
+                            <expr4>:args
+                            (<token "="> <expr>:e
+                               => self.builder.sequence([args, e])
+                            |  => args)
+rule ::= <noindentation> ~~(<name>:n) <rulePart n>:r
+          (<rulePart n>+:rs => self.builder.rule(n, self.builder._or([r] + rs))
+          |                     => self.builder.rule(n, r))
+
+grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
+"""
+
+class OMetaGrammarMixin:
     """
-    The base grammar for parsing grammar definitions.
+    Helpers for the base grammar for parsing grammar definitions.
     """
     def parseGrammar(self, name, builder, *args):
         """
@@ -130,7 +211,7 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         return res
 
 
-    def applicationArgs(self):
+    def applicationArgs(self, finalChar):
         """
         Collect rule arguments, a list of Python expressions separated by
         spaces.
@@ -138,11 +219,11 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         args = []
         while True:
             try:
-                (arg, endchar), err = self.pythonExpr(" >")
+                (arg, endchar), err = self.pythonExpr(" " + finalChar)
                 if not arg:
                     break
                 args.append(self.builder.expr(arg))
-                if endchar == '>':
+                if endchar == finalChar:
                     break
             except ParseError:
                 break
@@ -151,13 +232,13 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
         else:
             raise ParseError()
 
-    def ruleValueExpr(self):
+    def ruleValueExpr(self, singleLine):
         """
         Find and generate code for a Python expression terminated by a close
         paren/brace or end of line.
         """
         (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
-        if str(endchar) in ")]":
+        if str(endchar) in ")]" or (singleLine and endchar):
             self.input = self.input.prev()
         return self.builder.expr(expr)
 
@@ -202,7 +283,17 @@ class OMetaGrammar(OMeta.makeGrammar(ometaGrammar, globals())):
 
 
 
+class OMetaGrammar(OMetaGrammarMixin, OMeta.makeGrammar(ometaGrammar, globals())):
+    pass
+
+
 OMeta.metagrammarClass = OMetaGrammar
+
+
+class OMeta2Grammar(OMetaGrammarMixin, OMeta.makeGrammar(v2Grammar, globals())):
+    pass
+
+
 
 nullOptimizationGrammar = """
 

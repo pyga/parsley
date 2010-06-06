@@ -107,7 +107,7 @@ class PythonWriter(object):
         @param expr: A list of lines of Python code.
         """
         
-        subwriter = PythonWriter(expr)
+        subwriter = self.__class__(expr)
         flines  = subwriter._generate(retrn=True)
         fname = self._gensym(name)
         self._writeFunction(fname, (),  flines)
@@ -272,7 +272,7 @@ class PythonWriter(object):
     def generate_Rule(self, name, expr):
         rulelines = ["_locals = {'self': self}",
                      "self.locals[%r] = _locals" % (name,)]
-        subwriter = PythonWriter(expr)
+        subwriter = self.__class__(expr)
         flines  = subwriter._generate(retrn=True)
         rulelines.extend(flines)
         self._writeFunction("rule_" + name, ("self",), rulelines)

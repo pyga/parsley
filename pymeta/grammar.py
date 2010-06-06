@@ -29,8 +29,8 @@ class OMeta(OMetaBase):
     makeGrammar = classmethod(makeGrammar)
 
 ometaGrammar = r"""
-number ::= <spaces> ('-' <barenumber>:x => self.builder.exactly(-x)
-                    |<barenumber>:x => self.builder.exactly(x))
+number ::= <spaces> ('-' <barenumber>:x => -x
+                    |<barenumber>:x => x)
 barenumber ::= ('0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
                     |<octaldigit>*:ds => int('0'+''.join(ds), 8))
                |<digit>+:ds => int(''.join(ds)))
@@ -46,9 +46,10 @@ escapedChar ::= '\\' ('n' => "\n"
                      |'\'' => "'"
                      |'\\' => '\\')
 
-character ::= <token "'"> (<escapedChar> | <anything>):c <token "'"> => self.builder.exactly(c)
+character ::= <token "'"> (<escapedChar> | <anything>):c <token "'"> => c
 
-string ::= <token '"'> (<escapedChar> | ~('"') <anything>)*:c <token '"'> => self.builder.exactly(''.join(c))
+bareString ::= <token '"'> (<escapedChar> | ~('"') <anything>)*:c <token '"'> => ''.join(c)
+string ::= <bareString>:s => self.builder.exactly(s)
 
 name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
 
@@ -62,8 +63,7 @@ expr1 ::= (<application>
           |<ruleValue>
           |<semanticPredicate>
           |<semanticAction>
-          |<number>
-          |<character>
+          |(<number> | <character>):lit => self.builder.exactly(lit)
           |<string>
           |<token '('> <expr>:e <token ')'> => e
           |<token '['> <expr>:e <token ']'> => self.builder.listpattern(e))
@@ -187,7 +187,7 @@ rule ::= <noindentation> ~~(<name>:n) <rulePart n>:r
 grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
 """
 
-class OMetaGrammarMixin:
+class OMetaGrammarMixin(object):
     """
     Helpers for the base grammar for parsing grammar definitions.
     """

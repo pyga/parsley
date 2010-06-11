@@ -100,19 +100,19 @@ class BootOMetaGrammar(OMetaBase):
     def rule_number(self):
         _locals = {'self': self}
         self.locals['number'] = _locals
-        _G_apply_1, lastError = self.apply("spaces", )
+        _G_apply_1, lastError = self._apply(self.rule_spaces, "spaces", [])
         self.considerError(lastError)
         def _G_or_2():
             _G_exactly_1, lastError = self.exactly('-')
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("barenumber", )
+            _G_apply_2, lastError = self._apply(self.rule_barenumber, "barenumber", [])
             self.considerError(lastError)
             _locals['x'] = _G_apply_2
             _G_python_3, lastError = eval('self.builder.exactly(-x)', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_3, self.currentError)
         def _G_or_3():
-            _G_apply_1, lastError = self.apply("barenumber", )
+            _G_apply_1, lastError = self._apply(self.rule_barenumber, "barenumber", [])
             self.considerError(lastError)
             _locals['x'] = _G_apply_1
             _G_python_2, lastError = eval('self.builder.exactly(x)', self.globals, _locals), None
@@ -141,7 +141,7 @@ class BootOMetaGrammar(OMetaBase):
                 _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
                 self.considerError(lastError)
                 def _G_many_4():
-                    _G_apply_1, lastError = self.apply("hexdigit", )
+                    _G_apply_1, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
                     self.considerError(lastError)
                     return (_G_apply_1, self.currentError)
                 _G_many_5, lastError = self.many(_G_many_4)
@@ -152,7 +152,7 @@ class BootOMetaGrammar(OMetaBase):
                 return (_G_python_6, self.currentError)
             def _G_or_3():
                 def _G_many_1():
-                    _G_apply_1, lastError = self.apply("octaldigit", )
+                    _G_apply_1, lastError = self._apply(self.rule_octaldigit, "octaldigit", [])
                     self.considerError(lastError)
                     return (_G_apply_1, self.currentError)
                 _G_many_2, lastError = self.many(_G_many_1)
@@ -166,7 +166,7 @@ class BootOMetaGrammar(OMetaBase):
             return (_G_or_4, self.currentError)
         def _G_or_2():
             def _G_many1_1():
-                _G_apply_1, lastError = self.apply("digit", )
+                _G_apply_1, lastError = self._apply(self.rule_digit, "digit", [])
                 self.considerError(lastError)
                 return (_G_apply_1, self.currentError)
             _G_many1_2, lastError = self.many(_G_many1_1, _G_many1_1())
@@ -183,7 +183,7 @@ class BootOMetaGrammar(OMetaBase):
     def rule_octaldigit(self):
         _locals = {'self': self}
         self.locals['octaldigit'] = _locals
-        _G_apply_1, lastError = self.apply("anything", )
+        _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
         self.considerError(lastError)
         _locals['x'] = _G_apply_1
         def _G_pred_2():
@@ -200,7 +200,7 @@ class BootOMetaGrammar(OMetaBase):
     def rule_hexdigit(self):
         _locals = {'self': self}
         self.locals['hexdigit'] = _locals
-        _G_apply_1, lastError = self.apply("anything", )
+        _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
         self.considerError(lastError)
         _locals['x'] = _G_apply_1
         def _G_pred_2():
@@ -277,14 +277,14 @@ class BootOMetaGrammar(OMetaBase):
         self.locals['character'] = _locals
         _G_python_1, lastError = eval('"\'"', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_2, lastError = self.apply("token", _G_python_1)
+        _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
         self.considerError(lastError)
         def _G_or_3():
-            _G_apply_1, lastError = self.apply("escapedChar", )
+            _G_apply_1, lastError = self._apply(self.rule_escapedChar, "escapedChar", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_4():
-            _G_apply_1, lastError = self.apply("anything", )
+            _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         _G_or_5, lastError = self._or([_G_or_3, _G_or_4])
@@ -292,7 +292,7 @@ class BootOMetaGrammar(OMetaBase):
         _locals['c'] = _G_or_5
         _G_python_6, lastError = eval('"\'"', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_7, lastError = self.apply("token", _G_python_6)
+        _G_apply_7, lastError = self._apply(self.rule_token, "token", [_G_python_6])
         self.considerError(lastError)
         _G_python_8, lastError = eval('self.builder.exactly(c)', self.globals, _locals), None
         self.considerError(lastError)
@@ -304,11 +304,11 @@ class BootOMetaGrammar(OMetaBase):
         self.locals['string'] = _locals
         _G_python_1, lastError = eval('\'"\'', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_2, lastError = self.apply("token", _G_python_1)
+        _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
         self.considerError(lastError)
         def _G_many_3():
             def _G_or_1():
-                _G_apply_1, lastError = self.apply("escapedChar", )
+                _G_apply_1, lastError = self._apply(self.rule_escapedChar, "escapedChar", [])
                 self.considerError(lastError)
                 return (_G_apply_1, self.currentError)
             def _G_or_2():
@@ -318,7 +318,7 @@ class BootOMetaGrammar(OMetaBase):
                     return (_G_exactly_1, self.currentError)
                 _G_not_2, lastError = self._not(_G_not_1)
                 self.considerError(lastError)
-                _G_apply_3, lastError = self.apply("anything", )
+                _G_apply_3, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError)
                 return (_G_apply_3, self.currentError)
             _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
@@ -329,7 +329,7 @@ class BootOMetaGrammar(OMetaBase):
         _locals['c'] = _G_many_4
         _G_python_5, lastError = eval('\'"\'', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_6, lastError = self.apply("token", _G_python_5)
+        _G_apply_6, lastError = self._apply(self.rule_token, "token", [_G_python_5])
         self.considerError(lastError)
         _G_python_7, lastError = eval("self.builder.exactly(''.join(c))", self.globals, _locals), None
         self.considerError(lastError)
@@ -339,11 +339,11 @@ class BootOMetaGrammar(OMetaBase):
     def rule_name(self):
         _locals = {'self': self}
         self.locals['name'] = _locals
-        _G_apply_1, lastError = self.apply("letter", )
+        _G_apply_1, lastError = self._apply(self.rule_letter, "letter", [])
         self.considerError(lastError)
         _locals['x'] = _G_apply_1
         def _G_many_2():
-            _G_apply_1, lastError = self.apply("letterOrDigit", )
+            _G_apply_1, lastError = self._apply(self.rule_letterOrDigit, "letterOrDigit", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         _G_many_3, lastError = self.many(_G_many_2)
@@ -361,11 +361,11 @@ class BootOMetaGrammar(OMetaBase):
         self.locals['application'] = _locals
         _G_python_1, lastError = eval("'<'", self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_2, lastError = self.apply("token", _G_python_1)
+        _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
         self.considerError(lastError)
-        _G_apply_3, lastError = self.apply("spaces", )
+        _G_apply_3, lastError = self._apply(self.rule_spaces, "spaces", [])
         self.considerError(lastError)
-        _G_apply_4, lastError = self.apply("name", )
+        _G_apply_4, lastError = self._apply(self.rule_name, "name", [])
         self.considerError(lastError)
         _locals['name'] = _G_apply_4
         def _G_or_5():
@@ -380,7 +380,7 @@ class BootOMetaGrammar(OMetaBase):
         def _G_or_6():
             _G_python_1, lastError = eval("'>'", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("token", _G_python_1)
+            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
             self.considerError(lastError)
             _G_python_3, lastError = eval('self.builder.apply(name, self.name)', self.globals, _locals), None
             self.considerError(lastError)
@@ -394,44 +394,44 @@ class BootOMetaGrammar(OMetaBase):
         _locals = {'self': self}
         self.locals['expr1'] = _locals
         def _G_or_1():
-            _G_apply_1, lastError = self.apply("application", )
+            _G_apply_1, lastError = self._apply(self.rule_application, "application", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_2():
-            _G_apply_1, lastError = self.apply("ruleValue", )
+            _G_apply_1, lastError = self._apply(self.rule_ruleValue, "ruleValue", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_3():
-            _G_apply_1, lastError = self.apply("semanticPredicate", )
+            _G_apply_1, lastError = self._apply(self.rule_semanticPredicate, "semanticPredicate", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_4():
-            _G_apply_1, lastError = self.apply("semanticAction", )
+            _G_apply_1, lastError = self._apply(self.rule_semanticAction, "semanticAction", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_5():
-            _G_apply_1, lastError = self.apply("number", )
+            _G_apply_1, lastError = self._apply(self.rule_number, "number", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_6():
-            _G_apply_1, lastError = self.apply("character", )
+            _G_apply_1, lastError = self._apply(self.rule_character, "character", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_7():
-            _G_apply_1, lastError = self.apply("string", )
+            _G_apply_1, lastError = self._apply(self.rule_string, "string", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         def _G_or_8():
             _G_python_1, lastError = eval("'('", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("token", _G_python_1)
+            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
             self.considerError(lastError)
-            _G_apply_3, lastError = self.apply("expr", )
+            _G_apply_3, lastError = self._apply(self.rule_expr, "expr", [])
             self.considerError(lastError)
             _locals['e'] = _G_apply_3
             _G_python_4, lastError = eval("')'", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_5, lastError = self.apply("token", _G_python_4)
+            _G_apply_5, lastError = self._apply(self.rule_token, "token", [_G_python_4])
             self.considerError(lastError)
             _G_python_6, lastError = eval('e', self.globals, _locals), None
             self.considerError(lastError)
@@ -439,14 +439,14 @@ class BootOMetaGrammar(OMetaBase):
         def _G_or_9():
             _G_python_1, lastError = eval("'['", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("token", _G_python_1)
+            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
             self.considerError(lastError)
-            _G_apply_3, lastError = self.apply("expr", )
+            _G_apply_3, lastError = self._apply(self.rule_expr, "expr", [])
             self.considerError(lastError)
             _locals['e'] = _G_apply_3
             _G_python_4, lastError = eval("']'", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_5, lastError = self.apply("token", _G_python_4)
+            _G_apply_5, lastError = self._apply(self.rule_token, "token", [_G_python_4])
             self.considerError(lastError)
             _G_python_6, lastError = eval('self.builder.listpattern(e)', self.globals, _locals), None
             self.considerError(lastError)
@@ -462,21 +462,21 @@ class BootOMetaGrammar(OMetaBase):
         def _G_or_1():
             _G_python_1, lastError = eval("'~'", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("token", _G_python_1)
+            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
             self.considerError(lastError)
             def _G_or_3():
                 _G_python_1, lastError = eval("'~'", self.globals, _locals), None
                 self.considerError(lastError)
-                _G_apply_2, lastError = self.apply("token", _G_python_1)
+                _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
                 self.considerError(lastError)
-                _G_apply_3, lastError = self.apply("expr2", )
+                _G_apply_3, lastError = self._apply(self.rule_expr2, "expr2", [])
                 self.considerError(lastError)
                 _locals['e'] = _G_apply_3
                 _G_python_4, lastError = eval('self.builder.lookahead(e)', self.globals, _locals), None
                 self.considerError(lastError)
                 return (_G_python_4, self.currentError)
             def _G_or_4():
-                _G_apply_1, lastError = self.apply("expr2", )
+                _G_apply_1, lastError = self._apply(self.rule_expr2, "expr2", [])
                 self.considerError(lastError)
                 _locals['e'] = _G_apply_1
                 _G_python_2, lastError = eval('self.builder._not(e)', self.globals, _locals), None
@@ -486,7 +486,7 @@ class BootOMetaGrammar(OMetaBase):
             self.considerError(lastError)
             return (_G_or_5, self.currentError)
         def _G_or_2():
-            _G_apply_1, lastError = self.apply("expr1", )
+            _G_apply_1, lastError = self._apply(self.rule_expr1, "expr1", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
@@ -498,7 +498,7 @@ class BootOMetaGrammar(OMetaBase):
         _locals = {'self': self}
         self.locals['expr3'] = _locals
         def _G_or_1():
-            _G_apply_1, lastError = self.apply("expr2", )
+            _G_apply_1, lastError = self._apply(self.rule_expr2, "expr2", [])
             self.considerError(lastError)
             _locals['e'] = _G_apply_1
             def _G_or_2():
@@ -529,7 +529,7 @@ class BootOMetaGrammar(OMetaBase):
             def _G_or_7():
                 _G_exactly_1, lastError = self.exactly(':')
                 self.considerError(lastError)
-                _G_apply_2, lastError = self.apply("name", )
+                _G_apply_2, lastError = self._apply(self.rule_name, "name", [])
                 self.considerError(lastError)
                 _locals['n'] = _G_apply_2
                 _G_python_3, lastError = eval('self.builder.bind(r, n)', self.globals, _locals), None
@@ -545,9 +545,9 @@ class BootOMetaGrammar(OMetaBase):
         def _G_or_2():
             _G_python_1, lastError = eval("':'", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("token", _G_python_1)
+            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
             self.considerError(lastError)
-            _G_apply_3, lastError = self.apply("name", )
+            _G_apply_3, lastError = self._apply(self.rule_name, "name", [])
             self.considerError(lastError)
             _locals['n'] = _G_apply_3
             _G_python_4, lastError = eval('self.builder.bind(self.builder.apply("anything", self.name), n)', self.globals, _locals), None
@@ -562,7 +562,7 @@ class BootOMetaGrammar(OMetaBase):
         _locals = {'self': self}
         self.locals['expr4'] = _locals
         def _G_many_1():
-            _G_apply_1, lastError = self.apply("expr3", )
+            _G_apply_1, lastError = self._apply(self.rule_expr3, "expr3", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         _G_many_2, lastError = self.many(_G_many_1)
@@ -576,15 +576,15 @@ class BootOMetaGrammar(OMetaBase):
     def rule_expr(self):
         _locals = {'self': self}
         self.locals['expr'] = _locals
-        _G_apply_1, lastError = self.apply("expr4", )
+        _G_apply_1, lastError = self._apply(self.rule_expr4, "expr4", [])
         self.considerError(lastError)
         _locals['e'] = _G_apply_1
         def _G_many_2():
             _G_python_1, lastError = eval("'|'", self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("token", _G_python_1)
+            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
             self.considerError(lastError)
-            _G_apply_3, lastError = self.apply("expr4", )
+            _G_apply_3, lastError = self._apply(self.rule_expr4, "expr4", [])
             self.considerError(lastError)
             return (_G_apply_3, self.currentError)
         _G_many_3, lastError = self.many(_G_many_2)
@@ -602,7 +602,7 @@ class BootOMetaGrammar(OMetaBase):
         self.locals['ruleValue'] = _locals
         _G_python_1, lastError = eval('"=>"', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_2, lastError = self.apply("token", _G_python_1)
+        _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
         self.considerError(lastError)
         _G_python_3, lastError = eval('self.ruleValueExpr()', self.globals, _locals), None
         self.considerError(lastError)
@@ -614,7 +614,7 @@ class BootOMetaGrammar(OMetaBase):
         self.locals['semanticPredicate'] = _locals
         _G_python_1, lastError = eval('"?("', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_2, lastError = self.apply("token", _G_python_1)
+        _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
         self.considerError(lastError)
         _G_python_3, lastError = eval('self.semanticPredicateExpr()', self.globals, _locals), None
         self.considerError(lastError)
@@ -626,7 +626,7 @@ class BootOMetaGrammar(OMetaBase):
         self.locals['semanticAction'] = _locals
         _G_python_1, lastError = eval('"!("', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_2, lastError = self.apply("token", _G_python_1)
+        _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
         self.considerError(lastError)
         _G_python_3, lastError = eval('self.semanticActionExpr()', self.globals, _locals), None
         self.considerError(lastError)
@@ -636,12 +636,12 @@ class BootOMetaGrammar(OMetaBase):
     def rule_rulePart(self):
         _locals = {'self': self}
         self.locals['rulePart'] = _locals
-        _G_apply_1, lastError = self.apply("anything", )
+        _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
         self.considerError(lastError)
         _locals['requiredName'] = _G_apply_1
-        _G_apply_2, lastError = self.apply("spaces", )
+        _G_apply_2, lastError = self._apply(self.rule_spaces, "spaces", [])
         self.considerError(lastError)
-        _G_apply_3, lastError = self.apply("name", )
+        _G_apply_3, lastError = self._apply(self.rule_name, "name", [])
         self.considerError(lastError)
         _locals['n'] = _G_apply_3
         def _G_pred_4():
@@ -652,15 +652,15 @@ class BootOMetaGrammar(OMetaBase):
         self.considerError(lastError)
         _G_python_6, lastError = eval('setattr(self, "name", n)', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_7, lastError = self.apply("expr4", )
+        _G_apply_7, lastError = self._apply(self.rule_expr4, "expr4", [])
         self.considerError(lastError)
         _locals['args'] = _G_apply_7
         def _G_or_8():
             _G_python_1, lastError = eval('"::="', self.globals, _locals), None
             self.considerError(lastError)
-            _G_apply_2, lastError = self.apply("token", _G_python_1)
+            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
             self.considerError(lastError)
-            _G_apply_3, lastError = self.apply("expr", )
+            _G_apply_3, lastError = self._apply(self.rule_expr, "expr", [])
             self.considerError(lastError)
             _locals['e'] = _G_apply_3
             _G_python_4, lastError = eval('self.builder.sequence([args, e])', self.globals, _locals), None
@@ -678,10 +678,10 @@ class BootOMetaGrammar(OMetaBase):
     def rule_rule(self):
         _locals = {'self': self}
         self.locals['rule'] = _locals
-        _G_apply_1, lastError = self.apply("spaces", )
+        _G_apply_1, lastError = self._apply(self.rule_spaces, "spaces", [])
         self.considerError(lastError)
         def _G_lookahead_2():
-            _G_apply_1, lastError = self.apply("name", )
+            _G_apply_1, lastError = self._apply(self.rule_name, "name", [])
             self.considerError(lastError)
             _locals['n'] = _G_apply_1
             return (_locals['n'], self.currentError)
@@ -689,14 +689,14 @@ class BootOMetaGrammar(OMetaBase):
         self.considerError(lastError)
         _G_python_4, lastError = eval('n', self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_5, lastError = self.apply("rulePart", _G_python_4)
+        _G_apply_5, lastError = self._apply(self.rule_rulePart, "rulePart", [_G_python_4])
         self.considerError(lastError)
         _locals['r'] = _G_apply_5
         def _G_or_6():
             def _G_many1_1():
                 _G_python_1, lastError = eval('n', self.globals, _locals), None
                 self.considerError(lastError)
-                _G_apply_2, lastError = self.apply("rulePart", _G_python_1)
+                _G_apply_2, lastError = self._apply(self.rule_rulePart, "rulePart", [_G_python_1])
                 self.considerError(lastError)
                 return (_G_apply_2, self.currentError)
             _G_many1_2, lastError = self.many(_G_many1_1, _G_many1_1())
@@ -718,13 +718,13 @@ class BootOMetaGrammar(OMetaBase):
         _locals = {'self': self}
         self.locals['grammar'] = _locals
         def _G_many_1():
-            _G_apply_1, lastError = self.apply("rule", )
+            _G_apply_1, lastError = self._apply(self.rule_rule, "rule", [])
             self.considerError(lastError)
             return (_G_apply_1, self.currentError)
         _G_many_2, lastError = self.many(_G_many_1)
         self.considerError(lastError)
         _locals['rs'] = _G_many_2
-        _G_apply_3, lastError = self.apply("spaces", )
+        _G_apply_3, lastError = self._apply(self.rule_spaces, "spaces", [])
         self.considerError(lastError)
         _G_python_4, lastError = eval('self.builder.makeGrammar(rs)', self.globals, _locals), None
         self.considerError(lastError)

@@ -929,9 +929,9 @@ class ErrorReportingTests(unittest.TestCase):
         #matching "some" means second branch of 'start' is taken
         self.assertEqual(e.position, 23)
         self.assertEqual(e.error, [('expected', "token", "bananas"),
+                                   ('expected', 'token', "bacon"),
                                    ('expected', "token", "robots"),
-                                   ('expected', "token", "americans"),
-                                   ('expected', 'token', "bacon")])
+                                   ('expected', "token", "americans")])
 
         e = self.assertRaises(ParseError, g.start,
                               "crazy horse likes mountains")
@@ -939,11 +939,11 @@ class ErrorReportingTests(unittest.TestCase):
         #no "some" means first branch of 'start' is taken...
         #but second is also viable
         self.assertEqual(e.position, 18)
-        self.assertEqual(e.error, [('expected', "token", "bananas"),
-                                   ('expected', "token", "robots"),
-                                   ('expected', "token", "americans"),
+        self.assertEqual(e.error, [('expected', "token", "some"),
+                                   ('expected', "token", "bananas"),
                                    ('expected', 'token', "bacon"),
-                                   ('expected', "token", "some")])
+                                   ('expected', "token", "robots"),
+                                   ('expected', "token", "americans")])
 
 
     def test_formattedReporting(self):
@@ -962,7 +962,7 @@ class ErrorReportingTests(unittest.TestCase):
                          dedent("""
                          123x321
                             ^
-                         Parse error at line 1, column 3: expected one of '1', '2', or '3'
+                         Parse error at line 1, column 3: expected one of '1', '3', or '2'
                          """))
         
         input = "foo\nbaz\nboz\ncharlie\nbuz"

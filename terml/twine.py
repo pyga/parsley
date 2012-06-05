@@ -136,6 +136,23 @@ class Twine(unicode):
         return self._span
 
 
+    @property
+    def parts(self):
+        return [self]
+
+
+    @property
+    def sourceMap(self):
+        result = []
+        offset = 0
+        for p in self.parts:
+            ss = p.span
+            if ss:
+                result.append(((offset, offset + len(p)), ss))
+            offset += len(p)
+        return tuple(result)
+
+
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
 
@@ -231,18 +248,6 @@ class Twine(unicode):
             parts.append(sep)
             parts.append(t)
         return Twine.fromParts(parts)
-
-    @property
-    def sourceMap(self):
-        result = []
-        offset = 0
-        for p in self._parts:
-            ss = p.span
-            if ss:
-                result.append(((offset, offset + len(p)), ss))
-            offset += len(p)
-        return tuple(result)
-
 
     def replace(self, specimen, replacement, count=None):
         oldLen = len(specimen)

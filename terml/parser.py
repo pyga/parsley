@@ -1,5 +1,5 @@
-from pymeta.grammar import OMeta
-from pymeta.runtime import character, ParseError, EOFError
+from ometa.grammar import OMeta
+from ometa.runtime import character, ParseError, EOFError
 from terml.common import CommonParser
 from terml.nodes import Tag, Term
 

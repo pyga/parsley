@@ -1,7 +1,7 @@
 """
 A grammar for parsing a tiny HTML-like language, plus a transformer for it.
 """
-from pymeta.grammar import OMeta
+from ometa.grammar import OMeta
 from itertools import chain
 
 tinyHTMLGrammar = """

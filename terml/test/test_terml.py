@@ -1,5 +1,5 @@
 from twisted.trial import unittest
-from pymeta.runtime import ParseError
+from ometa.runtime import ParseError
 from terml.nodes import Tag, Term
 from terml.parser import TermLParser, character, _parseTerm
 

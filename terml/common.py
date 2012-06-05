@@ -1,5 +1,5 @@
 import string
-from pymeta.grammar import OMeta
+from ometa.grammar import OMeta
 
 baseGrammar = r"""
 spaces ::= (' '|'\t'|'\f'|('#' (~<eol> <anything>)*))*

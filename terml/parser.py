@@ -1,11 +1,12 @@
 from pymeta.grammar import OMeta
 from pymeta.runtime import character, ParseError, EOFError
 from terml.common import CommonParser
+from terml.nodes import Tag, Term
 
 termLGrammar = r"""
-literal ::= (<string>:x => TermLiteral(".String.", x)
-            | <character>:x => TermLiteral(".char.", x)
-            | <number>:x => TermLiteral(numberType(x), x))
+literal ::= (<string>:x => Term(Tag(".String."), x, None, None)
+            | <character>:x => Term(Tag(".char."), x, None, None)
+            | <number>:x => Term(Tag(numberType(x)), x, None, None))
 
 tag ::= (<segment>:seg1 (':' ':' <sos>)*:segs => makeTag(cons(seg1, segs))
         | (':' ':' <sos>)+:segs => prefixedTag(segs))
@@ -35,11 +36,11 @@ functorHole ::= ((<token "${"> <decdigits>:n '}' => ValueHole(n))
                 |(<token "@"> <decdigits>:n  => PatternHole(n))
                 |(<token "@"> <tag>:t => NamedPatternHole(t)))
 
-baseTerm ::= <functor>:f ('(' <argList>:a ')' => Term(f, a)
-                     | => Term(f, emptyList()))
+baseTerm ::= <functor>:f ('(' <argList>:a ')' => makeTerm(f, a)
+                           | => makeTerm(f))
 
 argList ::= ((<term>:t (',' <term>)*:ts ) => cons(t, ts)
-            | => emptyList())
+            | => [])
 
 tupleTerm ::= <token '['> <argList>:a <token ']'> => Tuple(a)
 
@@ -55,80 +56,6 @@ term ::=  <attrTerm> | <extraTerm>
 
 """
 
-class _Term(object):
-
-    def __init__(self, functor, arglist):
-        self.functor = functor
-        self.arglist = arglist
-        assert len(arglist) >= 0
-
-
-    def __eq__(self, other):
-        return (self.functor, self.arglist) == (other.functor, other.arglist)
-
-
-    def __repr__(self):
-        return "Term(%r)" % (self._unparse())
-
-
-    def _unparse(self):
-        if len(self.arglist) == 0:
-            return self.functor._unparse()
-        args = ', '.join([a._unparse() for a in self.arglist])
-        if self.functor.name == '.tuple.':
-            return "[%s]" % (args,)
-        elif self.functor.name == '.attr.':
-            return "%s: %s" % (self.arglist[0]._unparse(), self.arglist[1]._unparse())
-        elif self.functor.name == '.bag.':
-            return "{%s}" % (args,)
-        elif len(self.arglist) == 1 and self.arglist[0].functor.name == '.bag.':
-            return "%s%s" % (self.functor._unparse(), args)
-        else:
-            return "%s(%s)" % (self.functor._unparse(), args)
-
-
-
-class TermLiteral(object):
-
-    def __init__(self, name, data):
-        self.name = name
-        self.data = data
-
-    def __eq__(self, other):
-        return other.__class__ == self.__class__ and self.data == other.data
-
-    def __repr__(self):
-        return "TermLiteral(%r)" % (self.data,)
-
-    def _unparse(self):
-        if self.name == '.String.':
-            return '"%s"' % self.data
-        elif self.name == '.char.':
-            return "'%s'" % self.data
-        else:
-            return str(self.data)
-
-
-
-class Tag(object):
-    def __init__(self, name):
-        if name[0] == '':
-            import pdb; pdb.set_trace()
-        self.name = name
-
-    def __eq__(self, other):
-        return other.__class__ == self.__class__ and self.name == other.name
-
-    def __repr__(self):
-        return "Tag(%r)" % (self.name,)
-
-    def _unparse(self):
-        return self.name
-
-
-
-
-
 ## Functions called from grammar actions
 
 def Character(char):
@@ -143,14 +70,6 @@ def prefixedTag(tagnameSegs):
 def tagString(string):
     return '"' + string + '"'
 
-def emptyList():
-    return []
-
-def Term(functor, argList):
-    if isinstance(functor, TermLiteral) and len(argList) > 0:
-        raise ValueError("Term %s can't have both data and children" % (functor.name,))
-    return _Term(functor, argList)
-
 def numberType(n):
     if isinstance(n, float):
         return ".float64."
@@ -159,17 +78,25 @@ def numberType(n):
     raise ValueError("wtf")
 
 
+def makeTerm(t, args=None):
+    if isinstance(t, Term):
+        if args is not None:
+            raise ValueError("Literal terms do not take arguments")
+        return t
+    return Term(t, None, args, None)
+
+
 def Tuple(args):
-    return _Term(Tag(".tuple."), args)
+    return Term(Tag(".tuple."), None, args, None)
 
 def Bag(args):
-    return _Term(Tag(".bag."), args)
+    return Term(Tag(".bag."), None, args, None)
 
 def LabelledBag(f, arg):
-    return _Term(f, [arg])
+    return Term(f, None, [arg], None)
 
 def Attr(k, v):
-    return _Term(Tag(".attr."), [k, v])
+    return Term(Tag(".attr."), None, [k, v], None)
 
 
 BaseTermLParser = OMeta.makeGrammar(termLGrammar, globals(), "TermLParser")
@@ -197,7 +124,6 @@ def parseTerm(termString):
     """
     Friendly interface for parsing.
     """
-    
     try:
         return _parseTerm(termString)
     except ParseError, e:

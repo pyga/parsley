@@ -88,4 +88,4 @@ def contains(container, value):
 def cons(first, rest):
     return [first] + rest
 
-CommonParser = OMeta.makeGrammar(baseGrammar,  globals(), "CommonParser")
+CommonParser = OMeta.makeGrammar(baseGrammar, globals(), "CommonParser")

@@ -1,7 +1,7 @@
 
 
 from twisted.trial import unittest
-from pymeta.runtime import OMetaBase, ParseError, expected, eof
+from ometa.runtime import OMetaBase, ParseError, expected, eof
 
 class RuntimeTests(unittest.TestCase):
     """

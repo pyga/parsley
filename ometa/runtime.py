@@ -1,4 +1,4 @@
-# -*- test-case-name: pymeta.test.test_runtime -*-
+# -*- test-case-name: ometa.test.test_runtime -*-
 """
 Code needed to run a grammar after it has been compiled.
 """
@@ -508,7 +508,7 @@ class OMetaBase(object):
             return tok, e
         except ParseError, e:
             self.input = m
-            
+
             raise ParseError(e[0], expected("token", tok))
 
     rule_token = token
@@ -592,7 +592,103 @@ class OMetaBase(object):
                             slashcount += 1
                         if strc == c and slashcount % 2 == 0:
                             break
-            
+
         if len(stack) > 0:
             raise ParseError(self.input.position, expected("Python expression"))
         return (''.join(expr).strip(), endchar), e
+
+
+class OMetaGrammarBase(OMetaBase):
+    """
+    Common methods for the OMeta grammar parser itself, and its variants.
+    """
+
+    def parseGrammar(self, name, builder, *args):
+        """
+        Entry point for converting a grammar to code (of some variety).
+
+        @param name: The name for this grammar.
+
+        @param builder: A class that implements the grammar-building interface
+        (interface to be explicitly defined later)
+        """
+        self.builder = builder(name, self, *args)
+        res, err = self.apply("grammar")
+        try:
+            x = self.input.head()
+        except EOFError:
+            pass
+        else:
+            raise err
+        return res
+
+
+    def applicationArgs(self, finalChar):
+        """
+        Collect rule arguments, a list of Python expressions separated by
+        spaces.
+        """
+        args = []
+        while True:
+            try:
+                (arg, endchar), err = self.pythonExpr(" " + finalChar)
+                if not arg:
+                    break
+                args.append(self.builder.expr(arg))
+                if endchar == finalChar:
+                    break
+            except ParseError:
+                break
+        if args:
+            return args
+        else:
+            raise ParseError()
+
+    def ruleValueExpr(self, singleLine):
+        """
+        Find and generate code for a Python expression terminated by a close
+        paren/brace or end of line.
+        """
+        (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
+        if str(endchar) in ")]" or (singleLine and endchar):
+            self.input = self.input.prev()
+        return self.builder.expr(expr)
+
+    def semanticActionExpr(self):
+        """
+        Find and generate code for a Python expression terminated by a
+        close-paren, whose return value is ignored.
+        """
+        return self.builder.action(self.pythonExpr(')')[0][0])
+
+    def semanticPredicateExpr(self):
+        """
+        Find and generate code for a Python expression terminated by a
+        close-paren, whose return value determines the success of the pattern
+        it's in.
+        """
+        expr = self.builder.expr(self.pythonExpr(')')[0][0])
+        return self.builder.pred(expr)
+
+
+    def eatWhitespace(self):
+        """
+        Consume input until a non-whitespace character is reached.
+        """
+        consumingComment = False
+        while True:
+            try:
+                c, e = self.input.head()
+            except EOFError, e:
+                break
+            t = self.input.tail()
+            if c.isspace() or consumingComment:
+                self.input = t
+                if c == '\n':
+                    consumingComment = False
+            elif c == '#':
+                consumingComment = True
+            else:
+                break
+        return True, e
+    rule_spaces = eatWhitespace

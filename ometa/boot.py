@@ -1,101 +1,22 @@
-# -*- test-case-name: pymeta.test.test_grammar -*-
+# -*- test-case-name: ometa.test.test_grammar -*-
 """
 The definition of PyMeta's language is itself a PyMeta grammar, but something
 has to be able to read that. Most of the code in this module is generated from
 that grammar (in future versions, it will hopefully all be generated).
 """
 import string
-from pymeta.runtime import OMetaBase, ParseError, EOFError, expected
+from ometa.runtime import OMetaGrammarBase, ParseError, EOFError, expected
 
 
-class BootOMetaGrammar(OMetaBase):
+class BootOMetaGrammar(OMetaGrammarBase):
     """
-    The bootstrap grammar, generated from L{pymeta.grammar.OMetaGrammar} via
-    L{pymeta.builder.PythonBuilder}.
+    The bootstrap grammar, generated from L{ometa.grammar.OMetaGrammar} via
+    L{ometa.builder.PythonBuilder}.
     """
     globals = globals()
 
     def __init__(self, input):
-        OMetaBase.__init__(self, input)
-        self._ruleNames = []
-
-
-    def parseGrammar(self, name, builder, *args):
-        """
-        Entry point for converting a grammar to code (of some variety).
-
-        @param name: The name for this grammar.
-
-        @param builder: A class that implements the grammar-building interface
-        (interface to be explicitly defined later)
-        """
-        self.builder = builder(name, self, *args)
-        res, err = self.apply("grammar")
-        try:
-            x = self.input.head()
-        except EOFError:
-            pass
-        else:
-            raise err
-        return res
-
-
-    def applicationArgs(self):
-        args = []
-        while True:
-            try:
-                (arg, endchar), err = self.pythonExpr(" >")
-                if not arg:
-                    break
-                args.append(self.builder.expr(arg))
-                if endchar == '>':
-                    break
-            except ParseError:
-                break
-        if args:
-            return args
-        else:
-            raise ParseError(self.input.position, expected("python expression"))
-
-
-    def ruleValueExpr(self):
-        (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
-        if str(endchar) in ")]":
-            self.input = self.input.prev()
-        return self.builder.expr(expr)
-
-
-    def semanticActionExpr(self):
-        return self.builder.action(self.pythonExpr(')')[0][0])
-
-
-    def semanticPredicateExpr(self):
-        expr = self.builder.expr(self.pythonExpr(')')[0][0])
-        return self.builder.pred(expr)
-
-
-    def eatWhitespace(self):
-        """
-        Consume input until a non-whitespace character is reached.
-        """
-        consumingComment = False
-        while True:
-            try:
-                c, e = self.input.head()
-            except EOFError, e:
-                break
-            t = self.input.tail()
-            if c.isspace() or consumingComment:
-                self.input = t
-                if c == '\n':
-                    consumingComment = False
-            elif c == '#':
-                consumingComment = True
-            else:
-                break
-        return True, e
-    rule_spaces = eatWhitespace
-
+        OMetaGrammarBase.__init__(self, input)
 
     def rule_number(self):
         _locals = {'self': self}
@@ -371,7 +292,7 @@ class BootOMetaGrammar(OMetaBase):
         def _G_or_5():
             _G_exactly_1, lastError = self.exactly(' ')
             self.considerError(lastError)
-            _G_python_2, lastError = eval('self.applicationArgs()', self.globals, _locals), None
+            _G_python_2, lastError = eval('self.applicationArgs(finalChar=">")', self.globals, _locals), None
             self.considerError(lastError)
             _locals['args'] = _G_python_2
             _G_python_3, lastError = eval('self.builder.apply(name, self.name, *args)', self.globals, _locals), None
@@ -604,7 +525,7 @@ class BootOMetaGrammar(OMetaBase):
         self.considerError(lastError)
         _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
         self.considerError(lastError)
-        _G_python_3, lastError = eval('self.ruleValueExpr()', self.globals, _locals), None
+        _G_python_3, lastError = eval('self.ruleValueExpr(True)', self.globals, _locals), None
         self.considerError(lastError)
         return (_G_python_3, self.currentError)
 

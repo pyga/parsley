@@ -1,32 +1,27 @@
-# -*- test-case-name: pymeta.test.test_pymeta -*-
+# -*- test-case-name: ometa.test.test_pymeta -*-
 """
 Public interface to OMeta, as well as the grammars used to compile grammar
 definitions.
 """
 import string
-from builder import TreeBuilder, moduleFromGrammar
-from boot import BootOMetaGrammar
-from runtime import OMetaBase, ParseError, EOFError
+from ometa.builder import TreeBuilder, moduleFromGrammar
+from ometa.boot import BootOMetaGrammar
+from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError
 
-class OMeta(OMetaBase):
-    """
-    Base class for grammar definitions.
-    """
-    metagrammarClass = BootOMetaGrammar
-    def makeGrammar(cls, grammar, globals, name="Grammar"):
-        """
-        Define a new subclass with the rules in the given grammar.
 
-        @param grammar: A string containing a PyMeta grammar.
-        @param globals: A dict of names that should be accessible by this
-        grammar.
-        @param name: The name of the class to be generated.
-        """
-        g = cls.metagrammarClass(grammar)
-        tree = g.parseGrammar(name, TreeBuilder)
-        return moduleFromGrammar(tree, name, cls, globals)
-    
-    makeGrammar = classmethod(makeGrammar)
+def makeGrammar(cls, grammar, globals, superclass, name="Grammar"):
+    """
+    Define a new subclass with the rules in the given grammar.
+
+    @param grammar: A string containing a PyMeta grammar.
+    @param globals: A dict of names that should be accessible by this
+    grammar.
+    @param name: The name of the class to be generated.
+    @param superclass: The class the generated class is a child of.
+    """
+    g = cls(grammar)
+    tree = g.parseGrammar(name, TreeBuilder)
+    return moduleFromGrammar(tree, name, superclass, globals)
 
 ometaGrammar = r"""
 number ::= <spaces> ('-' <barenumber>:x => -x
@@ -187,111 +182,20 @@ rule ::= <noindentation> ~~(<name>:n) <rulePart n>:r
 grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
 """
 
-class OMetaGrammarMixin(object):
-    """
-    Helpers for the base grammar for parsing grammar definitions.
-    """
-    def parseGrammar(self, name, builder, *args):
-        """
-        Entry point for converting a grammar to code (of some variety).
 
-        @param name: The name for this grammar.
+class OMeta(makeGrammar(BootOMetaGrammar, ometaGrammar, globals(), name='OMeta',
+                        superclass=OMetaGrammarBase)):
 
-        @param builder: A class that implements the grammar-building interface
-        (interface to be explicitly defined later)
-        """
-        self.builder = builder(name, self, *args)
-        res, err = self.apply("grammar")
-        try:
-            x = self.input.head()
-        except EOFError:
-            pass
-        else:
-           raise err
-        return res
+    @classmethod
+    def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
+        return makeGrammar(cls, grammar, globals, superclass or OMetaBase, name)
 
 
-    def applicationArgs(self, finalChar):
-        """
-        Collect rule arguments, a list of Python expressions separated by
-        spaces.
-        """
-        args = []
-        while True:
-            try:
-                (arg, endchar), err = self.pythonExpr(" " + finalChar)
-                if not arg:
-                    break
-                args.append(self.builder.expr(arg))
-                if endchar == finalChar:
-                    break
-            except ParseError:
-                break
-        if args:
-            return args
-        else:
-            raise ParseError()
-
-    def ruleValueExpr(self, singleLine):
-        """
-        Find and generate code for a Python expression terminated by a close
-        paren/brace or end of line.
-        """
-        (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
-        if str(endchar) in ")]" or (singleLine and endchar):
-            self.input = self.input.prev()
-        return self.builder.expr(expr)
-
-    def semanticActionExpr(self):
-        """
-        Find and generate code for a Python expression terminated by a
-        close-paren, whose return value is ignored.
-        """
-        return self.builder.action(self.pythonExpr(')')[0][0])
-
-    def semanticPredicateExpr(self):
-        """
-        Find and generate code for a Python expression terminated by a
-        close-paren, whose return value determines the success of the pattern
-        it's in.
-        """
-        expr = self.builder.expr(self.pythonExpr(')')[0][0])
-        return self.builder.pred(expr)
-
-
-    def eatWhitespace(self):
-        """
-        Consume input until a non-whitespace character is reached.
-        """
-        consumingComment = False
-        while True:
-            try:
-                c, e = self.input.head()
-            except EOFError, e:
-                break
-            t = self.input.tail()
-            if c.isspace() or consumingComment:
-                self.input = t
-                if c == '\n':
-                    consumingComment = False
-            elif c == '#':
-                consumingComment = True
-            else:
-                break
-        return True, e
-    rule_spaces = eatWhitespace
-
-
-
-class OMetaGrammar(OMetaGrammarMixin, OMeta.makeGrammar(ometaGrammar, globals())):
-    pass
-
-
-OMeta.metagrammarClass = OMetaGrammar
-
-
-class OMeta2Grammar(OMetaGrammarMixin, OMeta.makeGrammar(v2Grammar, globals())):
-    pass
+class OMeta2(makeGrammar(BootOMetaGrammar, v2Grammar, globals(), name='OMeta2',
+                         superclass=OMetaGrammarBase)):
+    @classmethod
+    def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
+        return makeGrammar(cls, grammar, globals, superclass or OMetaBase, name)
 
 
 

@@ -1,7 +1,7 @@
 from textwrap import dedent
 from twisted.trial import unittest
 
-from pymeta.builder import TreeBuilder, writePython
+from ometa.builder import TreeBuilder, writePython
 
 def dd(txt):
     return dedent(txt).strip()

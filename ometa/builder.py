@@ -1,4 +1,4 @@
-# -*- test-case-name: pymeta.test.test_builder -*-
+# -*- test-case-name: ometa.test.test_builder -*-
 import linecache, sys
 from types import ModuleType as module
 

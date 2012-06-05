@@ -1,8 +1,8 @@
 from textwrap import dedent
 from twisted.trial import unittest
-from pymeta.runtime import ParseError, OMetaBase, EOFError, expected
-from pymeta.boot import BootOMetaGrammar
-from pymeta.builder import TreeBuilder, moduleFromGrammar
+from ometa.runtime import ParseError, OMetaBase, EOFError, expected
+from ometa.boot import BootOMetaGrammar
+from ometa.builder import TreeBuilder, moduleFromGrammar
 
 class HandyWrapper(object):
     """
@@ -411,8 +411,8 @@ class V2TestCase(unittest.TestCase):
         #imported here to prevent OMetaGrammar from being constructed before
         #tests are run
         if self.classTested is None:
-            from pymeta.grammar import OMeta2Grammar
-            self.classTested = OMeta2Grammar
+            from ometa.grammar import OMeta2
+            self.classTested = OMeta2
 
 
     def compile(self, grammar):
@@ -777,7 +777,7 @@ class MakeGrammarTest(unittest.TestCase):
     def test_makeGrammar(self):
         #imported here to prevent OMetaGrammar from being constructed before
         #tests are run
-        from pymeta.grammar import OMeta
+        from ometa.grammar import OMeta
         results = []
         grammar = """
         digit ::= :x ?('0' <= x <= '9') => int(x)
@@ -791,7 +791,7 @@ class MakeGrammarTest(unittest.TestCase):
 
 
     def test_brokenGrammar(self):
-        from pymeta.grammar import OMeta
+        from ometa.grammar import OMeta
         grammar = """
         andHandler ::= <handler>:h1 'and' <handler>:h2 => And(h1, h2)
         """
@@ -805,7 +805,7 @@ class MakeGrammarTest(unittest.TestCase):
         A subclass of an OMeta subclass should be able to call rules on its
         parent, and access variables in its scope.
         """
-        from pymeta.grammar import OMeta
+        from ometa.grammar import OMeta
 
         grammar1 = """
         dig ::= :x ?(a <= x <= b) => int(x)
@@ -816,14 +816,16 @@ class MakeGrammarTest(unittest.TestCase):
         num ::= (<num>:n <dig>:d => n * base + d
                 | <dig>)
         """
-        TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {'base':10})
+        TestGrammar2 = OMeta.makeGrammar(grammar2, {'base':10},
+                                         superclass=TestGrammar1)
         g = TestGrammar2("314159")
         self.assertEqual(g.apply("num")[0], 314159)
 
         grammar3 = """
         dig ::= :x ?(a <= x <= b or c <= x <= d) => int(x, base)
         """
-        TestGrammar3 = TestGrammar2.makeGrammar(grammar3, {'c':'a', 'd':'f', 'base':16})
+        TestGrammar3 = OMeta.makeGrammar(grammar3, {'c':'a', 'd':'f', 'base':16},
+                                         superclass=TestGrammar2)
         g = TestGrammar3("abc123")
         self.assertEqual(g.apply("num")[0], 11256099)
 
@@ -832,11 +834,11 @@ class MakeGrammarTest(unittest.TestCase):
         """
         Rules can call the implementation in a superclass.
         """
-        from pymeta.grammar import OMeta
+        from ometa.grammar import OMeta
         grammar1 = "expr ::= <letter>"
         TestGrammar1 = OMeta.makeGrammar(grammar1, {})
         grammar2 = "expr ::= <super> | <digit>"
-        TestGrammar2 = TestGrammar1.makeGrammar(grammar2, {})
+        TestGrammar2 = OMeta.makeGrammar(grammar2, {}, superclass=TestGrammar1)
         self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
         self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
 
@@ -855,8 +857,8 @@ class SelfHostingTest(OMetaTestCase):
         #imported here to prevent OMetaGrammar from being constructed before
         #tests are run
         if self.classTested is None:
-            from pymeta.grammar import OMetaGrammar
-            self.classTested = OMetaGrammar
+            from ometa.grammar import OMeta
+            self.classTested = OMeta
 
 
 
@@ -871,8 +873,8 @@ class NullOptimizerTest(OMetaTestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        from pymeta.grammar import OMetaGrammar, NullOptimizer
-        g = OMetaGrammar(grammar)
+        from ometa.grammar import OMeta, NullOptimizer
+        g = OMeta(grammar)
         tree  = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
         opt.builder = TreeBuilder("TestGrammar", opt)

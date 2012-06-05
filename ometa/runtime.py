@@ -3,6 +3,8 @@
 Code needed to run a grammar after it has been compiled.
 """
 import operator
+from ometa.builder import TreeBuilder, moduleFromGrammar
+
 class ParseError(Exception):
     """
     ?Redo from start
@@ -598,10 +600,27 @@ class OMetaBase(object):
         return (''.join(expr).strip(), endchar), e
 
 
+
 class OMetaGrammarBase(OMetaBase):
     """
     Common methods for the OMeta grammar parser itself, and its variants.
     """
+
+    @classmethod
+    def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
+        """
+        Define a new parser class with the rules in the given grammar.
+
+        @param grammar: A string containing a PyMeta grammar.
+        @param globals: A dict of names that should be accessible by this
+        grammar.
+        @param name: The name of the class to be generated.
+        @param superclass: The class the generated class is a child of.
+        """
+        g = cls(grammar)
+        tree = g.parseGrammar(name, TreeBuilder)
+        return moduleFromGrammar(tree, name, superclass or OMetaBase, globals)
+
 
     def parseGrammar(self, name, builder, *args):
         """

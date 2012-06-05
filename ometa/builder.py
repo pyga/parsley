@@ -306,8 +306,8 @@ class GeneratedCodeLoader(object):
 
 
 
-def moduleFromGrammar(tree, className, superclass, globalsDict):
-    source = writePython(tree)
+def moduleFromGrammar(tree, className, superclass, globalsDict, writer=writePython):
+    source = writer(tree)
     modname = "pymeta_grammar__" + className
     filename = "/pymeta_generated_code/" + modname + ".py"
     mod = module(modname)

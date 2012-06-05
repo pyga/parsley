@@ -2,8 +2,8 @@
 # -*- mode: python -*-
 
 import sys
-from pymeta.boot import BootOMetaGrammar
-from pymeta.builder import TreeBuilder, writePython
+from ometa.boot import BootOMetaGrammar
+from ometa.builder import TreeBuilder, writePython
 
 if len(sys.argv) != 3:
  print "Usage: generate_grammar grammar-filename python-filename"
@@ -15,5 +15,5 @@ pythonFile =  open(sys.argv[2], 'w')
 g = BootOMetaGrammar(grammarFile.read())
 tree = g.parseGrammar("Parser", TreeBuilder)
 source = writePython(tree)
-pythonFile.write("from pymeta.runtime import OMetaBase as GrammarBase\n")
+pythonFile.write("from ometa.runtime import OMetaGrammarBase as GrammarBase\n")
 pythonFile.write(source)

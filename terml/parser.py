@@ -1,4 +1,3 @@
-from ometa.grammar import OMeta
 from ometa.runtime import character, ParseError, EOFError
 from terml.common import CommonParser
 from terml.nodes import Tag, Term
@@ -98,8 +97,14 @@ def LabelledBag(f, arg):
 def Attr(k, v):
     return Term(Tag(".attr."), None, [k, v], None)
 
-
-BaseTermLParser = OMeta.makeGrammar(termLGrammar, globals(), "TermLParser")
+try:
+    from terml.parser_generated import BaseTermLParser
+    BaseTermLParser.globals = globals()
+except ImportError:
+    #to avoid circularity, we use the boot grammar
+    from ometa.boot import BootOMetaGrammar
+    BaseTermLParser = BootOMetaGrammar.makeGrammar(termLGrammar, globals(),
+                                                   "TermLParser")
 
 class TermLParser(BaseTermLParser, CommonParser):
     pass

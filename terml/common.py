@@ -1,5 +1,4 @@
 import string
-from ometa.grammar import OMeta
 
 baseGrammar = r"""
 spaces ::= (' '|'\t'|'\f'|('#' (~<eol> <anything>)*))*
@@ -88,4 +87,11 @@ def contains(container, value):
 def cons(first, rest):
     return [first] + rest
 
-CommonParser = OMeta.makeGrammar(baseGrammar, globals(), "CommonParser")
+
+try:
+    from terml.common_generated import CommonParser
+    CommonParser.globals = globals()
+except ImportError:
+    from ometa.boot import BootOMetaGrammar
+    CommonParser = BootOMetaGrammar.makeGrammar(baseGrammar, globals(),
+                                                "CommonParser")

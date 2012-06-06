@@ -197,10 +197,6 @@ class ArgInput(object):
         self.err = parent.nullError()
 
     def head(self):
-        try:
-            x = self.arg
-        except:
-            import pdb; pdb. set_trace()
         return self.arg, self.err
 
     def tail(self):

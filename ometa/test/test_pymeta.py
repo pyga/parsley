@@ -1,3 +1,4 @@
+import operator
 from textwrap import dedent
 from twisted.trial import unittest
 from ometa.runtime import ParseError, OMetaBase, EOFError, expected
@@ -185,7 +186,7 @@ class OMetaTestCase(unittest.TestCase):
         g = self.compile(r"""escapedChar ::= '\'' => '\\\''""")
         self.assertEqual(g.escapedChar("'"), "\\'")
 
-        
+
     def test_ruleValueEscapeSlashes(self):
         """
         Escaped slashes are handled properly in Python expressions.
@@ -193,8 +194,7 @@ class OMetaTestCase(unittest.TestCase):
         g = self.compile(r"""escapedChar ::= '\\' => '\\'""")
         self.assertEqual(g.escapedChar("\\"), "\\")
 
-        
-        
+
     def test_lookahead(self):
         """
         Doubled negation does lookahead.
@@ -415,17 +415,15 @@ class V2TestCase(unittest.TestCase):
             self.classTested = OMeta2
 
 
-    def compile(self, grammar):
+    def compile(self, grammar, globals=None):
         """
         Produce an object capable of parsing via this grammar.
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = self.classTested(dedent(grammar))
-        tree = g.parseGrammar('TestGrammar', TreeBuilder)
-        result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
-        return HandyWrapper(result)
-
+        g = self.classTested.makeGrammar(dedent(grammar), globals or {},
+                                         name='TestGrammar')
+        return HandyWrapper(g)
 
 
     def test_literals(self):
@@ -585,8 +583,8 @@ class V2TestCase(unittest.TestCase):
 
     def test_predicate(self):
         """
-        Python expressions can be used to determine the success or failure of a
-        parse.
+        Python expressions can be used to determine the success or
+        failure of a parse.
         """
         g = self.compile("""
               digit = '0' | '1'
@@ -609,8 +607,8 @@ class V2TestCase(unittest.TestCase):
 
     def test_action(self):
         """
-        Python expressions can be run as actions with no effect on the result
-        of the parse.
+        Python expressions can be run as actions with no effect on the
+        result of the parse.
         """
         g = self.compile("""foo = ('1'*:ones !(False) !(ones.insert(0, '0')) -> ''.join(ones))""")
         self.assertEqual(g.foo("111"), "0111")
@@ -646,7 +644,7 @@ class V2TestCase(unittest.TestCase):
         Also, multiple definitions of a rule can be done in sequence.
         """
         g = self.compile("""
-              fact 0                       -> 1
+              fact 0                    -> 1
               fact :n = fact((n - 1)):m -> n * m
            """)
         self.assertEqual(g.fact([3]), 6)
@@ -657,7 +655,7 @@ class V2TestCase(unittest.TestCase):
         Brackets can be used to match contents of lists.
         """
         g = self.compile("""
-             digit  = :x ?(x.isdigit())          -> int(x)
+             digit  = :x ?(x.isdigit())     -> int(x)
              interp = [digit:x '+' digit:y] -> x + y
            """)
         self.assertEqual(g.interp([['3', '+', '5']]), 8)
@@ -667,7 +665,7 @@ class V2TestCase(unittest.TestCase):
         The result of a list pattern is the entire list.
         """
         g = self.compile("""
-             digit  = :x ?(x.isdigit())          -> int(x)
+             digit  = :x ?(x.isdigit())       -> int(x)
              interp = [digit:x '+' digit:y]:z -> (z, x + y)
         """)
         e = ['3', '+', '5']
@@ -707,6 +705,160 @@ class V2TestCase(unittest.TestCase):
                   | [interp:x '*' interp:y] -> x * y
                   | :x ?(isinstance(x, basestring) and x.isdigit()) -> int(x))
         """)
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
+        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
+
+
+    def test_string(self):
+        """
+        Strings in double quotes match string objects.
+        """
+        g = self.compile("""
+             interp = ["Foo" 1 2] -> 3
+           """)
+        self.assertEqual(g.interp([["Foo", 1, 2]]), 3)
+
+    def test_argEscape(self):
+        """
+        Regression test for bug #239344.
+        """
+        g = self.compile("""
+            memo_arg :arg = anything ?(False)
+            trick = letter memo_arg('c')
+            broken = trick | anything*
+        """)
+        self.assertEqual(g.broken('ab'), 'ab')
+
+
+class TermActionGrammarTests(V2TestCase):
+
+    def setUp(self):
+        """
+        Run the OMeta tests with the self-hosted grammar instead of the boot
+        one.
+        """
+        #imported here to prevent OMetaGrammar from being constructed before
+        #tests are run
+        from ometa.grammar import TermOMeta2
+        self.classTested = TermOMeta2
+
+
+    def test_binding(self):
+        """
+        The result of a parsing expression can be bound to a name.
+        """
+        g = self.compile("foo = '1':x -> mul(int(x), 2)",
+                         {"mul": operator.mul})
+        self.assertEqual(g.foo("1"), 2)
+
+
+    def test_bindingAccess(self):
+        """
+        Bound names in a rule can be accessed on the grammar's "locals" dict.
+        """
+        gg = self.classTested("stuff = '1':a ('2':b | '3':c)")
+        t = gg.parseGrammar('TestGrammar', TreeBuilder)
+        G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
+        g = G("12")
+        self.assertEqual(g.apply("stuff")[0], '2')
+        self.assertEqual(g.locals['stuff']['a'], '1')
+        self.assertEqual(g.locals['stuff']['b'], '2')
+        g = G("13")
+        self.assertEqual(g.apply("stuff")[0], '3')
+        self.assertEqual(g.locals['stuff']['a'], '1')
+        self.assertEqual(g.locals['stuff']['c'], '3')
+
+
+    def test_predicate(self):
+        """
+        Term actions can be used to determine the success or
+        failure of a parse.
+        """
+        g = self.compile("""
+              digit = '0' | '1'
+              double_bits = digit:a digit:b ?(equal(a, b)) -> int(b)
+           """, {"equal", operator.eq})
+        self.assertEqual(g.double_bits("00"), 0)
+        self.assertEqual(g.double_bits("11"), 1)
+        self.assertRaises(ParseError, g.double_bits, "10")
+        self.assertRaises(ParseError, g.double_bits, "01")
+
+
+    def test_action(self):
+        """
+        Term actions can be run as actions with no effect on the
+        result of the parse.
+        """
+        g = self.compile(
+            """foo = ('1'*:ones !(False)
+                     !(nconc(ones, '0')) -> join(ones))""",
+            {"nconc": lambda lst, val: lst.insert(0, val),
+             "join": ''.join})
+        self.assertEqual(g.foo("111"), "0111")
+
+
+    def test_patternMatch(self):
+        """
+        Productions can pattern-match on arguments.
+        Also, multiple definitions of a rule can be done in sequence.
+        """
+        g = self.compile("""
+              fact 0                    -> 1
+              fact :n = fact((n - 1)):m -> mul(n, m)
+           """, {"mul": operator.mul})
+        self.assertEqual(g.fact([3]), 6)
+
+
+    def test_listpattern(self):
+        """
+        Brackets can be used to match contents of lists.
+        """
+        g = self.compile("""
+             digit  = :x ?(x.isdigit())     -> int(x)
+             interp = [digit:x '+' digit:y] -> add(x, y)
+           """, {"add": operator.add})
+        self.assertEqual(g.interp([['3', '+', '5']]), 8)
+
+
+    def test_listpatternresult(self):
+        """
+        The result of a list pattern is the entire list.
+        """
+        g = self.compile("""
+             digit  = :x ?(x.isdigit())       -> int(x)
+             interp = [digit:x '+' digit:y]:z -> [z, plus(x, y)]
+        """, {"plus": operator.add})
+        e = ['3', '+', '5']
+        self.assertEqual(g.interp([e]), (e, 8))
+
+
+    def test_recursion(self):
+        """
+        Rules can call themselves.
+        """
+        g = self.compile("""
+             interp = (['+' interp:x interp:y]   -> add(x, y)
+                       | ['*' interp:x interp:y] -> mul(x, y)
+                       | :x ?(isdigit(x)) -> int(x))
+             """, {"mul": operator.mul,
+                   "add": operator.add,
+                   "isdigit": lambda x: str(x).isdigit()})
+        self.assertEqual(g.interp([['+', '3', ['*', '5', '2']]]), 13)
+
+
+    def test_characterVsSequence(self):
+        """
+        Characters (in single-quotes) are not regarded as sequences.
+        """
+        g = self.compile(
+            """
+        interp = ([interp:x '+' interp:y] -> add(x, y)
+                  | [interp:x '*' interp:y] -> mul(x, y)
+                  | :x ?(isdigit(x)) -> int(x))
+        """,
+            {"add": operator.add, "mul": operator.mul,
+             "isdigit": lambda x: isinstance(x, basestring) and x.isdigit()})
+
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
         self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
 

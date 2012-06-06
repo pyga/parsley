@@ -4,8 +4,11 @@ Public interface to OMeta, as well as the grammars used to compile grammar
 definitions.
 """
 import string
-from ometa.builder import TreeBuilder, moduleFromGrammar
+
+from terml.parser import TermLParser
+
 from ometa.boot import BootOMetaGrammar
+from ometa.builder import TermActionPythonWriter, TreeBuilder, moduleFromGrammar
 from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError
 
 
@@ -85,7 +88,7 @@ rule ::= (<spaces> ~~(<name>:n) <rulePart n>:r
 
 grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
 """
-#don't be confused, emacs
+
 v2Grammar = r"""
 hspace  ::= (' ' | '\t')
 vspace ::= (<token "\r\n"> | '\r' | '\n')
@@ -174,6 +177,45 @@ OMeta = BootOMetaGrammar.makeGrammar(ometaGrammar, globals(), name='OMeta',
 
 OMeta2 = BootOMetaGrammar.makeGrammar(v2Grammar, globals(), name='OMeta2',
                                       superclass=OMetaGrammarBase)
+
+class OMetaTermActionsBase(OMetaGrammarBase):
+    def _getTerm(self):
+        tp = TermLParser('')
+        tp.input = self.input
+        val, err = tp.apply('term')
+        self.input = tp.input
+        return val
+
+    def ruleValueExpr(self, singleLine):
+        return self.builder.action(self._getTerm())
+
+    def semanticActionExpr(self):
+        return self.builder.action(self._getTerm())
+
+    def semanticPredicateExpr(self):
+        return self.builder.pred(self._getTerm())
+
+
+class TermOMeta2(BootOMetaGrammar.makeGrammar(
+        v2Grammar, globals(),
+        name='TermOMeta2',
+        superclass=OMetaTermActionsBase)):
+    @classmethod
+    def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
+        """
+        Define a new parser class with the rules in the given grammar.
+
+        @param grammar: A string containing a PyMeta grammar.
+        @param globals: A dict of names that should be accessible by this
+        grammar.
+        @param name: The name of the class to be generated.
+        @param superclass: The class the generated class is a child of.
+        """
+        g = cls(grammar)
+        tree = g.parseGrammar(name, TreeBuilder)
+        return moduleFromGrammar(
+            tree, name, superclass or OMetaBase,
+            globals, writer=lambda t: TermActionPythonWriter(t).output())
 
 
 nullOptimizationGrammar = """

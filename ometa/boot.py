@@ -5,7 +5,7 @@ has to be able to read that. Most of the code in this module is generated from
 that grammar (in future versions, it will hopefully all be generated).
 """
 import string
-from ometa.runtime import OMetaGrammarBase, ParseError, EOFError, expected
+from ometa.runtime import OMetaGrammarBase
 
 
 class BootOMetaGrammar(OMetaGrammarBase):

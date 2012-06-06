@@ -106,7 +106,7 @@ class PythonWriter(object):
         @param name: The name of the rule generating this thunk.
         @param expr: A list of lines of Python code.
         """
-        
+
         subwriter = self.__class__(expr)
         flines  = subwriter._generate(retrn=True)
         fname = self._gensym(name)
@@ -142,7 +142,6 @@ class PythonWriter(object):
         """
         Generate code for running embedded Python expressions.
         """
-        
         return self._expr('python', 'eval(%r, self.globals, _locals), None' %(expr,))
 
 
@@ -287,6 +286,50 @@ class PythonWriter(object):
         self.lines[1:] = [line and (' ' * 4 + line) for line in self.lines[1:]]
         del self.lines[-2:]
 
+
+class TermActionPythonWriter(PythonWriter):
+
+    def generate_Predicate(self, term):
+        """
+        Generate a call to self.pred(lambda: expr).
+        """
+
+        fname = self._newThunkFor("pred", expr)
+        return self._expr("pred", "self.pred(%s)" %(fname,))
+
+    def generate_Action(self, term):
+        return self._termAsPython(term)
+
+    generate_Python = generate_Action
+
+    def _termAsPython(self, term):
+        class Term2PythonAction(object):
+            def leafData(bldr, data, span):
+                return repr(data)
+
+            def leafTag(bldr, tag, span):
+                return tag.name
+
+            def empty(bldr):
+                return []
+
+            def seq(bldr, args, arg):
+                args.append(arg)
+                return args
+
+            def term(bldr, tag, args):
+                if not args:
+                    return tag
+                return "%s(%s)" % (tag, ', '.join(args))
+        if not term.args:
+            if term.data is None:
+                return self.compilePythonExpr(term.tag.name)
+            else:
+                name = self._gensym("literal")
+                self.lines.append("%s = %r" % (name, term.data))
+                return name
+        else:
+            return self.compilePythonExpr(term.build(Term2PythonAction()))
 
 
 def writePython(tree):

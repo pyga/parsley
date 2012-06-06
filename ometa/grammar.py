@@ -178,28 +178,24 @@ OMeta = BootOMetaGrammar.makeGrammar(ometaGrammar, globals(), name='OMeta',
 OMeta2 = BootOMetaGrammar.makeGrammar(v2Grammar, globals(), name='OMeta2',
                                       superclass=OMetaGrammarBase)
 
-class OMetaTermActionsBase(OMetaGrammarBase):
-    def _getTerm(self):
-        tp = TermLParser('')
-        tp.input = self.input
-        val, err = tp.apply('term')
-        self.input = tp.input
-        return val
+termOMeta2Grammar = """
+ruleValue ::= <token "->"> <term>:t => self.builder.action(t)
 
-    def ruleValueExpr(self, singleLine):
-        return self.builder.action(self._getTerm())
+semanticPredicate ::= <token "?("> <term>:t <token ")"> => self.builder.pred(t)
 
-    def semanticActionExpr(self):
-        return self.builder.action(self._getTerm())
+semanticAction ::= <token "!("> <term>:t <token ")"> => self.builder.action(t)
 
-    def semanticPredicateExpr(self):
-        return self.builder.pred(self._getTerm())
+application ::= <indentation>? <name>:name ('(' <term_arglist>:args ')'
+                    => self.builder.apply(name, self.name, *args)
+                  | => self.builder.apply(name, self.name))
 
+"""
 
 class TermOMeta2(BootOMetaGrammar.makeGrammar(
-        v2Grammar, globals(),
-        name='TermOMeta2',
-        superclass=OMetaTermActionsBase)):
+        termOMeta2Grammar,
+        globals(), name='TermOMeta2', superclass=OMeta2)):
+    def brk(self):
+        import pdb; pdb.set_trace()
     @classmethod
     def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
         """
@@ -217,6 +213,21 @@ class TermOMeta2(BootOMetaGrammar.makeGrammar(
             tree, name, superclass or OMetaBase,
             globals, writer=lambda t: TermActionPythonWriter(t).output())
 
+
+    def rule_term(self):
+        tp = TermLParser('')
+        tp.input = self.input
+        self.input.setMemo('term', None)
+        val, err = tp.apply('term')
+        self.input = tp.input
+        return val, err
+
+    def rule_term_arglist(self):
+        tp = TermLParser('')
+        tp.input = self.input
+        val, err = tp.apply('argList')
+        self.input = tp.input
+        return val, err
 
 nullOptimizationGrammar = """
 

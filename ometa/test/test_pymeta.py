@@ -777,7 +777,7 @@ class TermActionGrammarTests(V2TestCase):
         g = self.compile("""
               digit = '0' | '1'
               double_bits = digit:a digit:b ?(equal(a, b)) -> int(b)
-           """, {"equal", operator.eq})
+           """, {"equal": operator.eq})
         self.assertEqual(g.double_bits("00"), 0)
         self.assertEqual(g.double_bits("11"), 1)
         self.assertRaises(ParseError, g.double_bits, "10")
@@ -804,8 +804,8 @@ class TermActionGrammarTests(V2TestCase):
         """
         g = self.compile("""
               fact 0                    -> 1
-              fact :n = fact((n - 1)):m -> mul(n, m)
-           """, {"mul": operator.mul})
+              fact :n = fact(decr(n)):m -> mul(n, m)
+           """, {"mul": operator.mul, "decr": lambda x: x -1})
         self.assertEqual(g.fact([3]), 6)
 
 
@@ -829,7 +829,7 @@ class TermActionGrammarTests(V2TestCase):
              interp = [digit:x '+' digit:y]:z -> [z, plus(x, y)]
         """, {"plus": operator.add})
         e = ['3', '+', '5']
-        self.assertEqual(g.interp([e]), (e, 8))
+        self.assertEqual(g.interp([e]), [e, 8])
 
 
     def test_recursion(self):
@@ -845,6 +845,19 @@ class TermActionGrammarTests(V2TestCase):
                    "isdigit": lambda x: str(x).isdigit()})
         self.assertEqual(g.interp([['+', '3', ['*', '5', '2']]]), 13)
 
+
+    def test_leftrecursion(self):
+         """
+         Left-recursion is detected and compiled appropriately.
+         """
+         g = self.compile("""
+               num = (num:n digit:d   -> makeInt(n, d)
+                      | digit)
+               digit = :x ?(isdigit(x)) -> int(x)
+              """, {"makeInt": lambda x, y: x * 10 + y,
+                    "isdigit": lambda x: x.isdigit()})
+         self.assertEqual(g.num("3"), 3)
+         self.assertEqual(g.num("32767"), 32767)
 
     def test_characterVsSequence(self):
         """
@@ -882,6 +895,34 @@ class TermActionGrammarTests(V2TestCase):
             broken = trick | anything*
         """)
         self.assertEqual(g.broken('ab'), 'ab')
+
+
+    def test_lookahead(self):
+        """
+        Doubled negation does lookahead.
+        """
+        g = self.compile("""
+                         foo = ~~(:x) bar(x)
+                         bar :x = :a :b ?(equal(x, a, b)) -> x
+                         """,
+                         {"equal": lambda i, j, k: i == j == k})
+        self.assertEqual(g.foo("11"), '1')
+        self.assertEqual(g.foo("22"), '2')
+
+
+    def test_args(self):
+        """
+        Productions can take arguments.
+        """
+        g = self.compile("""
+              digit = ('0' | '1' | '2'):d -> int(d)
+              foo :x = (?(gt(x, 1)) '9' | ?(lte(x, 1)) '8'):d -> int(d)
+              baz = digit:a foo(a):b -> [a, b]
+            """, {"lte": operator.le, "gt": operator.gt})
+        self.assertEqual(g.baz("18"), [1, 8])
+        self.assertEqual(g.baz("08"), [0, 8])
+        self.assertEqual(g.baz("29"), [2, 9])
+        self.assertRaises(ParseError, g.foo, "28")
 
 
 

@@ -309,14 +309,14 @@ class OMetaBase(object):
             lr = LeftRecursion()
             memoRec = self.input.setMemo(ruleName, lr)
 
-            #print "Calling", rule
+            #print "Calling", ruleName
             try:
                 memoRec = self.input.setMemo(ruleName,
                                              [rule(), self.input])
             except ParseError:
                 #print "Failed", rule
                 raise
-            #print "Success", rule
+            #print "Success", ruleName, memoRec
             if lr.detected:
                 sentinel = self.input
                 while True:

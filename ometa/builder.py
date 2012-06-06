@@ -144,12 +144,15 @@ class PythonWriter(object):
         """
         return self._expr('python', 'eval(%r, self.globals, _locals), None' %(expr,))
 
+    def _convertArgs(self, rawArgs):
+        return [self._generateNode(x) for x in rawArgs]
+
 
     def generate_Apply(self, ruleName, codeName, rawArgs):
         """
         Create a call to self.apply(ruleName, *args).
         """
-        args = [self._generateNode(x) for x in rawArgs]
+        args = self._convertArgs(rawArgs)
         if ruleName == 'super':
             return self._expr('apply', 'self.superApply("%s", %s)' % (codeName,
                                                               ', '.join(args)))
@@ -289,12 +292,16 @@ class PythonWriter(object):
 
 class TermActionPythonWriter(PythonWriter):
 
+    def _convertArgs(self, termArgs):
+        return [self._termAsPython(a) for a in termArgs]
+
+
     def generate_Predicate(self, term):
         """
         Generate a call to self.pred(lambda: expr).
         """
 
-        fname = self._newThunkFor("pred", expr)
+        fname = self._newThunkFor("pred", ["Action", term])
         return self._expr("pred", "self.pred(%s)" %(fname,))
 
     def generate_Action(self, term):
@@ -303,6 +310,7 @@ class TermActionPythonWriter(PythonWriter):
     generate_Python = generate_Action
 
     def _termAsPython(self, term):
+        lines = []
         class Term2PythonAction(object):
             def leafData(bldr, data, span):
                 return repr(data)
@@ -320,6 +328,12 @@ class TermActionPythonWriter(PythonWriter):
             def term(bldr, tag, args):
                 if not args:
                     return tag
+                if tag == '.tuple.':
+                    return "[%s]" % (', '.join(args),)
+                elif tag == '.attr.':
+                    return "(%s)" % (', '.join(args),)
+                elif tag == '.bag.':
+                    return "dict(%s)" % (', '.join(args),)
                 return "%s(%s)" % (tag, ', '.join(args))
         if not term.args:
             if term.data is None:

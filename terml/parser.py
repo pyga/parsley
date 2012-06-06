@@ -25,10 +25,10 @@ special ::= '.':a <ident>:b => concat(a, b)
 uri ::= '<' <uriBody>*:uriChars '>' => concat(b, uriChars, e)
 
 functor ::= <spaces> (<literal> | <tag>:t)
-baseTerm ::= <functor>:f ('(' <argList>:a ')' => makeTerm(f, a)
+baseTerm ::= <functor>:f ('(' <argList>:a <spaces> ')' => makeTerm(f, a)
                            | => makeTerm(f))
 
-argList ::= ((<term>:t (',' <term>)*:ts ) => cons(t, ts)
+argList ::= ((<term>:t (',' <term>)*:ts ','?) => cons(t, ts)
             | => [])
 
 tupleTerm ::= <token '['> <argList>:a <token ']'> => Tuple(a)
@@ -69,7 +69,7 @@ def numberType(n):
 
 def makeTerm(t, args=None):
     if isinstance(t, Term):
-        if args is not None:
+        if args:
             raise ValueError("Literal terms do not take arguments")
         return t
     return Term(t, None, args, None)

@@ -52,7 +52,7 @@ class Term(_Term):
         return Term(self.tag, self.data, self.args, span)
 
 
-    def build(builder):
+    def build(self, builder):
         if self.data is None:
             f = builder.leafTag(self.tag, self.span)
         else:
@@ -60,8 +60,8 @@ class Term(_Term):
 
         args = builder.empty()
         for arg in self.args:
-            arg.build(builder)
-            args = builder.seq(args, arg)
+            val = arg.build(builder)
+            args = builder.seq(args, val)
         return builder.term(f, args)
 
 

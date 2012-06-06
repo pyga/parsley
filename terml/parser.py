@@ -24,17 +24,7 @@ special ::= '.':a <ident>:b => concat(a, b)
 
 uri ::= '<' <uriBody>*:uriChars '>' => concat(b, uriChars, e)
 
-functor ::= <spaces> (<literal> | <tag>:t (<functorHole>:h => taggedHole(t, h)
-                                          | => t)
-                     | <functorHole>)
-
-functorHole ::= ((<token "${"> <decdigits>:n '}' => ValueHole(n))
-                |(<token "$"> <decdigits>:n  => ValueHole(n))
-                |(<token "$"> <tag>:t => NamedValueHole(t))
-                |(<token "@{"> <decdigits>:n '}' => PatternHole(n))
-                |(<token "@"> <decdigits>:n  => PatternHole(n))
-                |(<token "@"> <tag>:t => NamedPatternHole(t)))
-
+functor ::= <spaces> (<literal> | <tag>:t)
 baseTerm ::= <functor>:f ('(' <argList>:a ')' => makeTerm(f, a)
                            | => makeTerm(f))
 

@@ -89,7 +89,7 @@ def cons(first, rest):
 
 
 try:
-    from terml.common_generated import CommonParser
+    from terml.common_generated import Parser as CommonParser
     CommonParser.globals = globals()
 except ImportError:
     from ometa.boot import BootOMetaGrammar

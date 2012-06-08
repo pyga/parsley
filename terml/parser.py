@@ -88,7 +88,7 @@ def Attr(k, v):
     return Term(Tag(".attr."), None, [k, v], None)
 
 try:
-    from terml.parser_generated import BaseTermLParser
+    from terml.parser_generated import Parser as BaseTermLParser
     BaseTermLParser.globals = globals()
 except ImportError:
     #to avoid circularity, we use the boot grammar

@@ -1,7 +1,6 @@
 # -*- test-case-name: ometa.test.test_builder -*-
-import linecache, sys
+import os.path
 from types import ModuleType as module
-
 import itertools, linecache, sys
 
 class TreeBuilder(object):

@@ -132,6 +132,7 @@ expr1 ::= <application>
           |<character>
           |<string>
           |<token '('> <expr>:e <token ')'> => e
+          |<token '<'> <expr>:e <token '>'> => self.builder.consumedBy(e)
           |<token '['> <expr>:e <token ']'> => self.builder.listpattern(e)
 
 expr2 ::= <token '~'> (<token '~'> <expr2>:e => self.builder.lookahead(e)

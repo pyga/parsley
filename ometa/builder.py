@@ -60,6 +60,9 @@ class TreeBuilder(object):
     def listpattern(self, exprs):
         return ["List", exprs]
 
+    def consumedBy(self, exprs):
+        return ["ConsumedBy", exprs]
+
 
 
 class PythonWriter(object):
@@ -269,6 +272,14 @@ class PythonWriter(object):
         """
         fname = self._newThunkFor("listpattern", expr)
         return  self._expr("listpattern", "self.listpattern(%s)" %(fname,))
+
+
+    def generate_ConsumedBy(self, expr):
+        """
+        Generate a call to self.consumedBy(lambda: expr).
+        """
+        fname = self._newThunkFor("consumedby", expr)
+        return  self._expr("consumedby", "self.consumedby(%s)" %(fname,))
 
 
     def generate_Rule(self, name, expr):

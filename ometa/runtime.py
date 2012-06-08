@@ -2,6 +2,8 @@
 """
 Code needed to run a grammar after it has been compiled.
 """
+from collections import Sequence
+
 import operator
 from ometa.builder import TreeBuilder, moduleFromGrammar
 
@@ -188,6 +190,10 @@ class InputStream(object):
         """
         self.memo[name] = rec
         return rec
+
+    def __cmp__(self, other):
+        return cmp((self.data, self.position), (other.data, other.position))
+
 
 class ArgInput(object):
     def __init__(self, arg, parent):
@@ -469,6 +475,20 @@ class OMetaBase(object):
         self.end()
         self.input = oldInput
         return v, e
+
+
+    def consumedby(self, expr):
+        oldInput = self.input
+        _, e = expr()
+        if isinstance(self.input.data, Sequence):
+            return oldInput.data[oldInput.position:self.input.position + 1], e
+        else:
+            i = oldInput
+            result = []
+            while i != self.input:
+                result.append(i.head())
+                i = i.tail()
+            return result, e
 
 
     def end(self):

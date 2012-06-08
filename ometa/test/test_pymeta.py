@@ -709,6 +709,32 @@ class V2TestCase(unittest.TestCase):
         self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
 
 
+    def test_stringConsumedBy(self):
+        """
+        OMeta2's "consumed-by" operator works on strings.
+        """
+        g = self.compile("""
+        ident = <letter (letter | digit)*>
+        """)
+        self.assertEqual(g.ident("a"), "a")
+        self.assertEqual(g.ident("abc"), "abc")
+        self.assertEqual(g.ident("a1z"), "a1z")
+        self.assertRaises(ParseError, g.ident, "1a")
+
+
+    def test_listConsumedBy(self):
+        """
+        OMeta2's "consumed-by" operator works on lists.
+        """
+        g = self.compile("""
+        ands = [<"And" (ors | vals)*>:x] -> x
+        ors = [<"Or" vals*:x>] -> x
+        vals = 1 | 0
+        """)
+        self.assertEqual(g.ands([["And", ["Or", 1, 0], 1]]),
+                         ["And", ["Or", 1, 0], 1])
+
+
     def test_string(self):
         """
         Strings in double quotes match string objects.

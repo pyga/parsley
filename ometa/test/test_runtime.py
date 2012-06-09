@@ -254,6 +254,6 @@ class RuntimeTests(unittest.TestCase):
         """
         L{OMetaBase.rule_listpattern} matches contents of lists.
         """
-        o = OMetaBase([["a"]])
+        o = OMetaBase([["a"]], tree=True)
         v, e = o.listpattern(lambda: o.exactly("a"))
         self.assertEqual((v, e), (["a"], [0, None]))

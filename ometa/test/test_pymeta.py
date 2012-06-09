@@ -1003,13 +1003,13 @@ class MakeGrammarTest(unittest.TestCase):
 
 
     def test_brokenGrammar(self):
-        from ometa.grammar import OMeta
+        from ometa.grammar import BootOMetaGrammar
         grammar = """
-        andHandler = handler: 'and' handler:h2 => And(h1, h2)
+        andHandler = handler:h1 'and' handler:h2 -> And(h1, h2)
         """
-        e = self.assertRaises(ParseError, OMeta.makeGrammar, dedent(grammar), {})
-        self.assertEquals(e.position, 22)
-        self.assertEquals(e.error, [("expected", "letter", None)])
+        e = self.assertRaises(ParseError, BootOMetaGrammar.makeGrammar, dedent(grammar), {})
+        self.assertEquals(e.position, 27)
+        self.assertEquals(e.error, [("expected", "token", "'")])
 
 
     def test_subclassing(self):

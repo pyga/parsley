@@ -293,6 +293,21 @@ class PythonWriterTests(unittest.TestCase):
                             """))
 
 
+    def test_markAsTree(self):
+        """
+        Grammars containing list patterns are marked as taking
+        tree-shaped input rather than character streams.
+        """
+        x = self.builder.rule("foo", self.builder.listpattern(
+                self.builder.exactly("x")))
+        g = self.builder.makeGrammar([x])
+        self.assertEqual(writePython(g)[:71],
+                dd("""
+                      class BuilderTest(GrammarBase):
+                          tree = True
+                          def rule_foo(self):"""))
+
+
     def test_rule(self):
         """
         Test generation of entire rules.

@@ -3,6 +3,7 @@
 Code needed to run a grammar after it has been compiled.
 """
 import operator
+from terml.twine import asTwineFrom
 from ometa.builder import TreeBuilder, moduleFromGrammar
 
 class ParseError(Exception):
@@ -150,6 +151,25 @@ class InputStream(object):
             return cls(list(iterable), 0)
     fromIterable = classmethod(fromIterable)
 
+
+    def fromFile(cls, f, encoding='utf-8'):
+        if getattr(f, 'seek', None) and gettattr(f, 'tell', None):
+            position = f.tell()
+            f.seek(0)
+        else:
+            position = 0
+        t = asTwineFrom(f.read(), getattr(f, 'name', repr(f)))
+        return cls(t, 0)
+    fromFile = classmethod(fromFile)
+
+
+    def fromText(cls, t, name="<string>"):
+        if getattr(t, 'span', None):
+            return cls(t, 0)
+        return cls(asTwineFrom(t, name), 0)
+    fromText = classmethod(fromText)
+
+
     def __init__(self, data, position):
         self.data = data
         self.position = position
@@ -259,14 +279,22 @@ class OMetaBase(object):
     operations. Built-in rules are defined here.
     """
     globals = None
-    def __init__(self, string, globals=None):
+    tree = False
+    def __init__(self, string, globals=None, name='<string>', tree=False):
         """
         @param string: The string to be parsed.
 
         @param globals: A dictionary of names to objects, for use in evaluating
         embedded Python expressions.
+
+        @param tree: Whether the input should be treated as part of a
+        tree of nested iterables, rather than being a standalone
+        string.
         """
-        self.input = InputStream.fromIterable(string)
+        if self.tree or tree:
+            self.input = InputStream.fromIterable(string)
+        else:
+            self.input = InputStream.fromText(string)
         self.locals = {}
         if self.globals is None:
             if globals is None:

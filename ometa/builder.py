@@ -70,6 +70,7 @@ class PythonWriter(object):
     Converts an OMeta syntax tree into Python source.
     """
     def __init__(self, tree):
+        self.takesTreeInput = False
         self.tree = tree
         self.lines = []
         self.gensymCounter = 0
@@ -113,6 +114,7 @@ class PythonWriter(object):
         flines  = subwriter._generate(retrn=True)
         fname = self._gensym(name)
         self._writeFunction(fname, (),  flines)
+        self.takesTreeInput = subwriter.takesTreeInput or self.takesTreeInput
         return fname
 
 
@@ -166,6 +168,8 @@ class PythonWriter(object):
         """
         Create a call to self.exactly(expr).
         """
+        if not isinstance(literal, basestring):
+            self.takesTreeInput = True
         return self._expr('exactly', 'self.exactly(%r)' % (literal,))
 
 
@@ -270,6 +274,7 @@ class PythonWriter(object):
         """
         Generate a call to self.listpattern(lambda: expr).
         """
+        self.takesTreeInput = True
         fname = self._newThunkFor("listpattern", expr)
         return  self._expr("listpattern", "self.listpattern(%s)" %(fname,))
 
@@ -288,6 +293,7 @@ class PythonWriter(object):
         subwriter = self.__class__(expr)
         flines  = subwriter._generate(retrn=True)
         rulelines.extend(flines)
+        self.takesTreeInput = subwriter.takesTreeInput or self.takesTreeInput
         self._writeFunction("rule_" + name, ("self",), rulelines)
 
 
@@ -296,6 +302,8 @@ class PythonWriter(object):
         for rule in rules:
             self._generateNode(rule)
             self.lines.extend(['', ''])
+        if self.takesTreeInput:
+            self.lines.insert(1, "tree = True")
         self.lines[1:] = [line and (' ' * 4 + line) for line in self.lines[1:]]
         del self.lines[-2:]
 

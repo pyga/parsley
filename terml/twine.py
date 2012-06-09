@@ -277,7 +277,7 @@ class CompositeTwineMixin(TwineMixin):
 
     def __init__(self, parts):
         self._parts = tuple(parts)
-
+        self._len = None
 
     @property
     def parts(self):
@@ -297,8 +297,9 @@ class CompositeTwineMixin(TwineMixin):
 
 
     def __len__(self):
-        return sum(len(p) for p in self._parts)
-
+        if self._len is None:
+            self._len = sum(len(p) for p in self._parts)
+        return self._len
 
     def _getPartAt(self, pos):
         """

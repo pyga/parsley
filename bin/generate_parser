@@ -2,7 +2,8 @@
 # -*- mode: python -*-
 
 import sys
-from ometa.grammar import OMeta2
+from ometa.runtime import ParseError
+from ometa.grammar import OMeta
 from ometa.builder import TreeBuilder, writePython
 
 if len(sys.argv) != 3:
@@ -11,9 +12,13 @@ if len(sys.argv) != 3:
 
 grammarFile = open(sys.argv[1], 'r')
 pythonFile =  open(sys.argv[2], 'w')
-
-g = OMeta2(grammarFile.read())
-tree = g.parseGrammar("Parser", TreeBuilder)
+s = grammarFile.read()
+g = OMeta(s)
+try:
+    tree = g.parseGrammar("Parser", TreeBuilder)
+except ParseError, e:
+    print e.formatErrorTwine(g.input.data)
+    raise
 source = writePython(tree)
 pythonFile.write("from ometa.runtime import OMetaGrammarBase as GrammarBase\n")
 pythonFile.write(source)

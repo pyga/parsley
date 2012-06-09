@@ -70,6 +70,40 @@ class ParseError(Exception):
                                                                columnNo,
                                                                reason))
 
+
+    def formatErrorTwine(self, input):
+        reason = self.formatReason()
+        map = input.sourceMap
+        start = 0
+        end = len(map)
+        test = end / 2
+        for _ in xrange(10):
+            candidate = map[test]
+            print start, end, test, candidate, self.position
+            if candidate[0][0] <= self.position and candidate[0][1] >= self.position:
+                span = candidate[1]
+                offset = self.position - candidate[0][0]
+                lineNo = span.startLine
+                columnNo = span.startCol + offset
+                line = input[candidate[0][0]:candidate[0][1]]
+                break
+            elif candidate[0][0] > self.position:
+                end = test
+                test = start + ((end - start) / 2)
+            elif candidate[0][1] < self.position:
+                start = test
+                test = start + ((end - start) / 2)
+            elif test < end:
+                test += 1
+        else:
+            span = None
+
+        return ('\n' +  line + (' ' * columnNo+ '^') +
+                "\nParse error at line %s, column %s: %s\n" % (lineNo,
+                                                               columnNo,
+                                                               reason))
+
+
 class EOFError(ParseError):
     def __init__(self, position):
         ParseError.__init__(self, position, eof())

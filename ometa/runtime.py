@@ -2,8 +2,6 @@
 """
 Code needed to run a grammar after it has been compiled.
 """
-from collections import Sequence
-
 import operator
 from ometa.builder import TreeBuilder, moduleFromGrammar
 
@@ -142,13 +140,14 @@ class InputStream(object):
         """
         @param iterable: Any iterable Python object.
         """
+        if isinstance(iterable, (character, unicodeCharacter)):
+            raise TypeError("Characters are not iterable")
         if isinstance(iterable, str):
-            data = [character(c) for c in iterable]
+            return WrappedValueInputStream(iterable, 0, wrapper=character)
         elif isinstance(iterable, unicode):
-            data = [unicodeCharacter(c) for c in iterable]
+            return WrappedValueInputStream(iterable, 0, wrapper=unicodeCharacter)
         else:
-            data = list(iterable)
-        return cls(data, 0)
+            return cls(list(iterable), 0)
     fromIterable = classmethod(fromIterable)
 
     def __init__(self, data, position):
@@ -194,6 +193,21 @@ class InputStream(object):
     def __cmp__(self, other):
         return cmp((self.data, self.position), (other.data, other.position))
 
+
+class WrappedValueInputStream(InputStream):
+
+    def __init__(self, data, position, wrapper=None):
+        InputStream.__init__(self, data, position)
+        self.wrapper = wrapper
+
+    def head(self):
+        v, e = InputStream.head(self)
+        return self.wrapper(v), e
+
+    def tail(self):
+        if self.tl is None:
+            self.tl = WrappedValueInputStream(self.data, self.position+1, self.wrapper)
+        return self.tl
 
 class ArgInput(object):
     def __init__(self, arg, parent):
@@ -480,16 +494,8 @@ class OMetaBase(object):
     def consumedby(self, expr):
         oldInput = self.input
         _, e = expr()
-        if isinstance(self.input.data, Sequence):
-            return oldInput.data[oldInput.position:self.input.position + 1], e
-        else:
-            i = oldInput
-            result = []
-            while i != self.input:
-                result.append(i.head())
-                i = i.tail()
-            return result, e
-
+        slice = oldInput.data[oldInput.position:self.input.position]
+        return slice, e
 
     def end(self):
         """

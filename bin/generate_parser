@@ -2,7 +2,7 @@
 # -*- mode: python -*-
 
 import sys
-from ometa.boot import BootOMetaGrammar
+from ometa.grammar import OMeta2
 from ometa.builder import TreeBuilder, writePython
 
 if len(sys.argv) != 3:
@@ -12,7 +12,7 @@ if len(sys.argv) != 3:
 grammarFile = open(sys.argv[1], 'r')
 pythonFile =  open(sys.argv[2], 'w')
 
-g = BootOMetaGrammar(grammarFile.read())
+g = OMeta2(grammarFile.read())
 tree = g.parseGrammar("Parser", TreeBuilder)
 source = writePython(tree)
 pythonFile.write("from ometa.runtime import OMetaGrammarBase as GrammarBase\n")

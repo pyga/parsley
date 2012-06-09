@@ -221,105 +221,10 @@ class Parser(GrammarBase):
             _G_apply_1, lastError = self._apply(self.rule_tag, "tag", [])
             self.considerError(lastError)
             _locals['t'] = _G_apply_1
-            def _G_or_2():
-                _G_apply_1, lastError = self._apply(self.rule_functorHole, "functorHole", [])
-                self.considerError(lastError)
-                _locals['h'] = _G_apply_1
-                _G_python_2, lastError = eval('taggedHole(t, h)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_2, self.currentError)
-            def _G_or_3():
-                _G_python_1, lastError = eval('t', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_1, self.currentError)
-            _G_or_4, lastError = self._or([_G_or_2, _G_or_3])
-            self.considerError(lastError)
-            return (_G_or_4, self.currentError)
-        def _G_or_4():
-            _G_apply_1, lastError = self._apply(self.rule_functorHole, "functorHole", [])
-            self.considerError(lastError)
-            return (_G_apply_1, self.currentError)
-        _G_or_5, lastError = self._or([_G_or_2, _G_or_3, _G_or_4])
+            return (_locals['t'], self.currentError)
+        _G_or_4, lastError = self._or([_G_or_2, _G_or_3])
         self.considerError(lastError)
-        return (_G_or_5, self.currentError)
-
-
-    def rule_functorHole(self):
-        _locals = {'self': self}
-        self.locals['functorHole'] = _locals
-        def _G_or_1():
-            _G_python_1, lastError = eval('"${"', self.globals, _locals), None
-            self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
-            self.considerError(lastError)
-            _G_apply_3, lastError = self._apply(self.rule_decdigits, "decdigits", [])
-            self.considerError(lastError)
-            _locals['n'] = _G_apply_3
-            _G_exactly_4, lastError = self.exactly('}')
-            self.considerError(lastError)
-            _G_python_5, lastError = eval('ValueHole(n)', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_5, self.currentError)
-        def _G_or_2():
-            _G_python_1, lastError = eval('"$"', self.globals, _locals), None
-            self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
-            self.considerError(lastError)
-            _G_apply_3, lastError = self._apply(self.rule_decdigits, "decdigits", [])
-            self.considerError(lastError)
-            _locals['n'] = _G_apply_3
-            _G_python_4, lastError = eval('ValueHole(n)', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_4, self.currentError)
-        def _G_or_3():
-            _G_python_1, lastError = eval('"$"', self.globals, _locals), None
-            self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
-            self.considerError(lastError)
-            _G_apply_3, lastError = self._apply(self.rule_tag, "tag", [])
-            self.considerError(lastError)
-            _locals['t'] = _G_apply_3
-            _G_python_4, lastError = eval('NamedValueHole(t)', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_4, self.currentError)
-        def _G_or_4():
-            _G_python_1, lastError = eval('"@{"', self.globals, _locals), None
-            self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
-            self.considerError(lastError)
-            _G_apply_3, lastError = self._apply(self.rule_decdigits, "decdigits", [])
-            self.considerError(lastError)
-            _locals['n'] = _G_apply_3
-            _G_exactly_4, lastError = self.exactly('}')
-            self.considerError(lastError)
-            _G_python_5, lastError = eval('PatternHole(n)', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_5, self.currentError)
-        def _G_or_5():
-            _G_python_1, lastError = eval('"@"', self.globals, _locals), None
-            self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
-            self.considerError(lastError)
-            _G_apply_3, lastError = self._apply(self.rule_decdigits, "decdigits", [])
-            self.considerError(lastError)
-            _locals['n'] = _G_apply_3
-            _G_python_4, lastError = eval('PatternHole(n)', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_4, self.currentError)
-        def _G_or_6():
-            _G_python_1, lastError = eval('"@"', self.globals, _locals), None
-            self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
-            self.considerError(lastError)
-            _G_apply_3, lastError = self._apply(self.rule_tag, "tag", [])
-            self.considerError(lastError)
-            _locals['t'] = _G_apply_3
-            _G_python_4, lastError = eval('NamedPatternHole(t)', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_4, self.currentError)
-        _G_or_7, lastError = self._or([_G_or_1, _G_or_2, _G_or_3, _G_or_4, _G_or_5, _G_or_6])
-        self.considerError(lastError)
-        return (_G_or_7, self.currentError)
+        return (_G_or_4, self.currentError)
 
 
     def rule_baseTerm(self):
@@ -334,11 +239,13 @@ class Parser(GrammarBase):
             _G_apply_2, lastError = self._apply(self.rule_argList, "argList", [])
             self.considerError(lastError)
             _locals['a'] = _G_apply_2
-            _G_exactly_3, lastError = self.exactly(')')
+            _G_apply_3, lastError = self._apply(self.rule_spaces, "spaces", [])
             self.considerError(lastError)
-            _G_python_4, lastError = eval('makeTerm(f, a)', self.globals, _locals), None
+            _G_exactly_4, lastError = self.exactly(')')
             self.considerError(lastError)
-            return (_G_python_4, self.currentError)
+            _G_python_5, lastError = eval('makeTerm(f, a)', self.globals, _locals), None
+            self.considerError(lastError)
+            return (_G_python_5, self.currentError)
         def _G_or_3():
             _G_python_1, lastError = eval('makeTerm(f)', self.globals, _locals), None
             self.considerError(lastError)
@@ -364,9 +271,17 @@ class Parser(GrammarBase):
             _G_many_3, lastError = self.many(_G_many_2)
             self.considerError(lastError)
             _locals['ts'] = _G_many_3
-            _G_python_4, lastError = eval('cons(t, ts)', self.globals, _locals), None
+            def _G_optional_4():
+                _G_exactly_1, lastError = self.exactly(',')
+                self.considerError(lastError)
+                return (_G_exactly_1, self.currentError)
+            def _G_optional_5():
+                return (None, self.input.nullError())
+            _G_or_6, lastError = self._or([_G_optional_4, _G_optional_5])
             self.considerError(lastError)
-            return (_G_python_4, self.currentError)
+            _G_python_7, lastError = eval('cons(t, ts)', self.globals, _locals), None
+            self.considerError(lastError)
+            return (_G_python_7, self.currentError)
         def _G_or_2():
             _G_python_1, lastError = eval('[]', self.globals, _locals), None
             self.considerError(lastError)

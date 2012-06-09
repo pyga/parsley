@@ -27,7 +27,7 @@ they succeed in matching.
 Basic syntax
 ~~~~~~~~~~~~~~~~
 
-``foo ::= ....``
+``foo = ....``
    Define a rule named foo.
 ``expr1 expr2``
    Match expr1, and then match expr2 if it succeeds, returning the value of
@@ -43,8 +43,8 @@ Basic syntax
   Try to match expr. Returns None if it fails to match.
 ``~expr``
   Fail if the next item in the input matches expr.
-``<ruleName>``
-  Call the rule ``ruleName``.
+``ruleName`` or ``ruleName(arg1 arg2 etc)``
+  Call the rule ``ruleName``, possibly with args.
 ``'x'``
   Match the literal character 'x'.
 ``expr:name``
@@ -70,9 +70,9 @@ Example Usage
 
 >>> from pymeta.grammar import OMeta
 >>> exampleGrammar = """
-ones ::= '1' '1' => 1
-twos ::= '2' '2' => 2
-stuff ::= (<ones> | <twos>)+
+ones = '1' '1' -> 1
+twos = '2' '2' -> 2
+stuff = (ones | twos)+
 """
 >>> Example = OMeta.makeGrammar(exampleGrammar, {})
 >>> g = Example("11221111")

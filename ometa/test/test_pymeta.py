@@ -41,12 +41,17 @@ class HandyWrapper(object):
 
 
 
-class OMetaTestCase(unittest.TestCase):
+class OMeta1TestCase(unittest.TestCase):
     """
-    Tests of OMeta grammar compilation.
+    Tests of OMeta grammar compilation, with v1 syntax.
     """
 
-    classTested = BootOMetaGrammar
+    classTested = None
+
+    def setUp(self):
+        if self.classTested is None:
+            from ometa.grammar import OMeta1
+            self.classTested = OMeta1
 
     def compile(self, grammar):
         """
@@ -54,7 +59,7 @@ class OMetaTestCase(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = self.classTested(grammar)
+        g = self.classTested(dedent(grammar))
         tree = g.parseGrammar('TestGrammar', TreeBuilder)
         result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(result)
@@ -395,24 +400,12 @@ class OMetaTestCase(unittest.TestCase):
 
 
 
-class V2TestCase(unittest.TestCase):
+class OMetaTestCase(unittest.TestCase):
     """
-    Tests of OMeta2 grammar compilation.
+    Tests of OMeta grammar compilation.
     """
 
-    classTested = None
-
-
-    def setUp(self):
-        """
-        Run the OMeta tests with the self-hosted grammar instead of the boot
-        one.
-        """
-        #imported here to prevent OMetaGrammar from being constructed before
-        #tests are run
-        if self.classTested is None:
-            from ometa.grammar import OMeta2
-            self.classTested = OMeta2
+    classTested = BootOMetaGrammar
 
 
     def compile(self, grammar, globals=None):
@@ -756,7 +749,7 @@ class V2TestCase(unittest.TestCase):
         self.assertEqual(g.broken('ab'), 'ab')
 
 
-class TermActionGrammarTests(V2TestCase):
+class TermActionGrammarTests(OMetaTestCase):
 
     def setUp(self):
         """
@@ -765,8 +758,8 @@ class TermActionGrammarTests(V2TestCase):
         """
         #imported here to prevent OMetaGrammar from being constructed before
         #tests are run
-        from ometa.grammar import TermOMeta2
-        self.classTested = TermOMeta2
+        from ometa.grammar import TermOMeta
+        self.classTested = TermOMeta
 
 
     def test_binding(self):
@@ -962,7 +955,7 @@ class PyExtractorTest(unittest.TestCase):
         L{OMeta.pythonExpr()} can extract a single Python expression from a
         string, ignoring the text following it.
         """
-        o = OMetaBase(expr + "\nbaz ::= ...\n")
+        o = OMetaBase(expr + "\nbaz = ...\n")
         self.assertEqual(o.pythonExpr()[0][0], expr)
 
 
@@ -981,9 +974,9 @@ class PyExtractorTest(unittest.TestCase):
         self.findInGrammar('[x, "]",\n 1]')
         self.findInGrammar('{x: "]",\ny: "["}')
 
-        o = OMetaBase("foo(x[1]])\nbaz ::= ...\n")
+        o = OMetaBase("foo(x[1]])\nbaz = ...\n")
         self.assertRaises(ParseError, o.pythonExpr)
-        o = OMetaBase("foo(x[1]\nbaz ::= ...\n")
+        o = OMetaBase("foo(x[1]\nbaz = ...\n")
         self.assertRaises(ParseError, o.pythonExpr)
 
 
@@ -999,11 +992,11 @@ class MakeGrammarTest(unittest.TestCase):
         from ometa.grammar import OMeta
         results = []
         grammar = """
-        digit ::= :x ?('0' <= x <= '9') => int(x)
-        num ::= (<num>:n <digit>:d !(results.append(True)) => n * 10 + d
-               | <digit>)
+        digit = :x ?('0' <= x <= '9') -> int(x)
+        num = (num:n digit:d !(results.append(True)) -> n * 10 + d
+               | digit)
         """
-        TestGrammar = OMeta.makeGrammar(grammar, {'results':results})
+        TestGrammar = OMeta.makeGrammar(dedent(grammar), {'results':results})
         g = TestGrammar("314159")
         self.assertEqual(g.apply("num")[0], 314159)
         self.assertNotEqual(len(results), 0)
@@ -1012,11 +1005,11 @@ class MakeGrammarTest(unittest.TestCase):
     def test_brokenGrammar(self):
         from ometa.grammar import OMeta
         grammar = """
-        andHandler ::= <handler>:h1 'and' <handler>:h2 => And(h1, h2)
+        andHandler = handler: 'and' handler:h2 => And(h1, h2)
         """
-        e = self.assertRaises(ParseError, OMeta.makeGrammar, grammar, {})
-        self.assertEquals(e.position, 39)
-        self.assertEquals(e.error, [("expected", "token", "'")])
+        e = self.assertRaises(ParseError, OMeta.makeGrammar, dedent(grammar), {})
+        self.assertEquals(e.position, 22)
+        self.assertEquals(e.error, [("expected", "letter", None)])
 
 
     def test_subclassing(self):
@@ -1027,23 +1020,23 @@ class MakeGrammarTest(unittest.TestCase):
         from ometa.grammar import OMeta
 
         grammar1 = """
-        dig ::= :x ?(a <= x <= b) => int(x)
+        dig = :x ?(a <= x <= b) -> int(x)
         """
-        TestGrammar1 = OMeta.makeGrammar(grammar1, {'a':'0', 'b':'9'})
+        TestGrammar1 = OMeta.makeGrammar(dedent(grammar1), {'a':'0', 'b':'9'})
 
         grammar2 = """
-        num ::= (<num>:n <dig>:d => n * base + d
-                | <dig>)
+        num = (num:n dig:d -> n * base + d
+                | dig)
         """
-        TestGrammar2 = OMeta.makeGrammar(grammar2, {'base':10},
+        TestGrammar2 = OMeta.makeGrammar(dedent(grammar2), {'base':10},
                                          superclass=TestGrammar1)
         g = TestGrammar2("314159")
         self.assertEqual(g.apply("num")[0], 314159)
 
         grammar3 = """
-        dig ::= :x ?(a <= x <= b or c <= x <= d) => int(x, base)
+        dig = :x ?(a <= x <= b or c <= x <= d) -> int(x, base)
         """
-        TestGrammar3 = OMeta.makeGrammar(grammar3, {'c':'a', 'd':'f', 'base':16},
+        TestGrammar3 = OMeta.makeGrammar(dedent(grammar3), {'c':'a', 'd':'f', 'base':16},
                                          superclass=TestGrammar2)
         g = TestGrammar3("abc123")
         self.assertEqual(g.apply("num")[0], 11256099)
@@ -1054,9 +1047,9 @@ class MakeGrammarTest(unittest.TestCase):
         Rules can call the implementation in a superclass.
         """
         from ometa.grammar import OMeta
-        grammar1 = "expr ::= <letter>"
+        grammar1 = "expr = letter"
         TestGrammar1 = OMeta.makeGrammar(grammar1, {})
-        grammar2 = "expr ::= <super> | <digit>"
+        grammar2 = "expr = super | digit"
         TestGrammar2 = OMeta.makeGrammar(grammar2, {}, superclass=TestGrammar1)
         self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
         self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
@@ -1093,7 +1086,7 @@ class NullOptimizerTest(OMetaTestCase):
         @param grammar: A string containing an OMeta grammar.
         """
         from ometa.grammar import OMeta, NullOptimizer
-        g = OMeta(grammar)
+        g = OMeta(dedent(grammar))
         tree  = g.parseGrammar('TestGrammar', TreeBuilder)
         opt = NullOptimizer([tree])
         opt.builder = TreeBuilder("TestGrammar", opt)
@@ -1110,7 +1103,7 @@ class ErrorReportingTests(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = BootOMetaGrammar(grammar)
+        g = BootOMetaGrammar(dedent(grammar))
         tree = g.parseGrammar('TestGrammar', TreeBuilder)
         result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(result)
@@ -1123,14 +1116,14 @@ class ErrorReportingTests(unittest.TestCase):
         """
         g = self.compile("""
 
-        start ::= ( (<person> <feeling> <target>)
-                  | (<adjective> <animal> <feeling> <token "some"> <target>))
-        adjective ::= <token "crazy"> | <token "clever"> | <token "awesome">
-        feeling ::= <token "likes"> | <token "loves"> | <token "hates">
-        animal ::= <token "monkey"> | <token "horse"> | <token "unicorn">
-        person ::= <token "crazy horse"> | <token "hacker">
-        target ::= (<token "bananas"> | <token "robots"> | <token "americans">
-                   | <token "bacon">)
+        start = ( (person feeling target)
+                  | (adjective animal feeling token("some") target))
+        adjective = token("crazy") | token("clever") | token("awesome")
+        feeling = token("likes") | token("loves") | token("hates")
+        animal = token("monkey") | token("horse") | token("unicorn")
+        person = token("crazy horse") | token("hacker")
+        target = (token("bananas") | token("robots") | token("americans")
+                   | token("bacon"))
         """)
 
         #some warmup
@@ -1173,8 +1166,8 @@ class ErrorReportingTests(unittest.TestCase):
         containing the erroneous input and possible fixes.
         """
         g = self.compile("""
-        dig ::= '1' | '2' | '3'
-        bits ::= <dig>+
+        dig = '1' | '2' | '3'
+        bits = <dig>+
         """)
 
         input = "123x321"

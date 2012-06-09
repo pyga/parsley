@@ -123,7 +123,7 @@ class Parser(GrammarBase):
             _G_apply_1, lastError = self._apply(self.rule_decdigits, "decdigits", [])
             self.considerError(lastError)
             _locals['ds'] = _G_apply_1
-            _G_python_2, lastError = eval('signedInt(sign, join(ds))', self.globals, _locals), None
+            _G_python_2, lastError = eval('signedInt(sign, ds)', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_2, self.currentError)
         _G_or_7, lastError = self._or([_G_or_4, _G_or_5, _G_or_6])
@@ -134,38 +134,39 @@ class Parser(GrammarBase):
     def rule_exponent(self):
         _locals = {'self': self}
         self.locals['exponent'] = _locals
-        def _G_or_1():
-            _G_exactly_1, lastError = self.exactly('e')
+        def _G_consumedby_1():
+            def _G_or_1():
+                _G_exactly_1, lastError = self.exactly('e')
+                self.considerError(lastError)
+                return (_G_exactly_1, self.currentError)
+            def _G_or_2():
+                _G_exactly_1, lastError = self.exactly('E')
+                self.considerError(lastError)
+                return (_G_exactly_1, self.currentError)
+            _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
             self.considerError(lastError)
-            return (_G_exactly_1, self.currentError)
-        def _G_or_2():
-            _G_exactly_1, lastError = self.exactly('E')
+            def _G_optional_4():
+                def _G_or_1():
+                    _G_exactly_1, lastError = self.exactly('+')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_2():
+                    _G_exactly_1, lastError = self.exactly('-')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
+                self.considerError(lastError)
+                return (_G_or_3, self.currentError)
+            def _G_optional_5():
+                return (None, self.input.nullError())
+            _G_or_6, lastError = self._or([_G_optional_4, _G_optional_5])
             self.considerError(lastError)
-            return (_G_exactly_1, self.currentError)
-        _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
+            _G_apply_7, lastError = self._apply(self.rule_decdigits, "decdigits", [])
+            self.considerError(lastError)
+            return (_G_apply_7, self.currentError)
+        _G_consumedby_2, lastError = self.consumedby(_G_consumedby_1)
         self.considerError(lastError)
-        _locals['e'] = _G_or_3
-        def _G_or_4():
-            _G_exactly_1, lastError = self.exactly('+')
-            self.considerError(lastError)
-            return (_G_exactly_1, self.currentError)
-        def _G_or_5():
-            _G_exactly_1, lastError = self.exactly('-')
-            self.considerError(lastError)
-            return (_G_exactly_1, self.currentError)
-        def _G_or_6():
-            _G_python_1, lastError = eval('""', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_1, self.currentError)
-        _G_or_7, lastError = self._or([_G_or_4, _G_or_5, _G_or_6])
-        self.considerError(lastError)
-        _locals['s'] = _G_or_7
-        _G_apply_8, lastError = self._apply(self.rule_decdigits, "decdigits", [])
-        self.considerError(lastError)
-        _locals['ds'] = _G_apply_8
-        _G_python_9, lastError = eval('concat(e, s, join(ds))', self.globals, _locals), None
-        self.considerError(lastError)
-        return (_G_python_9, self.currentError)
+        return (_G_consumedby_2, self.currentError)
 
 
     def rule_floatPart(self):
@@ -177,34 +178,34 @@ class Parser(GrammarBase):
         _G_apply_2, lastError = self._apply(self.rule_anything, "anything", [])
         self.considerError(lastError)
         _locals['ds'] = _G_apply_2
-        def _G_or_3():
-            _G_exactly_1, lastError = self.exactly('.')
-            self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_decdigits, "decdigits", [])
-            self.considerError(lastError)
-            _locals['fs'] = _G_apply_2
-            def _G_optional_3():
+        def _G_consumedby_3():
+            def _G_or_1():
+                _G_exactly_1, lastError = self.exactly('.')
+                self.considerError(lastError)
+                _G_apply_2, lastError = self._apply(self.rule_decdigits, "decdigits", [])
+                self.considerError(lastError)
+                def _G_optional_3():
+                    _G_apply_1, lastError = self._apply(self.rule_exponent, "exponent", [])
+                    self.considerError(lastError)
+                    return (_G_apply_1, self.currentError)
+                def _G_optional_4():
+                    return (None, self.input.nullError())
+                _G_or_5, lastError = self._or([_G_optional_3, _G_optional_4])
+                self.considerError(lastError)
+                return (_G_or_5, self.currentError)
+            def _G_or_2():
                 _G_apply_1, lastError = self._apply(self.rule_exponent, "exponent", [])
                 self.considerError(lastError)
                 return (_G_apply_1, self.currentError)
-            def _G_optional_4():
-                return (None, self.input.nullError())
-            _G_or_5, lastError = self._or([_G_optional_3, _G_optional_4])
+            _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
             self.considerError(lastError)
-            _locals['e'] = _G_or_5
-            _G_python_6, lastError = eval('makeFloat(sign, ds, fs, e)', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_6, self.currentError)
-        def _G_or_4():
-            _G_apply_1, lastError = self._apply(self.rule_exponent, "exponent", [])
-            self.considerError(lastError)
-            _locals['e'] = _G_apply_1
-            _G_python_2, lastError = eval("float((sign or '') + concat(ds, e))", self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_2, self.currentError)
-        _G_or_5, lastError = self._or([_G_or_3, _G_or_4])
+            return (_G_or_3, self.currentError)
+        _G_consumedby_4, lastError = self.consumedby(_G_consumedby_3)
         self.considerError(lastError)
-        return (_G_or_5, self.currentError)
+        _locals['tail'] = _G_consumedby_4
+        _G_python_5, lastError = eval('makeFloat(sign, ds, tail)', self.globals, _locals), None
+        self.considerError(lastError)
+        return (_G_python_5, self.currentError)
 
 
     def rule_decdigits(self):
@@ -366,51 +367,49 @@ class Parser(GrammarBase):
         def _G_or_1():
             _G_exactly_1, lastError = self.exactly('u')
             self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+            def _G_consumedby_2():
+                _G_apply_1, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_2, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_3, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_4, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                return (_G_apply_4, self.currentError)
+            _G_consumedby_3, lastError = self.consumedby(_G_consumedby_2)
             self.considerError(lastError)
-            _locals['a'] = _G_apply_2
-            _G_apply_3, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+            _locals['hs'] = _G_consumedby_3
+            _G_python_4, lastError = eval('unichr(int(hs, 16))', self.globals, _locals), None
             self.considerError(lastError)
-            _locals['b'] = _G_apply_3
-            _G_apply_4, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['c'] = _G_apply_4
-            _G_apply_5, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['d'] = _G_apply_5
-            _G_python_6, lastError = eval('unichr(int(concat(a, b, c, d), 16))', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_6, self.currentError)
+            return (_G_python_4, self.currentError)
         def _G_or_2():
             _G_exactly_1, lastError = self.exactly('U')
             self.considerError(lastError)
-            _G_apply_2, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+            def _G_consumedby_2():
+                _G_apply_1, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_2, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_3, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_4, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_5, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_6, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_7, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                _G_apply_8, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+                self.considerError(lastError)
+                return (_G_apply_8, self.currentError)
+            _G_consumedby_3, lastError = self.consumedby(_G_consumedby_2)
             self.considerError(lastError)
-            _locals['a'] = _G_apply_2
-            _G_apply_3, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+            _locals['hs'] = _G_consumedby_3
+            _G_python_4, lastError = eval('unichr(int(hs, 16))', self.globals, _locals), None
             self.considerError(lastError)
-            _locals['b'] = _G_apply_3
-            _G_apply_4, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['c'] = _G_apply_4
-            _G_apply_5, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['d'] = _G_apply_5
-            _G_apply_6, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['e'] = _G_apply_6
-            _G_apply_7, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['f'] = _G_apply_7
-            _G_apply_8, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['g'] = _G_apply_8
-            _G_apply_9, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
-            self.considerError(lastError)
-            _locals['h'] = _G_apply_9
-            _G_python_10, lastError = eval('unichr(int(concat(a, b, c, d, e, f, g, h), 16))', self.globals, _locals), None
-            self.considerError(lastError)
-            return (_G_python_10, self.currentError)
+            return (_G_python_4, self.currentError)
         _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
         self.considerError(lastError)
         return (_G_or_3, self.currentError)
@@ -420,63 +419,65 @@ class Parser(GrammarBase):
         _locals = {'self': self}
         self.locals['escapedOctal'] = _locals
         def _G_or_1():
-            _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
+            def _G_consumedby_1():
+                _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
+                self.considerError(lastError)
+                _locals['a'] = _G_apply_1
+                def _G_pred_2():
+                    _G_python_1, lastError = eval('contains("0123", a)', self.globals, _locals), None
+                    self.considerError(lastError)
+                    return (_G_python_1, self.currentError)
+                _G_pred_3, lastError = self.pred(_G_pred_2)
+                self.considerError(lastError)
+                def _G_optional_4():
+                    _G_apply_1, lastError = self._apply(self.rule_octdigit, "octdigit", [])
+                    self.considerError(lastError)
+                    return (_G_apply_1, self.currentError)
+                def _G_optional_5():
+                    return (None, self.input.nullError())
+                _G_or_6, lastError = self._or([_G_optional_4, _G_optional_5])
+                self.considerError(lastError)
+                def _G_optional_7():
+                    _G_apply_1, lastError = self._apply(self.rule_octdigit, "octdigit", [])
+                    self.considerError(lastError)
+                    return (_G_apply_1, self.currentError)
+                def _G_optional_8():
+                    return (None, self.input.nullError())
+                _G_or_9, lastError = self._or([_G_optional_7, _G_optional_8])
+                self.considerError(lastError)
+                return (_G_or_9, self.currentError)
+            _G_consumedby_2, lastError = self.consumedby(_G_consumedby_1)
             self.considerError(lastError)
-            _locals['a'] = _G_apply_1
-            def _G_pred_2():
-                _G_python_1, lastError = eval('contains("0123", a)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_1, self.currentError)
-            _G_pred_3, lastError = self.pred(_G_pred_2)
-            self.considerError(lastError)
-            _G_apply_4, lastError = self._apply(self.rule_octdigit, "octdigit", [])
-            self.considerError(lastError)
-            _locals['b'] = _G_apply_4
-            def _G_or_5():
-                _G_apply_1, lastError = self._apply(self.rule_octdigit, "octdigit", [])
-                self.considerError(lastError)
-                _locals['c'] = _G_apply_1
-                _G_python_2, lastError = eval('int(concat(a, b, c), 8)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_2, self.currentError)
-            def _G_or_6():
-                _G_python_1, lastError = eval('int(concat(a, b), 8)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_1, self.currentError)
-            def _G_or_7():
-                _G_python_1, lastError = eval('int(a, 8)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_1, self.currentError)
-            _G_or_8, lastError = self._or([_G_or_5, _G_or_6, _G_or_7])
-            self.considerError(lastError)
-            return (_G_or_8, self.currentError)
+            return (_G_consumedby_2, self.currentError)
         def _G_or_2():
-            _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
+            def _G_consumedby_1():
+                _G_apply_1, lastError = self._apply(self.rule_anything, "anything", [])
+                self.considerError(lastError)
+                _locals['a'] = _G_apply_1
+                def _G_pred_2():
+                    _G_python_1, lastError = eval('contains("4567", a)', self.globals, _locals), None
+                    self.considerError(lastError)
+                    return (_G_python_1, self.currentError)
+                _G_pred_3, lastError = self.pred(_G_pred_2)
+                self.considerError(lastError)
+                def _G_optional_4():
+                    _G_apply_1, lastError = self._apply(self.rule_octdigit, "octdigit", [])
+                    self.considerError(lastError)
+                    return (_G_apply_1, self.currentError)
+                def _G_optional_5():
+                    return (None, self.input.nullError())
+                _G_or_6, lastError = self._or([_G_optional_4, _G_optional_5])
+                self.considerError(lastError)
+                return (_G_or_6, self.currentError)
+            _G_consumedby_2, lastError = self.consumedby(_G_consumedby_1)
             self.considerError(lastError)
-            _locals['a'] = _G_apply_1
-            def _G_pred_2():
-                _G_python_1, lastError = eval('contains("4567", a)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_1, self.currentError)
-            _G_pred_3, lastError = self.pred(_G_pred_2)
-            self.considerError(lastError)
-            def _G_or_4():
-                _G_apply_1, lastError = self._apply(self.rule_octdigit, "octdigit", [])
-                self.considerError(lastError)
-                _locals['b'] = _G_apply_1
-                _G_python_2, lastError = eval('int(concat(a, b), 8)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_2, self.currentError)
-            def _G_or_5():
-                _G_python_1, lastError = eval('int(a, 8)', self.globals, _locals), None
-                self.considerError(lastError)
-                return (_G_python_1, self.currentError)
-            _G_or_6, lastError = self._or([_G_or_4, _G_or_5])
-            self.considerError(lastError)
-            return (_G_or_6, self.currentError)
+            return (_G_consumedby_2, self.currentError)
         _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
         self.considerError(lastError)
-        return (_G_or_3, self.currentError)
+        _locals['os'] = _G_or_3
+        _G_python_4, lastError = eval('int(os, 8)', self.globals, _locals), None
+        self.considerError(lastError)
+        return (_G_python_4, self.currentError)
 
 
     def rule_escapedChar(self):
@@ -586,105 +587,106 @@ class Parser(GrammarBase):
     def rule_uriBody(self):
         _locals = {'self': self}
         self.locals['uriBody'] = _locals
-        def _G_many1_1():
-            def _G_or_1():
-                _G_apply_1, lastError = self._apply(self.rule_letterOrDigit, "letterOrDigit", [])
+        def _G_consumedby_1():
+            def _G_many1_1():
+                def _G_or_1():
+                    _G_apply_1, lastError = self._apply(self.rule_letterOrDigit, "letterOrDigit", [])
+                    self.considerError(lastError)
+                    return (_G_apply_1, self.currentError)
+                def _G_or_2():
+                    _G_exactly_1, lastError = self.exactly(';')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_3():
+                    _G_exactly_1, lastError = self.exactly('/')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_4():
+                    _G_exactly_1, lastError = self.exactly('?')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_5():
+                    _G_exactly_1, lastError = self.exactly(':')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_6():
+                    _G_exactly_1, lastError = self.exactly('@')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_7():
+                    _G_exactly_1, lastError = self.exactly('&')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_8():
+                    _G_exactly_1, lastError = self.exactly('=')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_9():
+                    _G_exactly_1, lastError = self.exactly('+')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_10():
+                    _G_exactly_1, lastError = self.exactly('$')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_11():
+                    _G_exactly_1, lastError = self.exactly(',')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_12():
+                    _G_exactly_1, lastError = self.exactly('-')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_13():
+                    _G_exactly_1, lastError = self.exactly('.')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_14():
+                    _G_exactly_1, lastError = self.exactly('!')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_15():
+                    _G_exactly_1, lastError = self.exactly('~')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_16():
+                    _G_exactly_1, lastError = self.exactly('*')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_17():
+                    _G_exactly_1, lastError = self.exactly("'")
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_18():
+                    _G_exactly_1, lastError = self.exactly('(')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_19():
+                    _G_exactly_1, lastError = self.exactly(')')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_20():
+                    _G_exactly_1, lastError = self.exactly('%')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_21():
+                    _G_exactly_1, lastError = self.exactly('\\')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_22():
+                    _G_exactly_1, lastError = self.exactly('|')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                def _G_or_23():
+                    _G_exactly_1, lastError = self.exactly('#')
+                    self.considerError(lastError)
+                    return (_G_exactly_1, self.currentError)
+                _G_or_24, lastError = self._or([_G_or_1, _G_or_2, _G_or_3, _G_or_4, _G_or_5, _G_or_6, _G_or_7, _G_or_8, _G_or_9, _G_or_10, _G_or_11, _G_or_12, _G_or_13, _G_or_14, _G_or_15, _G_or_16, _G_or_17, _G_or_18, _G_or_19, _G_or_20, _G_or_21, _G_or_22, _G_or_23])
                 self.considerError(lastError)
-                return (_G_apply_1, self.currentError)
-            def _G_or_2():
-                _G_exactly_1, lastError = self.exactly(';')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_3():
-                _G_exactly_1, lastError = self.exactly('/')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_4():
-                _G_exactly_1, lastError = self.exactly('?')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_5():
-                _G_exactly_1, lastError = self.exactly(':')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_6():
-                _G_exactly_1, lastError = self.exactly('@')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_7():
-                _G_exactly_1, lastError = self.exactly('&')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_8():
-                _G_exactly_1, lastError = self.exactly('=')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_9():
-                _G_exactly_1, lastError = self.exactly('+')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_10():
-                _G_exactly_1, lastError = self.exactly('$')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_11():
-                _G_exactly_1, lastError = self.exactly(',')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_12():
-                _G_exactly_1, lastError = self.exactly('-')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_13():
-                _G_exactly_1, lastError = self.exactly('.')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_14():
-                _G_exactly_1, lastError = self.exactly('!')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_15():
-                _G_exactly_1, lastError = self.exactly('~')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_16():
-                _G_exactly_1, lastError = self.exactly('*')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_17():
-                _G_exactly_1, lastError = self.exactly("'")
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_18():
-                _G_exactly_1, lastError = self.exactly('(')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_19():
-                _G_exactly_1, lastError = self.exactly(')')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_20():
-                _G_exactly_1, lastError = self.exactly('%')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_21():
-                _G_exactly_1, lastError = self.exactly('\\')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_22():
-                _G_exactly_1, lastError = self.exactly('|')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            def _G_or_23():
-                _G_exactly_1, lastError = self.exactly('#')
-                self.considerError(lastError)
-                return (_G_exactly_1, self.currentError)
-            _G_or_24, lastError = self._or([_G_or_1, _G_or_2, _G_or_3, _G_or_4, _G_or_5, _G_or_6, _G_or_7, _G_or_8, _G_or_9, _G_or_10, _G_or_11, _G_or_12, _G_or_13, _G_or_14, _G_or_15, _G_or_16, _G_or_17, _G_or_18, _G_or_19, _G_or_20, _G_or_21, _G_or_22, _G_or_23])
+                return (_G_or_24, self.currentError)
+            _G_many1_2, lastError = self.many(_G_many1_1, _G_many1_1())
             self.considerError(lastError)
-            return (_G_or_24, self.currentError)
-        _G_many1_2, lastError = self.many(_G_many1_1, _G_many1_1())
+            return (_G_many1_2, self.currentError)
+        _G_consumedby_2, lastError = self.consumedby(_G_consumedby_1)
         self.considerError(lastError)
-        _locals['x'] = _G_many1_2
-        _G_python_3, lastError = eval('join(x)', self.globals, _locals), None
-        self.considerError(lastError)
-        return (_G_python_3, self.currentError)
+        return (_G_consumedby_2, self.currentError)

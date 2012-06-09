@@ -12,191 +12,189 @@ from ometa.builder import TermActionPythonWriter, TreeBuilder, moduleFromGrammar
 from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError
 
 
-ometaGrammar = r"""
-number ::= <spaces> ('-' <barenumber>:x => -x
-                    |<barenumber>:x => x)
-barenumber ::= ('0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
-                    |<octaldigit>*:ds => int('0'+''.join(ds), 8))
-               |<digit>+:ds => int(''.join(ds)))
-octaldigit ::= :x ?(x in string.octdigits) => x
-hexdigit ::= :x ?(x in string.hexdigits) => x
+v1Grammar = r"""
 
-escapedChar ::= '\\' ('n' => "\n"
-                     |'r' => "\r"
-                     |'t' => "\t"
-                     |'b' => "\b"
-                     |'f' => "\f"
-                     |'"' => '"'
-                     |'\'' => "'"
-                     |'\\' => '\\')
+number = spaces ('-' barenumber:x -> self.builder.exactly(-x)
+                    |barenumber:x -> self.builder.exactly(x))
+barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
+                    |<octaldigit+>:ds -> int(ds, 8))
+               |<digit+>:ds -> int(ds)
+octaldigit = :x ?(x in '01234567' ) -> x
+hexdigit = :x ?(x in '0123456789ABCDEFabcdef') -> x
 
-character ::= <token "'"> (<escapedChar> | <anything>):c <token "'"> => c
+escapedChar = '\\' ('n' -> "\n"
+                     |'r' -> "\r"
+                     |'t' -> "\t"
+                     |'b' -> "\b"
+                     |'f' -> "\f"
+                     |'"' -> '"'
+                     |'\'' -> "'"
+                     |'\\' -> "\\")
 
-bareString ::= <token '"'> (<escapedChar> | ~('"') <anything>)*:c <token '"'> => ''.join(c)
-string ::= <bareString>:s => self.builder.exactly(s)
+character = token("'") (escapedChar | anything):c token("'") -> self.builder.exactly(c)
 
-name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
+string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> self.builder.exactly(''.join(c))
 
-application ::= (<token '<'> <spaces> <name>:name
+name = <letter letterOrDigit*>
+application = (token('<') spaces name:name
                   (' ' !(self.applicationArgs(finalChar='>')):args
-                     => self.builder.apply(name, self.name, *args)
-                  |<token '>'>
-                     => self.builder.apply(name, self.name)))
+                     -> self.builder.apply(name, self.name, *args)
+                  |token('>')
+                     -> self.builder.apply(name, self.name)))
 
-expr1 ::= (<application>
-          |<ruleValue>
-          |<semanticPredicate>
-          |<semanticAction>
-          |(<number> | <character>):lit => self.builder.exactly(lit)
-          |<string>
-          |<token '('> <expr>:e <token ')'> => e
-          |<token '['> <expr>:e <token ']'> => self.builder.listpattern(e))
+expr1 = (application
+          |ruleValue
+          |semanticPredicate
+          |semanticAction
+          |number
+          |character
+          |string
+          |token('(') expr:e token(')') -> e
+          |token('[') expr:e token(']') -> self.builder.listpattern(e))
 
-expr2 ::= (<token '~'> (<token '~'> <expr2>:e => self.builder.lookahead(e)
-                       |<expr2>:e => self.builder._not(e))
-          |<expr1>)
+expr2 = (token('~') (token('~') expr2:e -> self.builder.lookahead(e)
+                       |expr2:e -> self.builder._not(e))
+          |expr1)
 
-expr3 ::= ((<expr2>:e ('*' => self.builder.many(e)
-                      |'+' => self.builder.many1(e)
-                      |'?' => self.builder.optional(e)
-                      | => e)):r
-           (':' <name>:n => self.builder.bind(r, n)
-           | => r)
-          |<token ':'> <name>:n
-           => self.builder.bind(self.builder.apply("anything", self.name), n))
+expr3 = ((expr2:e ('*' -> self.builder.many(e)
+                      |'+' -> self.builder.many1(e)
+                      |'?' -> self.builder.optional(e)
+                      | -> e)):r
+           (':' name:n -> self.builder.bind(r, n)
+           | -> r)
+          |token(':') name:n
+           -> self.builder.bind(self.builder.apply("anything", self.name), n))
 
-expr4 ::= <expr3>*:es => self.builder.sequence(es)
+expr4 = expr3*:es -> self.builder.sequence(es)
 
-expr ::= <expr4>:e (<token '|'> <expr4>)*:es !(es.insert(0, e))
-          => self.builder._or(es)
+expr = expr4:e (token('|') expr4)*:es
+          -> self.builder._or([e] + es)
 
-ruleValue ::= <token "=>"> => self.ruleValueExpr(False)
+ruleValue = token("=>") -> self.ruleValueExpr(False)
 
-semanticPredicate ::= <token "?("> => self.semanticPredicateExpr()
+semanticPredicate = token("?(") -> self.semanticPredicateExpr()
 
-semanticAction ::= <token "!("> => self.semanticActionExpr()
+semanticAction = token("!(") -> self.semanticActionExpr()
 
-rulePart :requiredName ::= (<spaces> <name>:n ?(n == requiredName)
+rulePart :requiredName = (spaces name:n ?(n == requiredName)
                             !(setattr(self, "name", n))
-                            <expr4>:args
-                            (<token "::="> <expr>:e
-                               => self.builder.sequence([args, e])
-                            |  => args))
-rule ::= (<spaces> ~~(<name>:n) <rulePart n>:r
-          (<rulePart n>+:rs => self.builder.rule(n, self.builder._or([r] + rs))
-          |                     => self.builder.rule(n, r)))
+                            expr4:args
+                            (token("::=") expr:e
+                               -> self.builder.sequence([args, e])
+                            |  -> args))
+rule = (spaces ~~(name:n) rulePart(n):r
+          (rulePart(n)+:rs -> self.builder.rule(n, self.builder._or([r] + rs))
+          |                     -> self.builder.rule(n, r)))
 
-grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
+grammar = rule*:rs spaces -> self.builder.makeGrammar(rs)
 """
 
 v2Grammar = r"""
-hspace  ::= (' ' | '\t')
-vspace ::= (<token "\r\n"> | '\r' | '\n')
-emptyline ::= <hspace>* <vspace>
-indentation ::= <emptyline>* <hspace>+
-noindentation ::= <emptyline>* ~~~<hspace>
+hspace  = (' ' | '\t')
+vspace = (token("\r\n") | '\r' | '\n')
+emptyline = hspace* vspace
+indentation = emptyline* hspace+
+noindentation = emptyline* ~~~hspace
 
-number ::= <spaces> ('-' <barenumber>:x => self.builder.exactly(-x)
-                    |<barenumber>:x => self.builder.exactly(x))
-barenumber ::= '0' (('x'|'X') <hexdigit>*:hs => int(''.join(hs), 16)
-                    |<octaldigit>*:ds => int('0'+''.join(ds), 8))
-               |<digit>+:ds => int(''.join(ds))
-octaldigit ::= :x ?(x in string.octdigits) => x
-hexdigit ::= :x ?(x in string.hexdigits) => x
+number = spaces ('-' barenumber:x -> self.builder.exactly(-x)
+                    |barenumber:x -> self.builder.exactly(x))
+barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
+                    |<octaldigit+>:ds -> int(ds, 8))
+               |<digit+>:ds -> int(ds)
+octaldigit = :x ?(x in '01234567' ) -> x
+hexdigit = :x ?(x in '0123456789ABCDEFabcdef') -> x
 
-escapedChar ::= '\\' ('n' => "\n"
-                     |'r' => "\r"
-                     |'t' => "\t"
-                     |'b' => "\b"
-                     |'f' => "\f"
-                     |'"' => '"'
-                     |'\'' => "'"
-                     |'\\' => "\\")
+escapedChar = '\\' ('n' -> "\n"
+                     |'r' -> "\r"
+                     |'t' -> "\t"
+                     |'b' -> "\b"
+                     |'f' -> "\f"
+                     |'"' -> '"'
+                     |'\'' -> "'"
+                     |'\\' -> "\\")
 
-character ::= <token "'"> (<escapedChar> | <anything>):c <token "'"> => self.builder.exactly(c)
+character = token("'") (escapedChar | anything):c token("'") -> self.builder.exactly(c)
 
-string ::= <token '"'> (<escapedChar> | ~('"') <anything>)*:c <token '"'> => self.builder.exactly(''.join(c))
+string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> self.builder.exactly(''.join(c))
 
-name ::= <letter>:x <letterOrDigit>*:xs !(xs.insert(0, x)) => ''.join(xs)
+name = <letter letterOrDigit*>
 
-application ::= <indentation>? <name>:name
+application = indentation? name:name
                   ('(' !(self.applicationArgs(finalChar=')')):args
-                    => self.builder.apply(name, self.name, *args)
-                  | => self.builder.apply(name, self.name))
+                    -> self.builder.apply(name, self.name, *args)
+                  | -> self.builder.apply(name, self.name))
 
-expr1 ::= <application>
-          |<ruleValue>
-          |<semanticPredicate>
-          |<semanticAction>
-          |<number>
-          |<character>
-          |<string>
-          |<token '('> <expr>:e <token ')'> => e
-          |<token '<'> <expr>:e <token '>'> => self.builder.consumedBy(e)
-          |<token '['> <expr>:e <token ']'> => self.builder.listpattern(e)
+expr1 = application
+          |ruleValue
+          |semanticPredicate
+          |semanticAction
+          |number
+          |character
+          |string
+          |token('(') expr:e token(')') -> e
+          |token('<') expr:e token('>') -> self.builder.consumedBy(e)
+          |token('[') expr:e token(']') -> self.builder.listpattern(e)
 
-expr2 ::= <token '~'> (<token '~'> <expr2>:e => self.builder.lookahead(e)
-                       |<expr2>:e => self.builder._not(e))
-          |<expr1>
+expr2 = (token('~') (token('~') expr2:e -> self.builder.lookahead(e)
+                       |expr2:e -> self.builder._not(e))
+          |expr1)
 
-expr3 ::= (<expr2>:e ('*' => self.builder.many(e)
-                      |'+' => self.builder.many1(e)
-                      |'?' => self.builder.optional(e)
-                      | => e)):r
-           (':' <name>:n => self.builder.bind(r, n)
-           | => r)
-          |<token ':'> <name>:n
-           => self.builder.bind(self.builder.apply("anything", self.name), n)
+expr3 = (expr2:e ('*' -> self.builder.many(e)
+                      |'+' -> self.builder.many1(e)
+                      |'?' -> self.builder.optional(e)
+                      | -> e)):r
+           (':' name:n -> self.builder.bind(r, n)
+           | -> r)
+          |token(':') name:n
+           -> self.builder.bind(self.builder.apply("anything", self.name), n)
 
-expr4 ::= <expr3>*:es => self.builder.sequence(es)
+expr4 = expr3*:es -> self.builder.sequence(es)
 
-expr ::= <expr4>:e (<token '|'> <expr4>)*:es !(es.insert(0, e))
-          => self.builder._or(es)
+expr = expr4:e (token('|') expr4)*:es
+          -> self.builder._or([e] + es)
 
-ruleValue ::= <token "->"> => self.ruleValueExpr(True)
+ruleValue = token("->") -> self.ruleValueExpr(True)
 
-semanticPredicate ::= <token "?("> => self.semanticPredicateExpr()
+semanticPredicate = token("?(") -> self.semanticPredicateExpr()
 
-semanticAction ::= <token "!("> => self.semanticActionExpr()
+semanticAction = token("!(") -> self.semanticActionExpr()
 
-rulePart :requiredName ::= <noindentation> <name>:n ?(n == requiredName)
+rulePart :requiredName = noindentation name:n ?(n == requiredName)
                             !(setattr(self, "name", n))
-                            <expr4>:args
-                            (<token "="> <expr>:e
-                               => self.builder.sequence([args, e])
-                            |  => args)
-rule ::= <noindentation> ~~(<name>:n) <rulePart n>:r
-          (<rulePart n>+:rs => self.builder.rule(n, self.builder._or([r] + rs))
-          |                     => self.builder.rule(n, r))
+                            expr4:args
+                            (token("=") expr:e
+                               -> self.builder.sequence([args, e])
+                            |  -> args)
 
-grammar ::= <rule>*:rs <spaces> => self.builder.makeGrammar(rs)
+rule = noindentation ~~(name:n) rulePart(n):r
+          (rulePart(n)+:rs -> self.builder.rule(n, self.builder._or([r] + rs))
+          |                -> self.builder.rule(n, r))
+
+grammar = rule*:rs spaces -> self.builder.makeGrammar(rs)
 """
-
-
-OMeta = BootOMetaGrammar.makeGrammar(ometaGrammar, globals(), name='OMeta',
-                                     superclass=OMetaGrammarBase)
-
-OMeta2 = BootOMetaGrammar.makeGrammar(v2Grammar, globals(), name='OMeta2',
+OMeta = BootOMetaGrammar.makeGrammar(v2Grammar, globals(), name='OMeta',
                                       superclass=OMetaGrammarBase)
 
+OMeta1 = BootOMetaGrammar.makeGrammar(v1Grammar, globals(), name='OMeta1',
+                                     superclass=OMetaGrammarBase)
+
+
 termOMeta2Grammar = """
-ruleValue ::= <token "->"> <term>:t => self.builder.action(t)
+ruleValue = token("->") term:t -> self.builder.action(t)
 
-semanticPredicate ::= <token "?("> <term>:t <token ")"> => self.builder.pred(t)
+semanticPredicate = token("?(") term:t token(")") -> self.builder.pred(t)
 
-semanticAction ::= <token "!("> <term>:t <token ")"> => self.builder.action(t)
+semanticAction = token("!(") term:t token(")") -> self.builder.action(t)
 
-application ::= <indentation>? <name>:name ('(' <term_arglist>:args ')'
-                    => self.builder.apply(name, self.name, *args)
-                  | => self.builder.apply(name, self.name))
-
+application = indentation? name:name ('(' term_arglist:args ')'
+                    -> self.builder.apply(name, self.name, *args)
+                  | -> self.builder.apply(name, self.name))
 """
 
-class TermOMeta2(BootOMetaGrammar.makeGrammar(
+class TermOMeta(BootOMetaGrammar.makeGrammar(
         termOMeta2Grammar,
-        globals(), name='TermOMeta2', superclass=OMeta2)):
-    def brk(self):
-        import pdb; pdb.set_trace()
+        globals(), name='TermOMeta2', superclass=OMeta)):
+
     @classmethod
     def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
         """
@@ -232,24 +230,25 @@ class TermOMeta2(BootOMetaGrammar.makeGrammar(
 
 nullOptimizationGrammar = """
 
-opt ::= ( ["Apply" :ruleName :codeName [<anything>*:exprs]] => self.builder.apply(ruleName, codeName, *exprs)
-        | ["Exactly" :expr] => self.builder.exactly(expr)
-        | ["Many" <opt>:expr] => self.builder.many(expr)
-        | ["Many1" <opt>:expr] => self.builder.many1(expr)
-        | ["Optional" <opt>:expr] => self.builder.optional(expr)
-        | ["Or" [<opt>*:exprs]] => self.builder._or(exprs)
-        | ["And" [<opt>*:exprs]] => self.builder.sequence(exprs)
-        | ["Not" <opt>:expr]  => self.builder._not(expr)
-        | ["Lookahead" <opt>:expr] => self.builder.lookahead(expr)
-        | ["Bind" :name <opt>:expr] => self.builder.bind(expr, name)
-        | ["Predicate" <opt>:expr] => self.builder.pred(expr)
-        | ["Action" :code] => self.builder.action(code)
-        | ["Python" :code] => self.builder.expr(code)
-        | ["List" <opt>:exprs] => self.builder.listpattern(exprs)
+opt = ( ["Apply" :ruleName :codeName [anything*:exprs]] -> self.builder.apply(ruleName, codeName, *exprs)
+        | ["Exactly" :expr] -> self.builder.exactly(expr)
+        | ["Many" opt:expr] -> self.builder.many(expr)
+        | ["Many1" opt:expr] -> self.builder.many1(expr)
+        | ["Optional" opt:expr] -> self.builder.optional(expr)
+        | ["Or" [opt*:exprs]] -> self.builder._or(exprs)
+        | ["And" [opt*:exprs]] -> self.builder.sequence(exprs)
+        | ["Not" opt:expr]  -> self.builder._not(expr)
+        | ["Lookahead" opt:expr] -> self.builder.lookahead(expr)
+        | ["Bind" :name opt:expr] -> self.builder.bind(expr, name)
+        | ["Predicate" opt:expr] -> self.builder.pred(expr)
+        | ["Action" :code] -> self.builder.action(code)
+        | ["Python" :code] -> self.builder.expr(code)
+        | ["List" opt:exprs] -> self.builder.listpattern(exprs)
+        | ["ConsumedBy" opt:exprs] -> self.builder.consumedBy(exprs)
         )
-grammar ::= ["Grammar" :name [<rulePair>*:rs]] => self.builder.makeGrammar(rs)
-rulePair ::= ["Rule" :name <opt>:rule] => self.builder.rule(name, rule)
+grammar = ["Grammar" :name [rulePair*:rs]] -> self.builder.makeGrammar(rs)
+rulePair = ["Rule" :name opt:rule] -> self.builder.rule(name, rule)
 
 """
 
-NullOptimizer = OMeta.makeGrammar(nullOptimizationGrammar, {}, name="NullOptimizer")
+NullOptimizer = BootOMetaGrammar.makeGrammar(nullOptimizationGrammar, {}, name="NullOptimizer")

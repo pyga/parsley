@@ -3,45 +3,45 @@ from terml.common import CommonParser
 from terml.nodes import Tag, Term
 
 termLGrammar = r"""
-literal ::= (<string>:x => Term(Tag(".String."), x, None, None)
-            | <character>:x => Term(Tag(".char."), x, None, None)
-            | <number>:x => Term(Tag(numberType(x)), x, None, None))
+literal = (string:x -> Term(Tag(".String."), x, None, None)
+            | character:x -> Term(Tag(".char."), x, None, None)
+            | number:x -> Term(Tag(numberType(x)), x, None, None))
 
-tag ::= (<segment>:seg1 (':' ':' <sos>)*:segs => makeTag(cons(seg1, segs))
-        | (':' ':' <sos>)+:segs => prefixedTag(segs))
+tag = (segment:seg1 (':' ':' sos)*:segs -> makeTag(cons(seg1, segs))
+        | (':' ':' sos)+:segs -> prefixedTag(segs))
 
-sos ::= <segment> | (<string>:s => tagString(s))
+sos = segment | (string:s -> tagString(s))
 
-segment ::= <ident> | <special> | <uri>
+segment = ident | special | uri
 
-ident ::= <segStart>:i1 <segPart>*:ibits => join(cons(i1, ibits))
+ident = segStart:i1 segPart*:ibits -> join(cons(i1, ibits))
 
-segStart ::= <letter> | '_' | '$'
+segStart = letter | '_' | '$'
 
-segPart ::= <letterOrDigit> | '_' | '.' | '-' | '$'
+segPart = letterOrDigit | '_' | '.' | '-' | '$'
 
-special ::= '.':a <ident>:b => concat(a, b)
+special = '.':a ident:b -> concat(a, b)
 
-uri ::= '<' <uriBody>*:uriChars '>' => concat(b, uriChars, e)
+uri = '<' uriBody*:uriChars '>' -> concat(b, uriChars, e)
 
-functor ::= <spaces> (<literal> | <tag>:t)
-baseTerm ::= <functor>:f ('(' <argList>:a <spaces> ')' => makeTerm(f, a)
-                           | => makeTerm(f))
+functor = spaces (literal | tag:t)
+baseTerm = functor:f ('(' argList:a spaces ')' -> makeTerm(f, a)
+                           | -> makeTerm(f))
 
-argList ::= ((<term>:t (',' <term>)*:ts ','?) => cons(t, ts)
-            | => [])
+argList = ((term:t (',' term)*:ts ','?) -> cons(t, ts)
+            | -> [])
 
-tupleTerm ::= <token '['> <argList>:a <token ']'> => Tuple(a)
+tupleTerm = token('[') argList:a token(']') -> Tuple(a)
 
-bagTerm ::= <token '{'> <argList>:a <token '}'> => Bag(a)
+bagTerm = token('{') argList:a token('}') -> Bag(a)
 
-labelledBagTerm ::= <functor>:f <bagTerm>:b => LabelledBag(f, b)
+labelledBagTerm = functor:f bagTerm:b -> LabelledBag(f, b)
 
-extraTerm ::= <tupleTerm> | <labelledBagTerm>  | <bagTerm> | <baseTerm>
+extraTerm = tupleTerm | labelledBagTerm  | bagTerm | baseTerm
 
-attrTerm ::= <extraTerm>:k <token ':'> <extraTerm>:v => Attr(k, v)
+attrTerm = extraTerm:k token(':') extraTerm:v -> Attr(k, v)
 
-term ::=  <attrTerm> | <extraTerm>
+term =  attrTerm | extraTerm
 
 """
 
@@ -91,7 +91,6 @@ try:
     from terml.parser_generated import Parser as BaseTermLParser
     BaseTermLParser.globals = globals()
 except ImportError:
-    #to avoid circularity, we use the boot grammar
     from ometa.boot import BootOMetaGrammar
     BaseTermLParser = BootOMetaGrammar.makeGrammar(termLGrammar, globals(),
                                                    "TermLParser")

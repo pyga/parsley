@@ -78,13 +78,10 @@ def spanCover(a, b):
     return SourceSpan(a.uri, False, startLine, startCol, endLine, endCol)
 
 
-class Twine(unicode):
+class TwineMixin(object):
     """
-    A text string that remembers where it came from.
+    Methods for strings that remembers where they came from.
     """
-    def __new__(self, input, span=None):
-        return unicode.__new__(self, input)
-
 
     def __init__(self, input, span=None):
         if (span and span.isOneToOne
@@ -100,11 +97,11 @@ class Twine(unicode):
         the iterable `parts`.
         """
         if not parts:
-            return Twine(u"")
+            return cls._makeSimple(cls._empty)
         elif len(parts) == 1:
             return parts[0]
         else:
-            return CompositeTwine(parts)
+            return cls._makeComposite(parts)
 
 
     def asFrom(self, sourceURI, startLine=1, startCol=0):
@@ -123,12 +120,12 @@ class Twine(unicode):
                 end = ln - 1
             endCol = startCol + end - start
             ss = SourceSpan(sourceURI, True, startLine, startCol, startLine, endCol)
-            parts.append(Twine(s[start:end+1], ss))
+            parts.append(self.__class__._makeSimple(s[start:end+1], ss))
             startLine += 1
             startCol = 0
             start = end + 1
 
-        return Twine.fromParts(parts)
+        return self.__class__.fromParts(parts)
 
 
     @property
@@ -172,7 +169,7 @@ class Twine(unicode):
             idxOrSlice = slice(idxOrSlice, stop, 1)
         start, stop, step = idxOrSlice.indices(len(self))
         if start == stop:
-            return Twine(u"")
+            return self.__class__._makeSimple(self._empty)
         if start == 0 and stop == len(self):
             return self
 
@@ -183,7 +180,7 @@ class Twine(unicode):
         This twine is atomic, so a simple slice and updated SourceSpan
         will do.
         """
-        s = unicode.__getitem__(self, slice(start, stop, step))
+        s = super(TwineMixin, self).__getitem__(slice(start, stop, step))
         if self._span and self._span.isOneToOne:
             startCol = self._span.startCol + start
             endCol = startCol + (stop - start) - 1
@@ -194,13 +191,13 @@ class Twine(unicode):
                               endCol)
         else:
             span = self._span
-        return Twine(s, span)
+        return self.__class__._makeSimple(s, span)
 
 
     def __add__(self, other):
-        if not isinstance(other, Twine):
-            other = Twine(unicode(other))
-        return Twine.fromParts([self, other])
+        if not isinstance(other, TwineMixin):
+            other = self.__class__._makeSimple(other)
+        return self.__class__.fromParts([self, other])
 
 
     def split(self, sep, count=None):
@@ -241,13 +238,13 @@ class Twine(unicode):
 
     def join(self, twines):
         if not twines:
-            return Twine(u"")
-        sep = Twine(self)
+            return self.__class__._makeSimple(u"")
+        sep = self.__class__._makeSimple(self)
         parts = [twines[0]]
         for t in twines[1:]:
             parts.append(sep)
             parts.append(t)
-        return Twine.fromParts(parts)
+        return self.__class__.fromParts(parts)
 
     def replace(self, specimen, replacement, count=None):
         oldLen = len(specimen)
@@ -266,7 +263,7 @@ class Twine(unicode):
             p1 = p2 + oldLen
             p2 = self.find(specimen, p1)
         parts.append(self[p1:])
-        return Twine.fromParts(parts)
+        return self.__class__.fromParts(parts)
 
 
     def infect(self, target):
@@ -274,12 +271,9 @@ class Twine(unicode):
             span = self.span.notOneToOne()
         else:
             span = self.span
-        return Twine(target, span)
+        return self.__class__._makeSimple(target, span)
 
-class CompositeTwine(Twine):
-    def __new__(self, parts):
-        return Twine.__new__(self, parts)
-
+class CompositeTwineMixin(TwineMixin):
 
     def __init__(self, parts):
         self._parts = tuple(parts)
@@ -350,34 +344,31 @@ class CompositeTwine(Twine):
             else:
                 stepOffset = 0
             rightScrap = right[stepOffset:rightOffset + 1:step]
-            return Twine.fromParts((leftScrap,) + middle + (rightScrap,))
+            return self.__class__.fromParts((leftScrap,) + middle + (rightScrap,))
 
 
     def __add__(self, other):
-        if not isinstance(other, Twine):
-            other = Twine(unicode(other))
-        return Twine.fromParts(self._parts + (other,))
+        #XXX
+        if not isinstance(other, TwineMixin):
+            other = self.__class__._makeSimple(other)
+        return self.__class__.fromParts(self._parts + (other,))
 
 
     def __repr__(self):
-        return repr(u''.join(self._parts))
+        return repr(self._empty.join(self._parts))
 
 
     def __eq__(self, other):
-        return u''.join(self._parts) == other
-
-
-    def __unicode__(self):
-        return u''.join(self._parts)
+        return self._empty.join(self._parts) == other
 
 
     def find(self, *args):
         #XXX more efficientness
-        return u''.join(self._parts).find(*args)
+        return self._empty.join(self._parts).find(*args)
 
     def rfind(self, *args):
         #XXX more efficientness
-        return u''.join(self._parts).rfind(*args)
+        return self._empty.join(self._parts).rfind(*args)
 
 
     ## Maybe this is faster?
@@ -389,3 +380,62 @@ class CompositeTwine(Twine):
     #         return self._parts[partIdx][partOffset]
     #     else:
     #         return Twine.__getitem__(self, idxOrSlice)
+
+
+class TwineTextBase(unicode):
+    _empty = u''
+
+    @classmethod
+    def _makeComposite(cls, parts):
+        return CompositeTwineText(parts)
+
+    @classmethod
+    def _makeSimple(cls, s, span=None):
+        return TwineText(s, span)
+
+
+class TwineText(TwineMixin, TwineTextBase):
+    def __new__(self, input, span=None):
+        return unicode.__new__(self, input)
+
+class TwineBytesBase(str):
+    _empty = ''
+
+    @classmethod
+    def _makeComposite(cls, parts):
+        return CompositeTwineBytes(parts)
+
+    @classmethod
+    def _makeSimple(cls, s, span=None):
+        return TwineBytes(s, span)
+
+
+class TwineBytes(TwineMixin, TwineBytesBase):
+    def __new__(self, input, span=None):
+        return str.__new__(self, input)
+
+
+
+class CompositeTwineText(CompositeTwineMixin, TwineTextBase):
+    def __new__(self, parts):
+        return unicode.__new__(self)
+
+    def __unicode__(self):
+        return self._empty.join(self._parts)
+
+
+class CompositeTwineBytes(CompositeTwineMixin, TwineBytesBase):
+    def __new__(self, parts):
+        return str.__new__(self)
+
+    def __str__(self):
+        return self._empty.join(self._parts)
+
+
+def asTwineFrom(bytesOrText, uri):
+    if isinstance(bytesOrText, str):
+        return TwineBytes(bytesOrText).asFrom(uri)
+    elif isinstance(bytesOrText, unicode):
+        return TwineText(bytesOrText).asFrom(uri)
+    else:
+        raise TypeError("Can't make a twine from %r, since it isn't a string" % (bytesOrText,))

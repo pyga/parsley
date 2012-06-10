@@ -4,11 +4,12 @@ Public interface to OMeta, as well as the grammars used to compile grammar
 definitions.
 """
 import string
+from StringIO import StringIO
 
 from terml.parser import TermLParser
 
 from ometa.boot import BootOMetaGrammar
-from ometa.builder import TermActionPythonWriter, TreeBuilder, moduleFromGrammar
+from ometa.builder import TermActionPythonWriter, TreeBuilder, moduleFromGrammar, TextWriter
 from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError
 
 
@@ -210,7 +211,15 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         tree = g.parseGrammar(name, TreeBuilder)
         return moduleFromGrammar(
             tree, name, superclass or OMetaBase,
-            globals, writer=lambda t: TermActionPythonWriter(t).output())
+            globals, writer=g.writeTerm)
+
+
+    def writeTerm(self, term):
+        f = StringIO()
+        pw = TermActionPythonWriter(term)
+        out = TextWriter(f)
+        pw.output(out)
+        return f.getvalue().strip()
 
 
     def rule_term(self):

@@ -75,8 +75,9 @@ class TextWriter(object):
 
 
     def writeln(self, data):
-        self.file.write(" " * (self.indentSteps * self.stepSize))
-        self.file.write(data)
+        if data:
+            self.file.write(" " * (self.indentSteps * self.stepSize))
+            self.file.write(data)
         self.file.write("\n")
 
     def indent(self):
@@ -291,7 +292,7 @@ class PythonWriter(object):
         return  self._expr(out, "listpattern", "self.listpattern(%s)" %(fname,))
 
 
-    def generate_ConsumedBy(self, expr):
+    def generate_ConsumedBy(self, out, expr):
         """
         Generate a call to self.consumedBy(lambda: expr).
         """
@@ -300,24 +301,27 @@ class PythonWriter(object):
 
 
     def generate_Rule(self, prevOut, name, expr):
+        prevOut.writeln("def rule_%s(self):" % (name,))
         out = prevOut.indent()
         out.writeln("_locals = {'self': self}")
         out.writeln("self.locals[%r] = _locals" % (name,))
-        self._writeFunction(prevOut, "rule_" + name, ("self",), expr)
-
+        self._generate(prevOut.indent(), expr, retrn=True)
 
     def generate_Grammar(self, out, name, rules):
         out.writeln("class %s(GrammarBase):" % (name,))
+        out = out.indent()
         for rule in rules:
             self._generateNode(out, rule)
+            out.writeln("")
+            out.writeln("")
         if self.takesTreeInput:
-            out.indent().writeln("tree = True")
+            out.writeln("tree = True")
 
 
 class TermActionPythonWriter(PythonWriter):
 
     def _convertArgs(self, out, termArgs):
-        return [self._termAsPython(a) for a in termArgs]
+        return [self._termAsPython(out, a) for a in termArgs]
 
 
     def generate_Predicate(self, out, term):
@@ -364,7 +368,7 @@ class TermActionPythonWriter(PythonWriter):
                 return self.compilePythonExpr(out, term.tag.name)
             else:
                 name = self._gensym("literal")
-                out.write("%s = %r" % (name, term.data))
+                out.writeln("%s = %r" % (name, term.data))
                 return name
         else:
             return self.compilePythonExpr(out, term.build(Term2PythonAction()))

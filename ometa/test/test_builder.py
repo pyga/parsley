@@ -87,12 +87,12 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(xs),
                          dd("""
                             def _G_many_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            _G_many_2, lastError = self.many(_G_many_1)
+                                return (_G_exactly_2, self.currentError)
+                            _G_many_3, lastError = self.many(_G_many_1)
                             self.considerError(lastError)
-                            _G_many_2
+                            _G_many_3
                             """))
 
 
@@ -106,12 +106,12 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(xs),
                          dd("""
                             def _G_many1_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            _G_many1_2, lastError = self.many(_G_many1_1, _G_many1_1())
+                                return (_G_exactly_2, self.currentError)
+                            _G_many1_3, lastError = self.many(_G_many1_1, _G_many1_1())
                             self.considerError(lastError)
-                            _G_many1_2
+                            _G_many1_3
                             """))
 
 
@@ -126,16 +126,16 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(xy),
                          dd("""
                             def _G_or_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            def _G_or_2():
-                                _G_exactly_1, lastError = self.exactly('y')
+                                return (_G_exactly_2, self.currentError)
+                            def _G_or_3():
+                                _G_exactly_4, lastError = self.exactly('y')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            _G_or_3, lastError = self._or([_G_or_1, _G_or_2])
+                                return (_G_exactly_4, self.currentError)
+                            _G_or_5, lastError = self._or([_G_or_1, _G_or_3])
                             self.considerError(lastError)
-                            _G_or_3
+                            _G_or_5
                             """))
 
     def test_singleOr(self):
@@ -156,14 +156,14 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_optional_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            def _G_optional_2():
+                                return (_G_exactly_2, self.currentError)
+                            def _G_optional_3():
                                 return (None, self.input.nullError())
-                            _G_or_3, lastError = self._or([_G_optional_1, _G_optional_2])
+                            _G_or_4, lastError = self._or([_G_optional_1, _G_optional_3])
                             self.considerError(lastError)
-                            _G_or_3
+                            _G_or_4
                             """))
 
 
@@ -175,12 +175,12 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_not_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            _G_not_2, lastError = self._not(_G_not_1)
+                                return (_G_exactly_2, self.currentError)
+                            _G_not_3, lastError = self._not(_G_not_1)
                             self.considerError(lastError)
-                            _G_not_2
+                            _G_not_3
                             """))
 
 
@@ -192,12 +192,12 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_lookahead_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            _G_lookahead_2, lastError = self.lookahead(_G_lookahead_1)
+                                return (_G_exactly_2, self.currentError)
+                            _G_lookahead_3, lastError = self.lookahead(_G_lookahead_1)
                             self.considerError(lastError)
-                            _G_lookahead_2
+                            _G_lookahead_3
                             """))
 
 
@@ -242,12 +242,12 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_pred_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            _G_pred_2, lastError = self.pred(_G_pred_1)
+                                return (_G_exactly_2, self.currentError)
+                            _G_pred_3, lastError = self.pred(_G_pred_1)
                             self.considerError(lastError)
-                            _G_pred_2
+                            _G_pred_3
                             """))
 
 
@@ -284,12 +284,12 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_listpattern_1():
-                                _G_exactly_1, lastError = self.exactly('x')
+                                _G_exactly_2, lastError = self.exactly('x')
                                 self.considerError(lastError)
-                                return (_G_exactly_1, self.currentError)
-                            _G_listpattern_2, lastError = self.listpattern(_G_listpattern_1)
+                                return (_G_exactly_2, self.currentError)
+                            _G_listpattern_3, lastError = self.listpattern(_G_listpattern_1)
                             self.considerError(lastError)
-                            _G_listpattern_2
+                            _G_listpattern_3
                             """))
 
 
@@ -301,11 +301,7 @@ class PythonWriterTests(unittest.TestCase):
         x = self.builder.rule("foo", self.builder.listpattern(
                 self.builder.exactly("x")))
         g = self.builder.makeGrammar([x])
-        self.assertEqual(writePython(g)[:71],
-                dd("""
-                      class BuilderTest(GrammarBase):
-                          tree = True
-                          def rule_foo(self):"""))
+        self.assertTrue(writePython(g).endswith("    tree = True"))
 
 
     def test_rule(self):
@@ -346,7 +342,7 @@ class PythonWriterTests(unittest.TestCase):
                                 def rule_baz(self):
                                     _locals = {'self': self}
                                     self.locals['baz'] = _locals
-                                    _G_exactly_1, lastError = self.exactly('y')
+                                    _G_exactly_2, lastError = self.exactly('y')
                                     self.considerError(lastError)
-                                    return (_G_exactly_1, self.currentError)
+                                    return (_G_exactly_2, self.currentError)
                             """))

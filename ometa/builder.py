@@ -1,5 +1,6 @@
 # -*- test-case-name: ometa.test.test_builder -*-
 import os.path
+from StringIO import StringIO
 from types import ModuleType as module
 import itertools, linecache, sys
 
@@ -64,6 +65,23 @@ class TreeBuilder(object):
         return ["ConsumedBy", exprs]
 
 
+class TextWriter(object):
+
+    stepSize = 4
+
+    def __init__(self, f, indentSteps=0):
+        self.file = f
+        self.indentSteps = indentSteps
+
+
+    def writeln(self, data):
+        self.file.write(" " * (self.indentSteps * self.stepSize))
+        self.file.write(data)
+        self.file.write("\n")
+
+    def indent(self):
+        return TextWriter(self.file, self.indentSteps + 1)
+
 
 class PythonWriter(object):
     """
@@ -72,27 +90,24 @@ class PythonWriter(object):
     def __init__(self, tree):
         self.takesTreeInput = False
         self.tree = tree
-        self.lines = []
         self.gensymCounter = 0
 
 
-    def _generate(self, retrn=False):
-        result = self._generateNode(self.tree)
+    def _generate(self, out, expr, retrn=False):
+        result = self._generateNode(out, expr)
         if retrn:
-            self.lines.append("return (%s, self.currentError)" % (result,))
+            out.writeln("return (%s, self.currentError)" % (result,))
         elif result:
-            self.lines.append(result)
-        return self.lines
+            out.writeln(result)
+
+    def output(self, out):
+        self._generate(out, self.tree)
 
 
-    def output(self):
-        return '\n'.join(self._generate())
-
-
-    def _generateNode(self, node):
+    def _generateNode(self, out, node):
         name = node[0]
         args =  node[1:]
-        return getattr(self, "generate_"+name)(*args)
+        return getattr(self, "generate_"+name)(out, *args)
 
 
     def _gensym(self, name):
@@ -103,231 +118,222 @@ class PythonWriter(object):
         return "_G_%s_%s" % (name, self.gensymCounter)
 
 
-    def _newThunkFor(self, name, expr):
+    def _newThunkFor(self, out, name, expr):
         """
         Define a new function of no arguments.
         @param name: The name of the rule generating this thunk.
         @param expr: A list of lines of Python code.
         """
 
-        subwriter = self.__class__(expr)
-        flines  = subwriter._generate(retrn=True)
         fname = self._gensym(name)
-        self._writeFunction(fname, (),  flines)
-        self.takesTreeInput = subwriter.takesTreeInput or self.takesTreeInput
+        self._writeFunction(out, fname, (),  expr)
         return fname
 
 
-    def _expr(self, typ, e):
+    def _expr(self, out, typ, e):
         """
         Generate the code needed to execute the expression, and return the
         variable name bound to its value.
         """
         name = self._gensym(typ)
-        self.lines.append("%s, lastError = %s" % (name, e))
-        self.lines.append("self.considerError(lastError)")
+        out.writeln("%s, lastError = %s" % (name, e))
+        out.writeln("self.considerError(lastError)")
         return name
 
 
-    def _writeFunction(self, fname, arglist, flines):
+    def _writeFunction(self, out, fname, arglist, expr):
         """
         Generate a function.
         @param head: The initial line defining the function.
         @param body: A list of lines for the function body.
         """
 
-        self.lines.append("def %s(%s):" % (fname, ", ".join(arglist)))
-        for line in flines:
-            self.lines.append((" " * 4) + line)
+        out.writeln("def %s(%s):" % (fname, ", ".join(arglist)))
+        self._generate(out.indent(), expr, retrn=True)
         return fname
 
 
-    def compilePythonExpr(self, expr):
+    def compilePythonExpr(self, out, expr):
         """
         Generate code for running embedded Python expressions.
         """
-        return self._expr('python', 'eval(%r, self.globals, _locals), None' %(expr,))
+        return self._expr(out, 'python', 'eval(%r, self.globals, _locals), None' %(expr,))
 
-    def _convertArgs(self, rawArgs):
-        return [self._generateNode(x) for x in rawArgs]
+    def _convertArgs(self, out, rawArgs):
+        return [self._generateNode(out, x) for x in rawArgs]
 
 
-    def generate_Apply(self, ruleName, codeName, rawArgs):
+    def generate_Apply(self, out, ruleName, codeName, rawArgs):
         """
         Create a call to self.apply(ruleName, *args).
         """
-        args = self._convertArgs(rawArgs)
+        args = self._convertArgs(out, rawArgs)
         if ruleName == 'super':
-            return self._expr('apply', 'self.superApply("%s", %s)' % (codeName,
+            return self._expr(out, 'apply', 'self.superApply("%s", %s)' % (codeName,
                                                               ', '.join(args)))
-        return self._expr('apply', 'self._apply(self.rule_%s, "%s", [%s])' % (ruleName,
+        return self._expr(out, 'apply', 'self._apply(self.rule_%s, "%s", [%s])' % (ruleName,
                                                                               ruleName,
                                                              ', '.join(args)))
 
-    def generate_Exactly(self, literal):
+    def generate_Exactly(self, out, literal):
         """
         Create a call to self.exactly(expr).
         """
         if not isinstance(literal, basestring):
             self.takesTreeInput = True
-        return self._expr('exactly', 'self.exactly(%r)' % (literal,))
+        return self._expr(out, 'exactly', 'self.exactly(%r)' % (literal,))
 
 
-    def generate_Many(self, expr):
+    def generate_Many(self, out, expr):
         """
         Create a call to self.many(lambda: expr).
         """
-        fname = self._newThunkFor("many", expr)
-        return self._expr('many', 'self.many(%s)' % (fname,))
+        fname = self._newThunkFor(out, "many", expr)
+        return self._expr(out, 'many', 'self.many(%s)' % (fname,))
 
 
-    def generate_Many1(self, expr):
+    def generate_Many1(self, out, expr):
         """
         Create a call to self.many(lambda: expr).
         """
-        fname = self._newThunkFor("many1", expr)
-        return self._expr('many1', 'self.many(%s, %s())' % (fname, fname))
+        fname = self._newThunkFor(out, "many1", expr)
+        return self._expr(out, 'many1', 'self.many(%s, %s())' % (fname, fname))
 
 
-    def generate_Optional(self, expr):
+    def generate_Optional(self, out, expr):
         """
         Try to parse an expr and continue if it fails.
         """
-        realf = self._newThunkFor("optional", expr)
+        realf = self._newThunkFor(out, "optional", expr)
         passf = self._gensym("optional")
-        self._writeFunction(passf, (), ["return (None, self.input.nullError())"])
-        return self._expr('or', 'self._or([%s])' % (', '.join([realf, passf])))
+        out.writeln("def %s():" % (passf,))
+        out.indent().writeln("return (None, self.input.nullError())")
+        return self._expr(out, 'or', 'self._or([%s])' % (', '.join([realf, passf])))
 
 
-    def generate_Or(self, exprs):
+    def generate_Or(self, out, exprs):
         """
         Create a call to
         self._or([lambda: expr1, lambda: expr2, ... , lambda: exprN]).
         """
         if len(exprs) > 1:
-            fnames = [self._newThunkFor("or", expr) for expr in exprs]
-            return self._expr('or', 'self._or([%s])' % (', '.join(fnames)))
+            fnames = [self._newThunkFor(out, "or", expr) for expr in exprs]
+            return self._expr(out, 'or', 'self._or([%s])' % (', '.join(fnames)))
         else:
-            return self._generateNode(exprs[0])
+            return self._generateNode(out, exprs[0])
 
 
-    def generate_Not(self, expr):
+    def generate_Not(self, out, expr):
         """
         Create a call to self._not(lambda: expr).
         """
-        fname = self._newThunkFor("not", expr)
-        return self._expr("not", "self._not(%s)" % (fname,))
+        fname = self._newThunkFor(out, "not", expr)
+        return self._expr(out, "not", "self._not(%s)" % (fname,))
 
 
-    def generate_Lookahead(self, expr):
+    def generate_Lookahead(self, out, expr):
         """
         Create a call to self.lookahead(lambda: expr).
         """
-        fname = self._newThunkFor("lookahead", expr)
-        return self._expr("lookahead", "self.lookahead(%s)" %(fname,))
+        fname = self._newThunkFor(out, "lookahead", expr)
+        return self._expr(out, "lookahead", "self.lookahead(%s)" %(fname,))
 
 
-    def generate_And(self, exprs):
+    def generate_And(self, out, exprs):
         """
         Generate code for each statement in order.
         """
         v = None
         for ex in exprs:
-            v = self._generateNode(ex)
+            v = self._generateNode(out, ex)
         return v
 
 
-    def generate_Bind(self, name, expr):
+    def generate_Bind(self, out, name, expr):
         """
         Bind the value of 'expr' to a name in the _locals dict.
         """
-        v = self._generateNode(expr)
+        v = self._generateNode(out, expr)
         ref = "_locals['%s']" % (name,)
-        self.lines.append("%s = %s" %(ref, v))
+        out.writeln("%s = %s" %(ref, v))
         return ref
 
 
-    def generate_Predicate(self, expr):
+    def generate_Predicate(self, out, expr):
         """
         Generate a call to self.pred(lambda: expr).
         """
 
-        fname = self._newThunkFor("pred", expr)
-        return self._expr("pred", "self.pred(%s)" %(fname,))
+        fname = self._newThunkFor(out, "pred", expr)
+        return self._expr(out, "pred", "self.pred(%s)" %(fname,))
 
 
-    def generate_Action(self, expr):
+    def generate_Action(self, out, expr):
         """
         Generate this embedded Python expression on its own line.
         """
-        return self.compilePythonExpr(expr)
+        return self.compilePythonExpr(out, expr)
 
 
-    def generate_Python(self, expr):
+    def generate_Python(self, out, expr):
         """
         Generate this embedded Python expression on its own line.
         """
-        return self.compilePythonExpr(expr)
+        return self.compilePythonExpr(out, expr)
 
 
-    def generate_List(self, expr):
+    def generate_List(self, out, expr):
         """
         Generate a call to self.listpattern(lambda: expr).
         """
         self.takesTreeInput = True
-        fname = self._newThunkFor("listpattern", expr)
-        return  self._expr("listpattern", "self.listpattern(%s)" %(fname,))
+        fname = self._newThunkFor(out, "listpattern", expr)
+        return  self._expr(out, "listpattern", "self.listpattern(%s)" %(fname,))
 
 
     def generate_ConsumedBy(self, expr):
         """
         Generate a call to self.consumedBy(lambda: expr).
         """
-        fname = self._newThunkFor("consumedby", expr)
-        return  self._expr("consumedby", "self.consumedby(%s)" %(fname,))
+        fname = self._newThunkFor(out, "consumedby", expr)
+        return  self._expr(out, "consumedby", "self.consumedby(%s)" %(fname,))
 
 
-    def generate_Rule(self, name, expr):
-        rulelines = ["_locals = {'self': self}",
-                     "self.locals[%r] = _locals" % (name,)]
-        subwriter = self.__class__(expr)
-        flines  = subwriter._generate(retrn=True)
-        rulelines.extend(flines)
-        self.takesTreeInput = subwriter.takesTreeInput or self.takesTreeInput
-        self._writeFunction("rule_" + name, ("self",), rulelines)
+    def generate_Rule(self, prevOut, name, expr):
+        out = prevOut.indent()
+        out.writeln("_locals = {'self': self}")
+        out.writeln("self.locals[%r] = _locals" % (name,))
+        self._writeFunction(prevOut, "rule_" + name, ("self",), expr)
 
 
-    def generate_Grammar(self, name, rules):
-        self.lines.append("class %s(GrammarBase):" % (name,))
+    def generate_Grammar(self, out, name, rules):
+        out.writeln("class %s(GrammarBase):" % (name,))
         for rule in rules:
-            self._generateNode(rule)
-            self.lines.extend(['', ''])
+            self._generateNode(out, rule)
         if self.takesTreeInput:
-            self.lines.insert(1, "tree = True")
-        self.lines[1:] = [line and (' ' * 4 + line) for line in self.lines[1:]]
-        del self.lines[-2:]
+            out.indent().writeln("tree = True")
 
 
 class TermActionPythonWriter(PythonWriter):
 
-    def _convertArgs(self, termArgs):
+    def _convertArgs(self, out, termArgs):
         return [self._termAsPython(a) for a in termArgs]
 
 
-    def generate_Predicate(self, term):
+    def generate_Predicate(self, out, term):
         """
         Generate a call to self.pred(lambda: expr).
         """
 
-        fname = self._newThunkFor("pred", ["Action", term])
-        return self._expr("pred", "self.pred(%s)" %(fname,))
+        fname = self._newThunkFor(out, "pred", ["Action", term])
+        return self._expr(out, "pred", "self.pred(%s)" %(fname,))
 
-    def generate_Action(self, term):
-        return self._termAsPython(term)
+    def generate_Action(self, out, term):
+        return self._termAsPython(out, term)
 
     generate_Python = generate_Action
 
-    def _termAsPython(self, term):
+    def _termAsPython(self, out, term):
         lines = []
         class Term2PythonAction(object):
             def leafData(bldr, data, span):
@@ -355,18 +361,21 @@ class TermActionPythonWriter(PythonWriter):
                 return "%s(%s)" % (tag, ', '.join(args))
         if not term.args:
             if term.data is None:
-                return self.compilePythonExpr(term.tag.name)
+                return self.compilePythonExpr(out, term.tag.name)
             else:
                 name = self._gensym("literal")
-                self.lines.append("%s = %r" % (name, term.data))
+                out.write("%s = %r" % (name, term.data))
                 return name
         else:
-            return self.compilePythonExpr(term.build(Term2PythonAction()))
+            return self.compilePythonExpr(out, term.build(Term2PythonAction()))
 
 
 def writePython(tree):
+    f = StringIO()
+    out = TextWriter(f)
     pw = PythonWriter(tree)
-    return pw.output()
+    pw.output(out)
+    return f.getvalue().strip()
 
 
 class GeneratedCodeLoader(object):

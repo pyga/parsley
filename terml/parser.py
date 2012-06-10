@@ -1,13 +1,16 @@
 from ometa.runtime import character, ParseError, EOFError
 from terml.common import CommonParser
 from terml.nodes import Tag, Term
+from terml.twine import spanCover
 
 termLGrammar = r"""
-literal = (string:x -> Term(Tag(".String."), x, None, None)
-            | character:x -> Term(Tag(".char."), x, None, None)
-            | number:x -> Term(Tag(numberType(x)), x, None, None))
+literal =  !(self.startSpan()):s (
+              string:x -> Term(Tag(".String."), x, None, self.span(s))
+            | character:x -> Term(Tag(".char."), x, None, self.span(s))
+            | number:x -> Term(Tag(numberType(x)), x, None, self.span(s)))
 
-tag = (segment:seg1 (':' ':' sos)*:segs -> makeTag(cons(seg1, segs))
+tag =  (
+          segment:seg1 (':' ':' sos)*:segs -> makeTag(cons(seg1, segs))
         | (':' ':' sos)+:segs -> prefixedTag(segs))
 
 sos = segment | (string:s -> tagString(s))
@@ -25,21 +28,22 @@ special = '.':a ident:b -> concat(a, b)
 uri = '<' uriBody*:uriChars '>' -> concat(b, uriChars, e)
 
 functor = spaces (literal | tag:t)
-baseTerm = functor:f ('(' argList:a spaces ')' -> makeTerm(f, a)
-                           | -> makeTerm(f))
+baseTerm = !(self.startSpan()):s functor:f (
+                             '(' argList:a spaces ')' -> makeTerm(f, a, self.span(s))
+                           | -> makeTerm(f, None, self.span(s)))
 
 argList = ((term:t (',' term)*:ts ','?) -> cons(t, ts)
             | -> [])
 
-tupleTerm = token('[') argList:a token(']') -> Tuple(a)
+tupleTerm = !(self.startSpan()):s token('[') argList:a token(']') -> Tuple(a, self.span(s))
 
-bagTerm = token('{') argList:a token('}') -> Bag(a)
+bagTerm = !(self.startSpan()):s token('{') argList:a token('}') -> Bag(a, self.span(s))
 
-labelledBagTerm = functor:f bagTerm:b -> LabelledBag(f, b)
+labelledBagTerm = !(self.startSpan()):s functor:f bagTerm:b -> LabelledBag(f, b, self.span(s))
 
 extraTerm = tupleTerm | labelledBagTerm  | bagTerm | baseTerm
 
-attrTerm = extraTerm:k token(':') extraTerm:v -> Attr(k, v)
+attrTerm = !(self.startSpan()):s extraTerm:k token(':') extraTerm:v -> Attr(k, v, self.span(s))
 
 term =  attrTerm | extraTerm
 
@@ -67,25 +71,27 @@ def numberType(n):
     raise ValueError("wtf")
 
 
-def makeTerm(t, args=None):
+def makeTerm(t, args=None, span=None):
     if isinstance(t, Term):
         if args:
             raise ValueError("Literal terms do not take arguments")
         return t
-    return Term(t, None, args, None)
+    return Term(t, None, args, span)
 
 
-def Tuple(args):
-    return Term(Tag(".tuple."), None, args, None)
+def Tuple(args, span):
+    return Term(Tag(".tuple."), None, args, span)
 
-def Bag(args):
-    return Term(Tag(".bag."), None, args, None)
+def Bag(args, span):
+    return Term(Tag(".bag."), None, args, span)
 
-def LabelledBag(f, arg):
-    return Term(f, None, [arg], None)
+def LabelledBag(f, arg, span):
+    return Term(f, None, [arg], span)
 
-def Attr(k, v):
-    return Term(Tag(".attr."), None, [k, v], None)
+def Attr(k, v, span):
+    return Term(Tag(".attr."), None, [k, v], span)
+
+
 
 try:
     from terml.parser_generated import Parser as BaseTermLParser
@@ -96,7 +102,16 @@ except ImportError:
                                                    "TermLParser")
 
 class TermLParser(BaseTermLParser, CommonParser):
-    pass
+
+    def startSpan(self):
+        return self.input.position
+
+    def span(self, start):
+        end = self.input.position
+        return self.input.data[start:end].span
+
+
+
 TermLParser.globals.update(CommonParser.globals)
 
 def _parseTerm(termString):

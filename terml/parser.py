@@ -4,6 +4,7 @@ from terml.nodes import Tag, Term
 from terml.twine import spanCover
 
 termLGrammar = r"""
+spaces = ('\r' '\n'|'\r' | '\n' | horizontal_space)*
 literal =  !(self.startSpan()):s (
               string:x -> Term(Tag(".String."), x, None, self.span(s))
             | character:x -> Term(Tag(".char."), x, None, self.span(s))
@@ -32,7 +33,9 @@ baseTerm = !(self.startSpan()):s functor:f (
                              '(' argList:a spaces ')' -> makeTerm(f, a, self.span(s))
                            | -> makeTerm(f, None, self.span(s)))
 
-argList = ((term:t (',' term)*:ts ','?) -> cons(t, ts)
+arg = term
+
+argList = ((arg:t (token(',') arg)*:ts token(',')?) -> cons(t, ts)
             | -> [])
 
 tupleTerm = !(self.startSpan()):s token('[') argList:a token(']') -> Tuple(a, self.span(s))
@@ -45,7 +48,7 @@ extraTerm = tupleTerm | labelledBagTerm  | bagTerm | baseTerm
 
 attrTerm = !(self.startSpan()):s extraTerm:k token(':') extraTerm:v -> Attr(k, v, self.span(s))
 
-term =  attrTerm | extraTerm
+term =  spaces (attrTerm | extraTerm)
 
 """
 
@@ -94,7 +97,7 @@ def Attr(k, v, span):
 
 
 try:
-    from terml.parser_generated import Parser as BaseTermLParser
+    from terml.terml_generated import Parser as BaseTermLParser
     BaseTermLParser.globals = globals()
 except ImportError:
     from ometa.boot import BootOMetaGrammar

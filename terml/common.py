@@ -1,7 +1,8 @@
 import string
 
 baseGrammar = r"""
-spaces = (' '|'\t'|'\f'|('#' (~eol anything)*))*
+horizontal_space = (' '|'\t'|'\f'|('#' (~eol anything)*))
+spaces = horizontal_space*
 
 number = spaces barenumber
 barenumber = '-'?:sign (('0' ((('x'|'X') hexdigit*:hs -> makeHex(sign, hs))
@@ -40,9 +41,9 @@ escapedChar = '\\' ('n' -> '\n'
                      |'\\' -> '\\'
                      | escapedUnicode
                      | escapedOctal
-                     | spaces eol -> "")
+                     | eol -> "")
 
-eol = spaces ('\r' '\n'|'\r' | '\n')
+eol = horizontal_space* ('\r' '\n'|'\r' | '\n')
 
 uriBody = <(letterOrDigit |';'|'/'|'?'|':'|'@'|'&'|'='|'+'|'$'|','|'-'|'.'|'!'|'~'|'*'|'\''|'('|')'|'%'|'\\'|'|'|'#')+>
 

@@ -5,7 +5,7 @@ from terml.parser import TermLParser, character, _parseTerm
 
 class ParserTest(unittest.TestCase):
     """
-    Test E parser rules.
+    Test TermL parser rules.
     """
 
 
@@ -112,6 +112,21 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(_parseTerm("a: b"), _parseTerm(".attr.(a, b)"))
         self.assertEqual(_parseTerm('"a": b'), _parseTerm('.attr.("a", b)'))
         self.assertEqual(_parseTerm('a: [b]'), _parseTerm('.attr.(a, .tuple.(b))'))
+
+
+
+    def test_multiline(self):
+        """
+        Terms spread across multiple lines are parsed correctly.
+        """
+        single = _parseTerm('foo(baz({x: "y", boz: 42}))')
+        multi = _parseTerm(
+                """foo(
+                    baz({
+                     x: "y",
+                     boz: 42}
+                   ))""")
+        self.assertEqual(multi, single)
 
     def test_leftovers(self):
         e = self.assertRaises(ParseError, _parseTerm, "foo(x) and stuff")

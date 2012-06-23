@@ -371,6 +371,13 @@ class CompositeTwineMixin(TwineMixin):
         #XXX more efficientness
         return self._empty.join(self._parts).rfind(*args)
 
+    def __int__(self):
+        return int(self._empty.join(self._parts))
+
+    def __float__(self):
+        return float(self._empty.join(self._parts))
+
+
 
     ## Maybe this is faster?
     # def __getitem__(self, idxOrSlice):

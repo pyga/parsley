@@ -8,7 +8,7 @@ number = spaces barenumber
 barenumber = '-'?:sign (('0' ((('x'|'X') hexdigit*:hs -> makeHex(sign, hs))
                     |floatPart(sign '0')
                     |octaldigit*:ds -> makeOctal(sign, ds)))
-               |decdigits:ds floatPart(sign ds)
+               |decdigits:ds floatPart(sign, ds)
                |decdigits:ds -> signedInt(sign, ds))
 
 
@@ -58,7 +58,7 @@ def makeFloat(sign, ds, tail):
         return float((sign or '') + ds + tail)
 
 def signedInt(sign, x, base=10):
-    return int((sign or '')+x, base)
+    return int(str((sign or '')+x), base)
 
 def join(x):
     return ''.join(x)

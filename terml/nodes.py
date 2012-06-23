@@ -74,6 +74,12 @@ class Term(_Term):
             return datac
         return cmp(self.args, other.args)
 
+    def __int__(self):
+        return int(self.data)
+
+    def __float__(self):
+        return float(self.data)
+
 
 class Tag(object):
     def __init__(self, name):
@@ -92,4 +98,34 @@ class Tag(object):
 
 
 
+def coerceToTerm(val):
+    from ometa.runtime import character, unicodeCharacter
+    from terml.twine import TwineText, TwineBytes
+    if val is None:
+        return Term(Tag("null"), None, None, None)
+    if val is True:
+        return Term(Tag("true"), None, None, None)
+    if val is False:
+        return Term(Tag("false"), None, None, None)
+    if isinstance(val, (int, long)):
+        return Term(Tag(".int."), val, None, None)
+    if isinstance(val, float):
+        return Term(Tag(".float64."), val, None, None)
+    if isinstance(val, (character, unicodeCharacter)):
+        return Term(Tag(".char."), val, None, None)
+    if isinstance(val, (TwineText, TwineBytes)):
+        return Term(Tag(".String."), val, None, val.span)
+    if isinstance(val, basestring):
+        return Term(Tag(".String."), val, None, None)
+    if isinstance(val, (list, tuple)):
+        return Term(Tag(".tuple."), None, [coerceToTerm(item) for item in val], None)
+    if isinstance(val, set):
+        return Term(Tag('.bag.'), None, [coerceToTerm(item) for item in val], None)
+    if isinstance(val, dict):
+        return Term(Tag('.bag.'), None, [Term(Tag('.attr.'), None,
+                                              [coerceToTerm(k), coerceToTerm(v)], None)
+                                         for (k, v) in val.iteritems()],
+                    None)
 
+    if isinstance(val, Term):
+        return self

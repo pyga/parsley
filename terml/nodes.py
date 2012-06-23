@@ -1,3 +1,4 @@
+import itertools
 from collections import namedtuple
 
 _Term = namedtuple("Term", "tag data args span")
@@ -80,6 +81,15 @@ class Term(_Term):
     def __float__(self):
         return float(self.data)
 
+    def _substitute(self, map):
+        (f, data) = _asTag(self.tag._substitute(map)[0])
+        args = tuple(itertools.chain.from_iterable(a._substitute(map) for a in self.args))
+        term = Term(f, data or self.data, args, self.span)
+        return [term]
+
+    def substitute(self, map):
+        return self._substitute(map)[0]
+
 
 class Tag(object):
     def __init__(self, name):
@@ -96,11 +106,16 @@ class Tag(object):
     def _unparse(self, indentLevel=0):
         return self.name
 
+    def _substitute(self, map):
+        return [self]
+
 
 
 def coerceToTerm(val):
     from ometa.runtime import character, unicodeCharacter
     from terml.twine import TwineText, TwineBytes
+    if isinstance(val, Term):
+        return val
     if val is None:
         return Term(Tag("null"), None, None, None)
     if val is True:
@@ -118,14 +133,45 @@ def coerceToTerm(val):
     if isinstance(val, basestring):
         return Term(Tag(".String."), val, None, None)
     if isinstance(val, (list, tuple)):
-        return Term(Tag(".tuple."), None, [coerceToTerm(item) for item in val], None)
+        return Term(Tag(".tuple."), None, tuple(coerceToTerm(item) for item in val), None)
     if isinstance(val, set):
-        return Term(Tag('.bag.'), None, [coerceToTerm(item) for item in val], None)
+        return Term(Tag('.bag.'), None, tuple(coerceToTerm(item) for item in val), None)
     if isinstance(val, dict):
-        return Term(Tag('.bag.'), None, [Term(Tag('.attr.'), None,
-                                              [coerceToTerm(k), coerceToTerm(v)], None)
-                                         for (k, v) in val.iteritems()],
+        return Term(Tag('.bag.'), None, tuple(Term(Tag('.attr.'), None,
+                                                   (coerceToTerm(k), coerceToTerm(v)), None)
+                                         for (k, v) in val.iteritems()),
                     None)
+    def _substitute(self, map):
+        return [self]
 
-    if isinstance(val, Term):
-        return self
+_Hole = namedtuple("_Hole", "tag name")
+
+def _asTag(candidate):
+    if isinstance(candidate, Term):
+        if candidate.args:
+            raise TypeError("Term with args can't be used as tag")
+        else:
+            return candidate.tag, candidate.data
+    elif isinstance(candidate, Tag):
+        return candidate, None
+    else:
+        raise TypeError("%r isn't a tag" % (candidate,))
+
+def _multiget(args, holenum, index, repeat):
+    result = args[holenum]
+    for i in index:
+        if not isinstance(result, list):
+            return result
+        result = result[i]
+    return result
+
+class ValueHole(_Hole):
+    def _unparse(self, indentLevel=0):
+        return "${%s}" % (self.name,)
+
+    def _substitute(self, map):
+        return [coerceToTerm(map[self.name])]
+
+
+class PatternHole(_Hole):
+    pass

@@ -79,20 +79,20 @@ def makeTerm(t, args=None, span=None):
         if args:
             raise ValueError("Literal terms do not take arguments")
         return t
-    return Term(t, None, args, span)
+    return Term(t, None, args and tuple(args), span)
 
 
 def Tuple(args, span):
-    return Term(Tag(".tuple."), None, args, span)
+    return Term(Tag(".tuple."), None, tuple(args), span)
 
 def Bag(args, span):
-    return Term(Tag(".bag."), None, args, span)
+    return Term(Tag(".bag."), None, tuple(args), span)
 
 def LabelledBag(f, arg, span):
-    return Term(f, None, [arg], span)
+    return Term(f, None, (arg,), span)
 
 def Attr(k, v, span):
-    return Term(Tag(".attr."), None, [k, v], span)
+    return Term(Tag(".attr."), None, (k, v), span)
 
 
 

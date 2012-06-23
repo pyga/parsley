@@ -86,13 +86,13 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(parse("x"), Term(Tag("x"), None, None, None))
         self.assertEqual(parse("x()"), Term(Tag("x"), None, [], None))
         self.assertEqual(parse("x(1)"), Term(Tag("x"), None,
-                                             [Term(Tag(".int."), 1, None, None)],
+                                             (Term(Tag(".int."), 1, None, None),),
                                              None))
         self.assertEqual(parse("x(1, 2)"), Term(Tag("x"), None,
-                                                [Term(Tag(".int."), 1,
+                                                (Term(Tag(".int."), 1,
                                                       None, None),
                                                  Term(Tag(".int."), 2,
-                                                      None, None)],
+                                                      None, None)),
                                                 None))
         self.assertEqual(parse("1"), Term(Tag(".int."), 1, None, None))
         self.assertEqual(parse('"1"'), Term(Tag(".String."), "1", None, None))

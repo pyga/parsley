@@ -224,7 +224,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for variable assignment.
         """
         x = self.builder.exactly("x")
-        b = self.builder.bind(x, "var")
+        b = self.builder.bind("var", x)
         self.assertEqual(writePython(b),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')

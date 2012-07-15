@@ -46,7 +46,7 @@ class TreeBuilder(object):
     def sequence(self, exprs):
         return ["And", exprs]
 
-    def bind(self, expr, name):
+    def bind(self, name, expr):
         return ["Bind", name, expr]
 
     def pred(self, expr):

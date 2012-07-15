@@ -61,10 +61,10 @@ expr3 = ((expr2:e ('*' -> self.builder.many(e)
                       |'+' -> self.builder.many1(e)
                       |'?' -> self.builder.optional(e)
                       | -> e)):r
-           (':' name:n -> self.builder.bind(r, n)
+           (':' name:n -> self.builder.bind(n, r)
            | -> r)
           |token(':') name:n
-           -> self.builder.bind(self.builder.apply("anything", self.name), n))
+           -> self.builder.bind(n, self.builder.apply("anything", self.name)))
 
 expr4 = expr3*:es -> self.builder.sequence(es)
 
@@ -144,10 +144,10 @@ expr3 = (expr2:e ('*' -> self.builder.many(e)
                       |'+' -> self.builder.many1(e)
                       |'?' -> self.builder.optional(e)
                       | -> e)):r
-           (':' name:n -> self.builder.bind(r, n)
+           (':' name:n -> self.builder.bind(n, r)
            | -> r)
           |token(':') name:n
-           -> self.builder.bind(self.builder.apply("anything", self.name), n)
+           -> self.builder.bind(n, self.builder.apply("anything", self.name))
 
 expr4 = expr3*:es -> self.builder.sequence(es)
 
@@ -248,7 +248,7 @@ opt = ( ["Apply" :ruleName :codeName [anything*:exprs]] -> self.builder.apply(ru
         | ["And" [opt*:exprs]] -> self.builder.sequence(exprs)
         | ["Not" opt:expr]  -> self.builder._not(expr)
         | ["Lookahead" opt:expr] -> self.builder.lookahead(expr)
-        | ["Bind" :name opt:expr] -> self.builder.bind(expr, name)
+        | ["Bind" :name opt:expr] -> self.builder.bind(name, expr)
         | ["Predicate" opt:expr] -> self.builder.pred(expr)
         | ["Action" :code] -> self.builder.action(code)
         | ["Python" :code] -> self.builder.expr(code)

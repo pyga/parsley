@@ -40,21 +40,21 @@ class Parser(GrammarBase):
             _G_apply_15, lastError = self._apply(self.rule_string, "string", [])
             self.considerError(lastError)
             _locals['x'] = _G_apply_15
-            _G_python_16, lastError = eval('Term(Tag(".String."), x, None, self.span(s))', self.globals, _locals), None
+            _G_python_16, lastError = eval('leafInternal(Tag(".String."), x, self.span(s))', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_16, self.currentError)
         def _G_or_17():
             _G_apply_18, lastError = self._apply(self.rule_character, "character", [])
             self.considerError(lastError)
             _locals['x'] = _G_apply_18
-            _G_python_19, lastError = eval('Term(Tag(".char."), x, None, self.span(s))', self.globals, _locals), None
+            _G_python_19, lastError = eval('leafInternal(Tag(".char."), x, self.span(s))', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_19, self.currentError)
         def _G_or_20():
             _G_apply_21, lastError = self._apply(self.rule_number, "number", [])
             self.considerError(lastError)
             _locals['x'] = _G_apply_21
-            _G_python_22, lastError = eval('Term(Tag(numberType(x)), x, None, self.span(s))', self.globals, _locals), None
+            _G_python_22, lastError = eval('leafInternal(Tag(numberType(x)), x, self.span(s))', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_22, self.currentError)
         _G_or_23, lastError = self._or([_G_or_14, _G_or_17, _G_or_20])
@@ -254,210 +254,212 @@ class Parser(GrammarBase):
             _G_apply_89, lastError = self._apply(self.rule_tag, "tag", [])
             self.considerError(lastError)
             _locals['t'] = _G_apply_89
-            return (_locals['t'], self.currentError)
-        _G_or_90, lastError = self._or([_G_or_86, _G_or_88])
+            _G_python_90, lastError = eval('leafInternal(t, None, None)', self.globals, _locals), None
+            self.considerError(lastError)
+            return (_G_python_90, self.currentError)
+        _G_or_91, lastError = self._or([_G_or_86, _G_or_88])
         self.considerError(lastError)
-        return (_G_or_90, self.currentError)
+        return (_G_or_91, self.currentError)
 
 
     def rule_baseTerm(self):
         _locals = {'self': self}
         self.locals['baseTerm'] = _locals
-        _G_python_91, lastError = eval('self.startSpan()', self.globals, _locals), None
+        _G_python_92, lastError = eval('self.startSpan()', self.globals, _locals), None
         self.considerError(lastError)
-        _locals['s'] = _G_python_91
-        _G_apply_92, lastError = self._apply(self.rule_functor, "functor", [])
+        _locals['s'] = _G_python_92
+        _G_apply_93, lastError = self._apply(self.rule_functor, "functor", [])
         self.considerError(lastError)
-        _locals['f'] = _G_apply_92
-        def _G_or_93():
-            _G_exactly_94, lastError = self.exactly('(')
+        _locals['f'] = _G_apply_93
+        def _G_or_94():
+            _G_exactly_95, lastError = self.exactly('(')
             self.considerError(lastError)
-            _G_apply_95, lastError = self._apply(self.rule_argList, "argList", [])
+            _G_apply_96, lastError = self._apply(self.rule_argList, "argList", [])
             self.considerError(lastError)
-            _locals['a'] = _G_apply_95
-            _G_apply_96, lastError = self._apply(self.rule_spaces, "spaces", [])
+            _locals['a'] = _G_apply_96
+            _G_apply_97, lastError = self._apply(self.rule_spaces, "spaces", [])
             self.considerError(lastError)
-            _G_exactly_97, lastError = self.exactly(')')
+            _G_exactly_98, lastError = self.exactly(')')
             self.considerError(lastError)
-            _G_python_98, lastError = eval('makeTerm(f, a, self.span(s))', self.globals, _locals), None
+            _G_python_99, lastError = eval('makeTerm(f, a, self.span(s))', self.globals, _locals), None
             self.considerError(lastError)
-            return (_G_python_98, self.currentError)
-        def _G_or_99():
-            _G_python_100, lastError = eval('makeTerm(f, None, self.span(s))', self.globals, _locals), None
+            return (_G_python_99, self.currentError)
+        def _G_or_100():
+            _G_python_101, lastError = eval('makeTerm(f, None, self.span(s))', self.globals, _locals), None
             self.considerError(lastError)
-            return (_G_python_100, self.currentError)
-        _G_or_101, lastError = self._or([_G_or_93, _G_or_99])
+            return (_G_python_101, self.currentError)
+        _G_or_102, lastError = self._or([_G_or_94, _G_or_100])
         self.considerError(lastError)
-        return (_G_or_101, self.currentError)
+        return (_G_or_102, self.currentError)
 
 
     def rule_arg(self):
         _locals = {'self': self}
         self.locals['arg'] = _locals
-        _G_apply_102, lastError = self._apply(self.rule_term, "term", [])
+        _G_apply_103, lastError = self._apply(self.rule_term, "term", [])
         self.considerError(lastError)
-        return (_G_apply_102, self.currentError)
+        return (_G_apply_103, self.currentError)
 
 
     def rule_argList(self):
         _locals = {'self': self}
         self.locals['argList'] = _locals
-        def _G_or_103():
-            _G_apply_104, lastError = self._apply(self.rule_arg, "arg", [])
+        def _G_or_104():
+            _G_apply_105, lastError = self._apply(self.rule_arg, "arg", [])
             self.considerError(lastError)
-            _locals['t'] = _G_apply_104
-            def _G_many_105():
-                _G_python_106, lastError = eval("','", self.globals, _locals), None
+            _locals['t'] = _G_apply_105
+            def _G_many_106():
+                _G_python_107, lastError = eval("','", self.globals, _locals), None
                 self.considerError(lastError)
-                _G_apply_107, lastError = self._apply(self.rule_token, "token", [_G_python_106])
+                _G_apply_108, lastError = self._apply(self.rule_token, "token", [_G_python_107])
                 self.considerError(lastError)
-                _G_apply_108, lastError = self._apply(self.rule_arg, "arg", [])
+                _G_apply_109, lastError = self._apply(self.rule_arg, "arg", [])
                 self.considerError(lastError)
-                return (_G_apply_108, self.currentError)
-            _G_many_109, lastError = self.many(_G_many_105)
+                return (_G_apply_109, self.currentError)
+            _G_many_110, lastError = self.many(_G_many_106)
             self.considerError(lastError)
-            _locals['ts'] = _G_many_109
-            def _G_optional_110():
-                _G_python_111, lastError = eval("','", self.globals, _locals), None
+            _locals['ts'] = _G_many_110
+            def _G_optional_111():
+                _G_python_112, lastError = eval("','", self.globals, _locals), None
                 self.considerError(lastError)
-                _G_apply_112, lastError = self._apply(self.rule_token, "token", [_G_python_111])
+                _G_apply_113, lastError = self._apply(self.rule_token, "token", [_G_python_112])
                 self.considerError(lastError)
-                return (_G_apply_112, self.currentError)
-            def _G_optional_113():
+                return (_G_apply_113, self.currentError)
+            def _G_optional_114():
                 return (None, self.input.nullError())
-            _G_or_114, lastError = self._or([_G_optional_110, _G_optional_113])
+            _G_or_115, lastError = self._or([_G_optional_111, _G_optional_114])
             self.considerError(lastError)
-            _G_python_115, lastError = eval('cons(t, ts)', self.globals, _locals), None
+            _G_python_116, lastError = eval('cons(t, ts)', self.globals, _locals), None
             self.considerError(lastError)
-            return (_G_python_115, self.currentError)
-        def _G_or_116():
-            _G_python_117, lastError = eval('[]', self.globals, _locals), None
+            return (_G_python_116, self.currentError)
+        def _G_or_117():
+            _G_python_118, lastError = eval('[]', self.globals, _locals), None
             self.considerError(lastError)
-            return (_G_python_117, self.currentError)
-        _G_or_118, lastError = self._or([_G_or_103, _G_or_116])
+            return (_G_python_118, self.currentError)
+        _G_or_119, lastError = self._or([_G_or_104, _G_or_117])
         self.considerError(lastError)
-        return (_G_or_118, self.currentError)
+        return (_G_or_119, self.currentError)
 
 
     def rule_tupleTerm(self):
         _locals = {'self': self}
         self.locals['tupleTerm'] = _locals
-        _G_python_119, lastError = eval('self.startSpan()', self.globals, _locals), None
+        _G_python_120, lastError = eval('self.startSpan()', self.globals, _locals), None
         self.considerError(lastError)
-        _locals['s'] = _G_python_119
-        _G_python_120, lastError = eval("'['", self.globals, _locals), None
+        _locals['s'] = _G_python_120
+        _G_python_121, lastError = eval("'['", self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_121, lastError = self._apply(self.rule_token, "token", [_G_python_120])
+        _G_apply_122, lastError = self._apply(self.rule_token, "token", [_G_python_121])
         self.considerError(lastError)
-        _G_apply_122, lastError = self._apply(self.rule_argList, "argList", [])
+        _G_apply_123, lastError = self._apply(self.rule_argList, "argList", [])
         self.considerError(lastError)
-        _locals['a'] = _G_apply_122
-        _G_python_123, lastError = eval("']'", self.globals, _locals), None
+        _locals['a'] = _G_apply_123
+        _G_python_124, lastError = eval("']'", self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_124, lastError = self._apply(self.rule_token, "token", [_G_python_123])
+        _G_apply_125, lastError = self._apply(self.rule_token, "token", [_G_python_124])
         self.considerError(lastError)
-        _G_python_125, lastError = eval('Tuple(a, self.span(s))', self.globals, _locals), None
+        _G_python_126, lastError = eval('Tuple(a, self.span(s))', self.globals, _locals), None
         self.considerError(lastError)
-        return (_G_python_125, self.currentError)
+        return (_G_python_126, self.currentError)
 
 
     def rule_bagTerm(self):
         _locals = {'self': self}
         self.locals['bagTerm'] = _locals
-        _G_python_126, lastError = eval('self.startSpan()', self.globals, _locals), None
+        _G_python_127, lastError = eval('self.startSpan()', self.globals, _locals), None
         self.considerError(lastError)
-        _locals['s'] = _G_python_126
-        _G_python_127, lastError = eval("'{'", self.globals, _locals), None
+        _locals['s'] = _G_python_127
+        _G_python_128, lastError = eval("'{'", self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_128, lastError = self._apply(self.rule_token, "token", [_G_python_127])
+        _G_apply_129, lastError = self._apply(self.rule_token, "token", [_G_python_128])
         self.considerError(lastError)
-        _G_apply_129, lastError = self._apply(self.rule_argList, "argList", [])
+        _G_apply_130, lastError = self._apply(self.rule_argList, "argList", [])
         self.considerError(lastError)
-        _locals['a'] = _G_apply_129
-        _G_python_130, lastError = eval("'}'", self.globals, _locals), None
+        _locals['a'] = _G_apply_130
+        _G_python_131, lastError = eval("'}'", self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_131, lastError = self._apply(self.rule_token, "token", [_G_python_130])
+        _G_apply_132, lastError = self._apply(self.rule_token, "token", [_G_python_131])
         self.considerError(lastError)
-        _G_python_132, lastError = eval('Bag(a, self.span(s))', self.globals, _locals), None
+        _G_python_133, lastError = eval('Bag(a, self.span(s))', self.globals, _locals), None
         self.considerError(lastError)
-        return (_G_python_132, self.currentError)
+        return (_G_python_133, self.currentError)
 
 
     def rule_labelledBagTerm(self):
         _locals = {'self': self}
         self.locals['labelledBagTerm'] = _locals
-        _G_python_133, lastError = eval('self.startSpan()', self.globals, _locals), None
+        _G_python_134, lastError = eval('self.startSpan()', self.globals, _locals), None
         self.considerError(lastError)
-        _locals['s'] = _G_python_133
-        _G_apply_134, lastError = self._apply(self.rule_functor, "functor", [])
+        _locals['s'] = _G_python_134
+        _G_apply_135, lastError = self._apply(self.rule_functor, "functor", [])
         self.considerError(lastError)
-        _locals['f'] = _G_apply_134
-        _G_apply_135, lastError = self._apply(self.rule_bagTerm, "bagTerm", [])
+        _locals['f'] = _G_apply_135
+        _G_apply_136, lastError = self._apply(self.rule_bagTerm, "bagTerm", [])
         self.considerError(lastError)
-        _locals['b'] = _G_apply_135
-        _G_python_136, lastError = eval('LabelledBag(f, b, self.span(s))', self.globals, _locals), None
+        _locals['b'] = _G_apply_136
+        _G_python_137, lastError = eval('LabelledBag(f, b, self.span(s))', self.globals, _locals), None
         self.considerError(lastError)
-        return (_G_python_136, self.currentError)
+        return (_G_python_137, self.currentError)
 
 
     def rule_extraTerm(self):
         _locals = {'self': self}
         self.locals['extraTerm'] = _locals
-        def _G_or_137():
-            _G_apply_138, lastError = self._apply(self.rule_tupleTerm, "tupleTerm", [])
+        def _G_or_138():
+            _G_apply_139, lastError = self._apply(self.rule_tupleTerm, "tupleTerm", [])
             self.considerError(lastError)
-            return (_G_apply_138, self.currentError)
-        def _G_or_139():
-            _G_apply_140, lastError = self._apply(self.rule_labelledBagTerm, "labelledBagTerm", [])
+            return (_G_apply_139, self.currentError)
+        def _G_or_140():
+            _G_apply_141, lastError = self._apply(self.rule_labelledBagTerm, "labelledBagTerm", [])
             self.considerError(lastError)
-            return (_G_apply_140, self.currentError)
-        def _G_or_141():
-            _G_apply_142, lastError = self._apply(self.rule_bagTerm, "bagTerm", [])
+            return (_G_apply_141, self.currentError)
+        def _G_or_142():
+            _G_apply_143, lastError = self._apply(self.rule_bagTerm, "bagTerm", [])
             self.considerError(lastError)
-            return (_G_apply_142, self.currentError)
-        def _G_or_143():
-            _G_apply_144, lastError = self._apply(self.rule_baseTerm, "baseTerm", [])
+            return (_G_apply_143, self.currentError)
+        def _G_or_144():
+            _G_apply_145, lastError = self._apply(self.rule_baseTerm, "baseTerm", [])
             self.considerError(lastError)
-            return (_G_apply_144, self.currentError)
-        _G_or_145, lastError = self._or([_G_or_137, _G_or_139, _G_or_141, _G_or_143])
+            return (_G_apply_145, self.currentError)
+        _G_or_146, lastError = self._or([_G_or_138, _G_or_140, _G_or_142, _G_or_144])
         self.considerError(lastError)
-        return (_G_or_145, self.currentError)
+        return (_G_or_146, self.currentError)
 
 
     def rule_attrTerm(self):
         _locals = {'self': self}
         self.locals['attrTerm'] = _locals
-        _G_python_146, lastError = eval('self.startSpan()', self.globals, _locals), None
+        _G_python_147, lastError = eval('self.startSpan()', self.globals, _locals), None
         self.considerError(lastError)
-        _locals['s'] = _G_python_146
-        _G_apply_147, lastError = self._apply(self.rule_extraTerm, "extraTerm", [])
+        _locals['s'] = _G_python_147
+        _G_apply_148, lastError = self._apply(self.rule_extraTerm, "extraTerm", [])
         self.considerError(lastError)
-        _locals['k'] = _G_apply_147
-        _G_python_148, lastError = eval("':'", self.globals, _locals), None
+        _locals['k'] = _G_apply_148
+        _G_python_149, lastError = eval("':'", self.globals, _locals), None
         self.considerError(lastError)
-        _G_apply_149, lastError = self._apply(self.rule_token, "token", [_G_python_148])
+        _G_apply_150, lastError = self._apply(self.rule_token, "token", [_G_python_149])
         self.considerError(lastError)
-        _G_apply_150, lastError = self._apply(self.rule_extraTerm, "extraTerm", [])
+        _G_apply_151, lastError = self._apply(self.rule_extraTerm, "extraTerm", [])
         self.considerError(lastError)
-        _locals['v'] = _G_apply_150
-        _G_python_151, lastError = eval('Attr(k, v, self.span(s))', self.globals, _locals), None
+        _locals['v'] = _G_apply_151
+        _G_python_152, lastError = eval('Attr(k, v, self.span(s))', self.globals, _locals), None
         self.considerError(lastError)
-        return (_G_python_151, self.currentError)
+        return (_G_python_152, self.currentError)
 
 
     def rule_term(self):
         _locals = {'self': self}
         self.locals['term'] = _locals
-        _G_apply_152, lastError = self._apply(self.rule_spaces, "spaces", [])
+        _G_apply_153, lastError = self._apply(self.rule_spaces, "spaces", [])
         self.considerError(lastError)
-        def _G_or_153():
-            _G_apply_154, lastError = self._apply(self.rule_attrTerm, "attrTerm", [])
+        def _G_or_154():
+            _G_apply_155, lastError = self._apply(self.rule_attrTerm, "attrTerm", [])
             self.considerError(lastError)
-            return (_G_apply_154, self.currentError)
-        def _G_or_155():
-            _G_apply_156, lastError = self._apply(self.rule_extraTerm, "extraTerm", [])
+            return (_G_apply_155, self.currentError)
+        def _G_or_156():
+            _G_apply_157, lastError = self._apply(self.rule_extraTerm, "extraTerm", [])
             self.considerError(lastError)
-            return (_G_apply_156, self.currentError)
-        _G_or_157, lastError = self._or([_G_or_153, _G_or_155])
+            return (_G_apply_157, self.currentError)
+        _G_or_158, lastError = self._or([_G_or_154, _G_or_156])
         self.considerError(lastError)
-        return (_G_or_157, self.currentError)
+        return (_G_or_158, self.currentError)

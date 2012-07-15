@@ -6,9 +6,9 @@ from terml.twine import spanCover
 termLGrammar = r"""
 spaces = ('\r' '\n'|'\r' | '\n' | horizontal_space)*
 literal =  !(self.startSpan()):s (
-              string:x -> Term(Tag(".String."), x, None, self.span(s))
-            | character:x -> Term(Tag(".char."), x, None, self.span(s))
-            | number:x -> Term(Tag(numberType(x)), x, None, self.span(s)))
+              string:x -> leafInternal(Tag(".String."), x, self.span(s))
+            | character:x -> leafInternal(Tag(".char."), x, self.span(s))
+            | number:x -> leafInternal(Tag(numberType(x)), x, self.span(s)))
 
 tag =  (
           segment:seg1 (':' ':' sos)*:segs -> makeTag(cons(seg1, segs))
@@ -28,7 +28,7 @@ special = '.':a ident:b -> concat(a, b)
 
 uri = '<' uriBody*:uriChars '>' -> concat(b, uriChars, e)
 
-functor = spaces (literal | tag:t)
+functor = spaces (literal | tag:t -> leafInternal(t, None, None))
 baseTerm = !(self.startSpan()):s functor:f (
                              '(' argList:a spaces ')' -> makeTerm(f, a, self.span(s))
                            | -> makeTerm(f, None, self.span(s)))
@@ -73,13 +73,17 @@ def numberType(n):
         return ".int."
     raise ValueError("wtf")
 
+def leafInternal(tag, data, span):
+    return Term(tag, data, None, span)
 
 def makeTerm(t, args=None, span=None):
     if isinstance(t, Term):
-        if args:
-            raise ValueError("Literal terms do not take arguments")
-        return t
-    return Term(t, None, args and tuple(args), span)
+        if t.data:
+            if not args:
+                return t
+            else:
+                raise ValueError("Literal terms can't have arguments")
+    return Term(t.asFunctor(), None, args and tuple(args), span)
 
 
 def Tuple(args, span):
@@ -89,7 +93,7 @@ def Bag(args, span):
     return Term(Tag(".bag."), None, tuple(args), span)
 
 def LabelledBag(f, arg, span):
-    return Term(f, None, (arg,), span)
+    return Term(f.asFunctor(), None, (arg,), span)
 
 def Attr(k, v, span):
     return Term(Tag(".attr."), None, (k, v), span)

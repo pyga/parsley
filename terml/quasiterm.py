@@ -1,7 +1,7 @@
 from ometa.boot import BootOMetaGrammar
 from ometa.runtime import ParseError, EOFError
-from terml.parser import TermLParser
-from terml.nodes import ValueHole, PatternHole, Term
+from terml.parser import TermLParser, makeTerm as baseMakeTerm
+from terml.nodes import ValueHole, PatternHole, Term, QSome, QFunctor
 
 quasitermGrammar = """
 schema = production+:ps -> schema(ps)
@@ -47,20 +47,28 @@ def _or(l, *r):
 
 def some(value, quant):
     if quant:
-        raise NotImplementedError()
+        return QSome(value, quant)
     else:
         return value
 
 def dollarHole(i):
-    return ValueHole(None, i)
+    return ValueHole(None, i, False)
 
 def patternHole(i):
-    return PatternHole(None, i)
+    return PatternHole(None, i, False)
 
 def taggedHole(t, h):
-    return h.__class__(t, h.number)
+    return h.__class__(t, h.name, h.isFunctorHole)
+
+def leafInternal(tag, data, span):
+    return QFunctor(tag, data, span)
 
 
+def makeTerm(t, args=None, span=None):
+    if args is None:
+        return t
+    else:
+        return baseMakeTerm(t.asFunctor(), args, span)
 
 QTermParser = BootOMetaGrammar.makeGrammar(quasitermGrammar, TermLParser.globals,
                                            "QTermParser", TermLParser)

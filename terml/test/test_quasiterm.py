@@ -3,7 +3,7 @@ from unittest import TestCase
 from terml.parser import parseTerm as term
 from terml.quasiterm import quasiterm
 
-class QuasiTermMatchTests(TestCase):
+class QuasiTermSubstituteTests(TestCase):
 
     def test_basic(self):
         x = quasiterm("foo($x, $y)").substitute({"x": 1, "y": term("baz")})
@@ -15,11 +15,29 @@ class QuasiTermMatchTests(TestCase):
     def test_withArgs(self):
         x = quasiterm("$x(3)").substitute({"x": term("foo")})
         self.assertEqual(x, term("foo(3)"))
+        x = quasiterm("foo($x)").substitute({"x": term("baz(3)")})
+        self.assertEqual(x, term("foo(baz(3))"))
         self.assertRaises(TypeError, quasiterm("$x(3)").substitute,
                           {"x": term("foo(3)")})
 
-    # def test_lessgreedy(self):
 
-    #     result = quasiterm("[@x*, @y, @z]").match(term("[4, 5, 6, 7, 8]"))
-    #     self.assertEqual(result, {"x": [term("4"), term("5"), term("6")], "y": term("7"),
-    #                               "z": term("8")})
+class QuasiTermMatchTests(TestCase):
+
+    def test_simple(self):
+        self.assertEqual(quasiterm("@foo()").match("hello"),
+                         {"foo": term('hello')})
+        self.assertEqual(quasiterm("@foo").match("hello"),
+                         {"foo": term('"hello"')})
+        self.assertEqual(quasiterm("@foo").match(term("hello")),
+                         {"foo": term('hello')})
+        self.assertRaises(TypeError, quasiterm("hello@foo").match, "hello")
+        self.assertEqual(quasiterm(".String.@foo").match(term('"hello"')),
+                         {"foo": term('"hello"')})
+
+        self.assertEqual(quasiterm("hello@foo").match(term("hello(3, 4)")),
+                         {"foo": term("hello(3, 4)")})
+        self.assertEqual(quasiterm("hello@bar()").match(term("hello")),
+                         {"bar": term("hello")})
+        self.assertEqual(quasiterm("hello@foo()").match("hello"), {"foo": term("hello")})
+        self.assertRaises(TypeError, quasiterm("hello@foo()").match, term("hello(3, 4)"))
+        self.assertRaises(TypeError, quasiterm("hello@foo").match, "hello")

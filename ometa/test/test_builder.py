@@ -1,7 +1,7 @@
 from textwrap import dedent
 from twisted.trial import unittest
 
-from ometa.builder import TreeBuilder, writePython
+from ometa.builder import TermBuilder, writePython
 
 def dd(txt):
     return dedent(txt).strip()
@@ -18,7 +18,7 @@ class PythonWriterTests(unittest.TestCase):
         Create a L{PythonBuilder}.
         """
 
-        self.builder = TreeBuilder("BuilderTest")
+        self.builder = TermBuilder("BuilderTest")
 
 
     def test_exactly(self):

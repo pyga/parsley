@@ -4,65 +4,43 @@ from StringIO import StringIO
 from types import ModuleType as module
 import itertools, linecache, sys
 
-class TreeBuilder(object):
-    """
-    Produce an abstract syntax tree of OMeta operations.
-    """
+from terml.nodes import Term, Tag, coerceToTerm
 
+class TermBuilder(object):
     def __init__(self, name, grammar=None, *args):
         self.name = name
 
-
+    method2TermName = {
+        "rule": "Rule",
+        "exactly": "Exactly",
+        "many": "Many",
+        "many1": "Many1",
+        "optional": "Optional",
+        "_or": "Or",
+        "_not": "Not",
+        "lookahead": "Lookahead",
+        "sequence": "And",
+        "bind": "Bind",
+        "pred": "Predicate",
+        "action": "Action",
+        "expr": "Action",
+        "listpattern": "List",
+        "consumedBy": "ConsumedBy"
+}
     def makeGrammar(self, rules):
-        return ["Grammar", self.name, rules]
-
-    def rule(self, name, expr):
-        return ["Rule", name, expr]
+        return Term(Tag("Grammar"), None, [coerceToTerm(self.name), coerceToTerm(rules)], None)
 
     def apply(self, ruleName, codeName, *exprs):
-        return ["Apply", ruleName, codeName, exprs]
+        return Term(Tag("Apply"), None, [coerceToTerm(a) for a in [ruleName, codeName, exprs]], None)
 
-    def exactly(self, expr):
-        return ["Exactly", expr]
-
-    def many(self, expr):
-        return ["Many", expr]
-
-    def many1(self, expr):
-        return ["Many1", expr]
-
-    def optional(self, expr):
-        return ["Optional", expr]
-
-    def _or(self, exprs):
-        return ["Or", exprs]
-
-    def _not(self, expr):
-        return ["Not", expr]
-
-    def lookahead(self, expr):
-        return ["Lookahead", expr]
-
-    def sequence(self, exprs):
-        return ["And", exprs]
-
-    def bind(self, name, expr):
-        return ["Bind", name, expr]
-
-    def pred(self, expr):
-        return ["Predicate", expr]
-
-    def action(self, expr):
-        return ["Action", expr]
-
-    def expr(self, expr):
-        return ["Python", expr]
-
-    def listpattern(self, exprs):
-        return ["List", exprs]
-
-    def consumedBy(self, exprs):
-        return ["ConsumedBy", exprs]
+    def __getattr__(self, name):
+        if name in self.method2TermName:
+            termName = self.method2TermName[name]
+            def makeNode(*args):
+                return Term(Tag(termName), None, [coerceToTerm(a) for a in args], None)
+            return makeNode
+        else:
+            return object.__getattr__(self, name)
 
 
 class TextWriter(object):
@@ -106,8 +84,8 @@ class PythonWriter(object):
 
 
     def _generateNode(self, out, node):
-        name = node[0]
-        args =  node[1:]
+        name = node.tag.name
+        args = node.args
         return getattr(self, "generate_"+name)(out, *args)
 
 
@@ -158,19 +136,20 @@ class PythonWriter(object):
         """
         Generate code for running embedded Python expressions.
         """
-        return self._expr(out, 'python', 'eval(%r, self.globals, _locals), None' %(expr,))
+        return self._expr(out, 'python', 'eval(%r, self.globals, _locals), None' %(expr.data,))
 
     def _convertArgs(self, out, rawArgs):
-        return [self._generateNode(out, x) for x in rawArgs]
+        return [self._generateNode(out, x) for x in rawArgs.args]
 
 
     def generate_Apply(self, out, ruleName, codeName, rawArgs):
         """
         Create a call to self.apply(ruleName, *args).
         """
+        ruleName = ruleName.data
         args = self._convertArgs(out, rawArgs)
         if ruleName == 'super':
-            return self._expr(out, 'apply', 'self.superApply("%s", %s)' % (codeName,
+            return self._expr(out, 'apply', 'self.superApply("%s", %s)' % (codeName.data,
                                                               ', '.join(args)))
         return self._expr(out, 'apply', 'self._apply(self.rule_%s, "%s", [%s])' % (ruleName,
                                                                               ruleName,
@@ -180,9 +159,9 @@ class PythonWriter(object):
         """
         Create a call to self.exactly(expr).
         """
-        if not isinstance(literal, basestring):
+        if not literal.tag.name == ".String.":
             self.takesTreeInput = True
-        return self._expr(out, 'exactly', 'self.exactly(%r)' % (literal,))
+        return self._expr(out, 'exactly', 'self.exactly(%r)' % (literal.data,))
 
 
     def generate_Many(self, out, expr):
@@ -217,11 +196,11 @@ class PythonWriter(object):
         Create a call to
         self._or([lambda: expr1, lambda: expr2, ... , lambda: exprN]).
         """
-        if len(exprs) > 1:
-            fnames = [self._newThunkFor(out, "or", expr) for expr in exprs]
+        if len(exprs.args) > 1:
+            fnames = [self._newThunkFor(out, "or", expr) for expr in exprs.args]
             return self._expr(out, 'or', 'self._or([%s])' % (', '.join(fnames)))
         else:
-            return self._generateNode(out, exprs[0])
+            return self._generateNode(out, exprs.args[0])
 
 
     def generate_Not(self, out, expr):
@@ -245,7 +224,7 @@ class PythonWriter(object):
         Generate code for each statement in order.
         """
         v = None
-        for ex in exprs:
+        for ex in exprs.args:
             v = self._generateNode(out, ex)
         return v
 
@@ -255,7 +234,7 @@ class PythonWriter(object):
         Bind the value of 'expr' to a name in the _locals dict.
         """
         v = self._generateNode(out, expr)
-        ref = "_locals['%s']" % (name,)
+        ref = "_locals['%s']" % (name.data,)
         out.writeln("%s = %s" %(ref, v))
         return ref
 
@@ -301,16 +280,16 @@ class PythonWriter(object):
 
 
     def generate_Rule(self, prevOut, name, expr):
-        prevOut.writeln("def rule_%s(self):" % (name,))
+        prevOut.writeln("def rule_%s(self):" % (name.data,))
         out = prevOut.indent()
         out.writeln("_locals = {'self': self}")
-        out.writeln("self.locals[%r] = _locals" % (name,))
+        out.writeln("self.locals[%r] = _locals" % (name.data,))
         self._generate(prevOut.indent(), expr, retrn=True)
 
     def generate_Grammar(self, out, name, rules):
-        out.writeln("class %s(GrammarBase):" % (name,))
+        out.writeln("class %s(GrammarBase):" % (name.data,))
         out = out.indent()
-        for rule in rules:
+        for rule in rules.args:
             self._generateNode(out, rule)
             out.writeln("")
             out.writeln("")

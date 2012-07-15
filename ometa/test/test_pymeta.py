@@ -3,7 +3,7 @@ from textwrap import dedent
 from twisted.trial import unittest
 from ometa.runtime import ParseError, OMetaBase, EOFError, expected
 from ometa.boot import BootOMetaGrammar
-from ometa.builder import TreeBuilder, moduleFromGrammar
+from ometa.builder import TermBuilder, moduleFromGrammar
 
 class HandyWrapper(object):
     """
@@ -60,7 +60,7 @@ class OMeta1TestCase(unittest.TestCase):
         @param grammar: A string containing an OMeta grammar.
         """
         g = self.classTested(dedent(grammar))
-        tree = g.parseGrammar('TestGrammar', TreeBuilder)
+        tree = g.parseGrammar('TestGrammar', TermBuilder)
         result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(result)
 
@@ -225,7 +225,7 @@ class OMeta1TestCase(unittest.TestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         gg = self.classTested("stuff ::= '1':a ('2':b | '3':c)")
-        t = gg.parseGrammar('TestGrammar', TreeBuilder)
+        t = gg.parseGrammar('TestGrammar', TermBuilder)
         G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
@@ -562,7 +562,7 @@ class OMetaTestCase(unittest.TestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         gg = self.classTested("stuff = '1':a ('2':b | '3':c)")
-        t = gg.parseGrammar('TestGrammar', TreeBuilder)
+        t = gg.parseGrammar('TestGrammar', TermBuilder)
         G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
@@ -776,7 +776,7 @@ class TermActionGrammarTests(OMetaTestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         gg = self.classTested("stuff = '1':a ('2':b | '3':c)")
-        t = gg.parseGrammar('TestGrammar', TreeBuilder)
+        t = gg.parseGrammar('TestGrammar', TermBuilder)
         G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
@@ -1073,27 +1073,6 @@ class SelfHostingTest(OMetaTestCase):
             self.classTested = OMeta
 
 
-
-class NullOptimizerTest(OMetaTestCase):
-    """
-    Tests of OMeta grammar compilation via the null optimizer.
-    """
-
-    def compile(self, grammar):
-        """
-        Produce an object capable of parsing via this grammar.
-
-        @param grammar: A string containing an OMeta grammar.
-        """
-        from ometa.grammar import OMeta, NullOptimizer
-        g = OMeta(dedent(grammar))
-        tree  = g.parseGrammar('TestGrammar', TreeBuilder)
-        opt = NullOptimizer([tree])
-        opt.builder = TreeBuilder("TestGrammar", opt)
-        tree, err = opt.apply("grammar")
-        grammarClass = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
-        return HandyWrapper(grammarClass)
-
 class ErrorReportingTests(unittest.TestCase):
 
 
@@ -1104,7 +1083,7 @@ class ErrorReportingTests(unittest.TestCase):
         @param grammar: A string containing an OMeta grammar.
         """
         g = BootOMetaGrammar(dedent(grammar))
-        tree = g.parseGrammar('TestGrammar', TreeBuilder)
+        tree = g.parseGrammar('TestGrammar', TermBuilder)
         result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
         return HandyWrapper(result)
 

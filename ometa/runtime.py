@@ -4,7 +4,7 @@ Code needed to run a grammar after it has been compiled.
 """
 import operator
 from terml.twine import asTwineFrom
-from ometa.builder import TreeBuilder, moduleFromGrammar
+from ometa.builder import TermBuilder, moduleFromGrammar
 
 class ParseError(Exception):
     """
@@ -702,7 +702,7 @@ class OMetaGrammarBase(OMetaBase):
         @param superclass: The class the generated class is a child of.
         """
         g = cls(grammar)
-        tree = g.parseGrammar(name, TreeBuilder)
+        tree = g.parseGrammar(name, TermBuilder)
         return moduleFromGrammar(tree, name, superclass or OMetaBase, globals)
 
 

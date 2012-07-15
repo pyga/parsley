@@ -9,7 +9,7 @@ from StringIO import StringIO
 from terml.parser import TermLParser
 
 from ometa.boot import BootOMetaGrammar
-from ometa.builder import TermActionPythonWriter, TreeBuilder, moduleFromGrammar, TextWriter
+from ometa.builder import TermActionPythonWriter, TermBuilder, moduleFromGrammar, TextWriter
 from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError
 
 
@@ -208,7 +208,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         @param superclass: The class the generated class is a child of.
         """
         g = cls(grammar)
-        tree = g.parseGrammar(name, TreeBuilder)
+        tree = g.parseGrammar(name, TermBuilder)
         return moduleFromGrammar(
             tree, name, superclass or OMetaBase,
             globals, writer=g.writeTerm)
@@ -236,28 +236,3 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         val, err = tp.apply('argList')
         self.input = tp.input
         return val, err
-
-nullOptimizationGrammar = """
-
-opt = ( ["Apply" :ruleName :codeName [anything*:exprs]] -> self.builder.apply(ruleName, codeName, *exprs)
-        | ["Exactly" :expr] -> self.builder.exactly(expr)
-        | ["Many" opt:expr] -> self.builder.many(expr)
-        | ["Many1" opt:expr] -> self.builder.many1(expr)
-        | ["Optional" opt:expr] -> self.builder.optional(expr)
-        | ["Or" [opt*:exprs]] -> self.builder._or(exprs)
-        | ["And" [opt*:exprs]] -> self.builder.sequence(exprs)
-        | ["Not" opt:expr]  -> self.builder._not(expr)
-        | ["Lookahead" opt:expr] -> self.builder.lookahead(expr)
-        | ["Bind" :name opt:expr] -> self.builder.bind(name, expr)
-        | ["Predicate" opt:expr] -> self.builder.pred(expr)
-        | ["Action" :code] -> self.builder.action(code)
-        | ["Python" :code] -> self.builder.expr(code)
-        | ["List" opt:exprs] -> self.builder.listpattern(exprs)
-        | ["ConsumedBy" opt:exprs] -> self.builder.consumedBy(exprs)
-        )
-grammar = ["Grammar" :name [rulePair*:rs]] -> self.builder.makeGrammar(rs)
-rulePair = ["Rule" :name opt:rule] -> self.builder.rule(name, rule)
-
-"""
-
-NullOptimizer = BootOMetaGrammar.makeGrammar(nullOptimizationGrammar, {}, name="NullOptimizer")

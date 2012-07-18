@@ -18,6 +18,9 @@ class Term(_Term):
             data = tag.data
         return _Term.__new__(cls, tag, data, args, span)
 
+    def __iter__(self):
+        #and now I feel a bit silly subclassing namedtuple
+        raise NotImplementedError()
 
     def __eq__(self, other):
         return (     self.tag, self.data, self.args

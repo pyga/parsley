@@ -136,10 +136,10 @@ class PythonWriter(object):
         """
         Generate code for running embedded Python expressions.
         """
-        return self._expr(out, 'python', 'eval(%r, self.globals, _locals), None' %(expr.data,))
+        return self._expr(out, 'python', 'eval(%r, self.globals, _locals), None' %(expr,))
 
     def _convertArgs(self, out, rawArgs):
-        return [self._generateNode(out, x) for x in rawArgs.args]
+        return [self._generateNode(out, x) for x in rawArgs]
 
 
     def generate_Apply(self, out, ruleName, codeName, rawArgs):
@@ -147,7 +147,7 @@ class PythonWriter(object):
         Create a call to self.apply(ruleName, *args).
         """
         ruleName = ruleName.data
-        args = self._convertArgs(out, rawArgs)
+        args = self._convertArgs(out, rawArgs.args)
         if ruleName == 'super':
             return self._expr(out, 'apply', 'self.superApply("%s", %s)' % (codeName.data,
                                                               ', '.join(args)))
@@ -252,14 +252,14 @@ class PythonWriter(object):
         """
         Generate this embedded Python expression on its own line.
         """
-        return self.compilePythonExpr(out, expr)
+        return self.compilePythonExpr(out, expr.data)
 
 
     def generate_Python(self, out, expr):
         """
         Generate this embedded Python expression on its own line.
         """
-        return self.compilePythonExpr(out, expr)
+        return self.compilePythonExpr(out, expr.data)
 
 
     def generate_List(self, out, expr):
@@ -308,7 +308,7 @@ class TermActionPythonWriter(PythonWriter):
         Generate a call to self.pred(lambda: expr).
         """
 
-        fname = self._newThunkFor(out, "pred", ["Action", term])
+        fname = self._newThunkFor(out, "pred", Term(Tag("Action"), None, [term], None))
         return self._expr(out, "pred", "self.pred(%s)" %(fname,))
 
     def generate_Action(self, out, term):

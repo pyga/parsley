@@ -1,7 +1,7 @@
 import operator
 from textwrap import dedent
 from twisted.trial import unittest
-from ometa.runtime import ParseError, OMetaBase, EOFError, expected
+from ometa.runtime import ParseError, OMetaBase, OMetaGrammarBase, EOFError, expected
 from ometa.boot import BootOMetaGrammar
 from ometa.builder import TermBuilder, moduleFromGrammar
 
@@ -967,7 +967,7 @@ class PyExtractorTest(unittest.TestCase):
         L{OMeta.pythonExpr()} can extract a single Python expression from a
         string, ignoring the text following it.
         """
-        o = OMetaBase(expr + "\nbaz = ...\n")
+        o = OMetaGrammarBase(expr + "\nbaz = ...\n")
         self.assertEqual(o.pythonExpr()[0][0], expr)
 
 
@@ -986,9 +986,9 @@ class PyExtractorTest(unittest.TestCase):
         self.findInGrammar('[x, "]",\n 1]')
         self.findInGrammar('{x: "]",\ny: "["}')
 
-        o = OMetaBase("foo(x[1]])\nbaz = ...\n")
+        o = OMetaGrammarBase("foo(x[1]])\nbaz = ...\n")
         self.assertRaises(ParseError, o.pythonExpr)
-        o = OMetaBase("foo(x[1]\nbaz = ...\n")
+        o = OMetaGrammarBase("foo(x[1]\nbaz = ...\n")
         self.assertRaises(ParseError, o.pythonExpr)
 
 

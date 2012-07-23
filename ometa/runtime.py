@@ -421,14 +421,6 @@ class OMetaBase(object):
         return memoRec[0]
 
 
-    def rule_anything(self):
-        """
-        Match a single item from the input of any kind.
-        """
-        h, p = self.input.head()
-        self.input = self.input.tail()
-        return h, p
-
     def exactly(self, wanted):
         """
         Match a single item from the input equal to the given specimen.
@@ -444,7 +436,6 @@ class OMetaBase(object):
             self.input = i
             raise ParseError(p[0], expected(None, wanted))
 
-    rule_exactly = exactly
 
     def many(self, fn, *initial):
         """
@@ -466,6 +457,7 @@ class OMetaBase(object):
                 self.input = m
                 break
         return ans, e
+
 
     def _or(self, fns):
         """
@@ -502,6 +494,7 @@ class OMetaBase(object):
         else:
             raise ParseError(*self.input.nullError())
 
+
     def eatWhitespace(self):
         """
         Consume input until a non-whitespace character is reached.
@@ -517,7 +510,6 @@ class OMetaBase(object):
             else:
                 break
         return True, e
-    rule_spaces = eatWhitespace
 
 
     def pred(self, expr):
@@ -531,6 +523,7 @@ class OMetaBase(object):
             raise ParseError(*e)
         else:
             return True, e
+
 
     def listpattern(self, expr):
         """
@@ -559,13 +552,13 @@ class OMetaBase(object):
         slice = oldInput.data[oldInput.position:self.input.position]
         return slice, e
 
+
     def end(self):
         """
         Match the end of the stream.
         """
         return self._not(self.rule_anything)
 
-    rule_end = end
 
     def lookahead(self, f):
         """
@@ -597,7 +590,6 @@ class OMetaBase(object):
 
             raise ParseError(e[0], expected("token", tok))
 
-    rule_token = token
 
     def letter(self):
         """
@@ -610,7 +602,6 @@ class OMetaBase(object):
             e[1] = expected("letter")
             raise ParseError(*e)
 
-    rule_letter = letter
 
     def letterOrDigit(self):
         """
@@ -623,7 +614,6 @@ class OMetaBase(object):
             e[1] = expected("letter or digit")
             raise ParseError(*e)
 
-    rule_letterOrDigit = letterOrDigit
 
     def digit(self):
         """
@@ -638,50 +628,21 @@ class OMetaBase(object):
 
     rule_digit = digit
 
+    rule_letterOrDigit = letterOrDigit
+    rule_letter = letter
+    rule_token = token
+    rule_end = end
+    rule_spaces = eatWhitespace
+    rule_exactly = exactly
 
-    def pythonExpr(self, endChars="\r\n"):
+
+    def rule_anything(self):
         """
-        Extract a Python expression from the input and return it.
-
-        @arg endChars: A set of characters delimiting the end of the expression.
+        Match a single item from the input of any kind.
         """
-        delimiters = { "(": ")", "[": "]", "{": "}"}
-        stack = []
-        expr = []
-        endchar = None
-        while True:
-            try:
-                c, e = self.rule_anything()
-                endchar = c
-            except ParseError, e:
-                endchar = None
-                break
-            if c in endChars and len(stack) == 0:
-                self.input = self.input.prev()
-                break
-            else:
-                expr.append(c)
-                if c in delimiters:
-                    stack.append(delimiters[c])
-                elif len(stack) > 0 and c == stack[-1]:
-                    stack.pop()
-                elif c in delimiters.values():
-                    raise ParseError(self.input.position, expected("Python expression"))
-                elif c in "\"'":
-                    while True:
-                        strc, stre = self.rule_anything()
-                        expr.append(strc)
-                        slashcount = 0
-                        while strc == '\\':
-                            strc, stre = self.rule_anything()
-                            expr.append(strc)
-                            slashcount += 1
-                        if strc == c and slashcount % 2 == 0:
-                            break
-
-        if len(stack) > 0:
-            raise ParseError(self.input.position, expected("Python expression"))
-        return (''.join(expr).strip(), endchar), e
+        h, p = self.input.head()
+        self.input = self.input.tail()
+        return h, p
 
 
 
@@ -800,3 +761,48 @@ class OMetaGrammarBase(OMetaBase):
                 break
         return True, e
     rule_spaces = eatWhitespace
+
+
+    def pythonExpr(self, endChars="\r\n"):
+        """
+        Extract a Python expression from the input and return it.
+
+        @arg endChars: A set of characters delimiting the end of the expression.
+        """
+        delimiters = { "(": ")", "[": "]", "{": "}"}
+        stack = []
+        expr = []
+        endchar = None
+        while True:
+            try:
+                c, e = self.rule_anything()
+                endchar = c
+            except ParseError, e:
+                endchar = None
+                break
+            if c in endChars and len(stack) == 0:
+                self.input = self.input.prev()
+                break
+            else:
+                expr.append(c)
+                if c in delimiters:
+                    stack.append(delimiters[c])
+                elif len(stack) > 0 and c == stack[-1]:
+                    stack.pop()
+                elif c in delimiters.values():
+                    raise ParseError(self.input.position, expected("Python expression"))
+                elif c in "\"'":
+                    while True:
+                        strc, stre = self.rule_anything()
+                        expr.append(strc)
+                        slashcount = 0
+                        while strc == '\\':
+                            strc, stre = self.rule_anything()
+                            expr.append(strc)
+                            slashcount += 1
+                        if strc == c and slashcount % 2 == 0:
+                            break
+
+        if len(stack) > 0:
+            raise ParseError(self.input.position, expected("Python expression"))
+        return (''.join(expr).strip(), endchar), e

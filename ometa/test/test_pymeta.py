@@ -399,6 +399,18 @@ class OMeta1TestCase(unittest.TestCase):
         self.assertEqual(g.bits('0110110'), '0110110')
 
 
+    def test_accidental_bareword(self):
+        """
+        Accidental barewords are treated as syntax errors in the grammar.
+        """
+        self.assertRaises(ParseError,
+                          self.compile, """
+                          atom ::= ~('|') :a => Regex_Atom(a)
+                                   | ' ' atom:a
+                          """)
+
+
+
 
 class OMetaTestCase(unittest.TestCase):
     """

@@ -381,6 +381,8 @@ class BootOMetaGrammar(GrammarBase):
             _G_python_2, lastError = eval("self.applicationArgs(finalChar=')')", self.globals, _locals), None
             self.considerError(lastError)
             _locals['args'] = _G_python_2
+            _FAKE_, lastError = self.exactly(')')
+            self.considerError(lastError)
             _G_python_3, lastError = eval('self.builder.apply(name, self.name, *args)', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_3, self.currentError)

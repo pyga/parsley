@@ -648,16 +648,16 @@ class OMetaBase(object):
         delimiters = { "(": ")", "[": "]", "{": "}"}
         stack = []
         expr = []
-        lastc = None
         endchar = None
         while True:
             try:
                 c, e = self.rule_anything()
+                endchar = c
             except ParseError, e:
                 endchar = None
                 break
             if c in endChars and len(stack) == 0:
-                endchar = c
+                self.input = self.input.prev()
                 break
             else:
                 expr.append(c)
@@ -740,6 +740,8 @@ class OMetaGrammarBase(OMetaBase):
                 args.append(self.builder.expr(arg))
                 if endchar == finalChar:
                     break
+                if endchar == ' ':
+                    self.rule_anything()
             except ParseError:
                 break
         if args:
@@ -753,8 +755,8 @@ class OMetaGrammarBase(OMetaBase):
         paren/brace or end of line.
         """
         (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
-        if str(endchar) in ")]" or (singleLine and endchar):
-            self.input = self.input.prev()
+        # if str(endchar) in ")]" or (singleLine and endchar):
+        #     self.input = self.input.prev()
         return self.builder.expr(expr)
 
     def semanticActionExpr(self):
@@ -762,7 +764,9 @@ class OMetaGrammarBase(OMetaBase):
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value is ignored.
         """
-        return self.builder.action(self.pythonExpr(')')[0][0])
+        val = self.builder.action(self.pythonExpr(')')[0][0])
+        self.exactly(')')
+        return val
 
     def semanticPredicateExpr(self):
         """
@@ -771,6 +775,7 @@ class OMetaGrammarBase(OMetaBase):
         it's in.
         """
         expr = self.builder.expr(self.pythonExpr(')')[0][0])
+        self.exactly(')')
         return self.builder.pred(expr)
 
 

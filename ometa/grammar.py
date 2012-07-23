@@ -14,7 +14,8 @@ from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError
 
 
 v1Grammar = r"""
-
+hspace = ' ' | '\t' | ('#' (~vspace anything)*)
+vspace = (token("\r\n") | '\r' | '\n')
 number = spaces ('-' barenumber:x -> self.builder.exactly(-x)
                     |barenumber:x -> self.builder.exactly(x))
 barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
@@ -38,7 +39,7 @@ string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> self.builde
 
 name = <letter letterOrDigit*>
 application = (token('<') spaces name:name
-                  (' ' !(self.applicationArgs(finalChar='>')):args
+                  (' ' !(self.applicationArgs(finalChar='>')):args '>'
                      -> self.builder.apply(name, self.name, *args)
                   |token('>')
                      -> self.builder.apply(name, self.name)))
@@ -77,12 +78,13 @@ semanticPredicate = token("?(") -> self.semanticPredicateExpr()
 
 semanticAction = token("!(") -> self.semanticActionExpr()
 
+ruleEnd = (hspace* vspace+) | end
 rulePart :requiredName = (spaces name:n ?(n == requiredName)
                             !(setattr(self, "name", n))
                             expr4:args
-                            (token("::=") expr:e
+                            (token("::=") expr:e ruleEnd
                                -> self.builder.sequence([args, e])
-                            |  -> args))
+                            | ruleEnd -> args))
 rule = (spaces ~~(name:n) rulePart(n):r
           (rulePart(n)+:rs -> self.builder.rule(n, self.builder._or([r] + rs))
           |                     -> self.builder.rule(n, r)))
@@ -121,7 +123,7 @@ string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> self.builde
 name = <letter letterOrDigit*>
 
 application = indentation? name:name
-                  ('(' !(self.applicationArgs(finalChar=')')):args
+                  ('(' !(self.applicationArgs(finalChar=')')):args ')'
                     -> self.builder.apply(name, self.name, *args)
                   | -> self.builder.apply(name, self.name))
 
@@ -137,13 +139,15 @@ expr1 = application
           |token('[') expr:e token(']') -> self.builder.listpattern(e)
 
 expr2 = (token('~') (token('~') expr2:e -> self.builder.lookahead(e)
-                       |expr2:e -> self.builder._not(e))
+                       |expr2:e -> self.builder._not(e)
+          )
           |expr1)
 
 expr3 = (expr2:e ('*' -> self.builder.many(e)
                       |'+' -> self.builder.many1(e)
                       |'?' -> self.builder.optional(e)
-                      | -> e)):r
+                      | -> e
+)):r
            (':' name:n -> self.builder.bind(n, r)
            | -> r)
           |token(':') name:n
@@ -160,12 +164,14 @@ semanticPredicate = token("?(") -> self.semanticPredicateExpr()
 
 semanticAction = token("!(") -> self.semanticActionExpr()
 
+ruleEnd = (hspace* vspace+) | end
+
 rulePart :requiredName = noindentation name:n ?(n == requiredName)
                             !(setattr(self, "name", n))
                             expr4:args
-                            (token("=") expr:e
+                            (token("=") expr:e ruleEnd
                                -> self.builder.sequence([args, e])
-                            |  -> args)
+                            | ruleEnd -> args)
 
 rule = noindentation ~~(name:n) rulePart(n):r
           (rulePart(n)+:rs -> self.builder.rule(n, self.builder._or([r] + rs))
@@ -177,7 +183,7 @@ OMeta = BootOMetaGrammar.makeGrammar(v2Grammar, globals(), name='OMeta',
                                       superclass=OMetaGrammarBase)
 
 OMeta1 = BootOMetaGrammar.makeGrammar(v1Grammar, globals(), name='OMeta1',
-                                     superclass=OMetaGrammarBase)
+                                      superclass=OMetaGrammarBase)
 
 
 termOMeta2Grammar = """

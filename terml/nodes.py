@@ -40,11 +40,6 @@ class Term(_Term):
                 return "'%s'" % self.data
             else:
                 return str(self.data)
-        if len(self.args) == 0:
-            if isinstance(self.tag, _Hole):
-                return "%s()" % (self.tag._unparse(indentLevel),)
-            else:
-                return self.tag._unparse(indentLevel)
         args = ', '.join([a._unparse() for a in self.args])
         if self.tag.name == '.tuple.':
             return "[%s]" % (args,)
@@ -56,6 +51,11 @@ class Term(_Term):
         elif len(self.args) == 1 and self.args[0].tag.name == '.bag.':
             return "%s%s" % (self.tag._unparse(indentLevel), args)
         else:
+            if len(self.args) == 0:
+                if isinstance(self.tag, _Hole):
+                    return "%s()" % (self.tag._unparse(indentLevel),)
+                else:
+                    return self.tag._unparse(indentLevel)
             return "%s(%s)" % (self.tag._unparse(indentLevel), args)
 
     def withSpan(self, span):
@@ -68,11 +68,7 @@ class Term(_Term):
         else:
             f = builder.leafData(self.data, self.span)
 
-        args = builder.empty()
-        for arg in self.args:
-            val = arg.build(builder)
-            args = builder.seq(args, val)
-        return builder.term(f, args)
+        return builder.term(f, [arg.build(builder) for arg in self.args])
 
 
     def __cmp__(self, other):

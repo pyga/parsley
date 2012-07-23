@@ -325,13 +325,6 @@ class TermActionPythonWriter(PythonWriter):
             def leafTag(bldr, tag, span):
                 return tag.name
 
-            def empty(bldr):
-                return []
-
-            def seq(bldr, args, arg):
-                args.append(arg)
-                return args
-
             def term(bldr, tag, args):
                 if not args:
                     return tag

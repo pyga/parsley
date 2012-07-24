@@ -4,6 +4,7 @@ from twisted.trial import unittest
 from ometa.runtime import ParseError, OMetaBase, OMetaGrammarBase, EOFError, expected
 from ometa.boot import BootOMetaGrammar
 from ometa.builder import TermBuilder, moduleFromGrammar
+from ometa.interp import GrammarInterpreter
 
 class HandyWrapper(object):
     """
@@ -1066,6 +1067,7 @@ class MakeGrammarTest(unittest.TestCase):
         self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
         self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
 
+
 class SelfHostingTest(OMetaTestCase):
     """
     Tests for the OMeta grammar parser defined with OMeta.
@@ -1083,6 +1085,55 @@ class SelfHostingTest(OMetaTestCase):
         if self.classTested is None:
             from ometa.grammar import OMeta
             self.classTested = OMeta
+
+class HandyInterpWrapper(object):
+    """
+    Convenient grammar wrapper for parsing strings.
+    """
+    def __init__(self, interp):
+        self._interp = interp
+
+
+    def __getattr__(self, name):
+        """
+        Return a function that will instantiate a grammar and invoke the named
+        rule.
+        @param: Rule name.
+        """
+        def doIt(s):
+            """
+            @param s: The string to be parsed by the wrapped grammar.
+            """
+            # totally cheating
+            tree = not isinstance(s, basestring)
+
+            input, ret, err = self._interp.apply(s, name, tree)
+            try:
+                extra, _ = input.head()
+            except EOFError:
+                try:
+                    return ''.join(ret)
+                except TypeError:
+                    return ret
+            else:
+                raise err
+        return doIt
+
+
+class InterpTestCase(OMetaTestCase):
+
+    def compile(self, grammar, globals=None):
+        """
+        Produce an object capable of parsing via this grammar.
+
+        @param grammar: A string containing an OMeta grammar.
+        """
+        g = BootOMetaGrammar(dedent(grammar))
+        tree = g.parseGrammar('TestGrammar', TermBuilder)
+        g = GrammarInterpreter(tree, OMetaBase, globals)
+        return HandyInterpWrapper(g)
+
+
 
 
 class ErrorReportingTests(unittest.TestCase):

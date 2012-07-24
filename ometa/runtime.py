@@ -263,6 +263,7 @@ class WrappedValueInputStream(InputStream):
             self.tl = WrappedValueInputStream(self.data, self.position+1, self.wrapper)
         return self.tl
 
+
 class ArgInput(object):
     def __init__(self, arg, parent):
         self.arg = arg
@@ -306,6 +307,7 @@ class LeftRecursion(object):
     Marker for left recursion in a grammar rule.
     """
     detected = False
+
 
 class OMetaBase(object):
     """
@@ -379,7 +381,8 @@ class OMetaBase(object):
         @param args: A sequence of arguments to it.
         """
         if args:
-            if rule.func_code.co_argcount - 1 != len(args):
+            if ((not getattr(rule, 'func_code', None))
+                 or rule.func_code.co_argcount - 1 != len(args)):
                 for arg in args[::-1]:
                     self.input = ArgInput(arg, self.input)
                 return rule()

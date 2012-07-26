@@ -4,7 +4,7 @@ from twisted.trial import unittest
 from ometa.runtime import ParseError, OMetaBase, OMetaGrammarBase, EOFError, expected
 from ometa.boot import BootOMetaGrammar
 from ometa.builder import TermBuilder, moduleFromGrammar
-from ometa.interp import GrammarInterpreter
+from ometa.interp import GrammarInterpreter, TrampolinedGrammarInterpreter
 
 class HandyWrapper(object):
     """
@@ -1133,6 +1133,51 @@ class InterpTestCase(OMetaTestCase):
         g = GrammarInterpreter(tree, OMetaBase, globals)
         return HandyInterpWrapper(g)
 
+
+class TrampolinedInterpWrapper(object):
+    """
+    Convenient grammar wrapper for parsing strings.
+    """
+    def __init__(self, tree, globals):
+        self._tree = tree
+        self._globals = globals
+
+
+    def __getattr__(self, name):
+        """
+        Return a function that will instantiate a grammar and invoke the named
+        rule.
+        @param: Rule name.
+        """
+        def doIt(s):
+            """
+            @param s: The string to be parsed by the wrapped grammar.
+            """
+            tree = not isinstance(s, basestring)
+            if tree:
+                raise unittest.SkipTest("Not applicable for push parsing")
+            results = []
+            def whenDone(val, err):
+                results.append(val)
+            parser = TrampolinedGrammarInterpreter(self._tree, name, whenDone,
+                                                   self._globals)
+            for i, c in enumerate(s):
+                assert len(results) == 0
+                parser.receive(c)
+            if results:
+                return results[0]
+            else:
+                raise ParseError(*parser.currentError)
+        return doIt
+
+
+
+class TrampolinedInterpreterTestCase(OMetaTestCase):
+
+    def compile(self, grammar, globals=None):
+        g = BootOMetaGrammar(dedent(grammar))
+        tree = g.parseGrammar('TestGrammar', TermBuilder)
+        return TrampolinedInterpWrapper(tree, globals)
 
 
 

@@ -155,6 +155,8 @@ class character(str):
         """
         raise TypeError("Characters are not iterable")
 
+
+
 class unicodeCharacter(unicode):
     """
     Type to distinguish characters from Unicode strings.
@@ -165,6 +167,8 @@ class unicodeCharacter(unicode):
         characters.
         """
         raise TypeError("Characters are not iterable")
+
+
 
 class InputStream(object):
     """

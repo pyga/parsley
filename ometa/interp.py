@@ -21,17 +21,30 @@ class TrampolinedGrammarInterpreter(object):
         self.callback = callback
         self.globals = globals or {}
         self.rules = decomposeGrammar(grammar)
-        self.next = self.parse_Apply(ruleName, None, ())
+        self.next = self.apply(ruleName, None, ())
         self._localsStack = []
         self.currentResult = None
         self.input = InputStream([], 0)
+        self.ended = False
 
 
     def receive(self, buf):
+        if self.ended:
+            raise ValueError("Can't feed a parser that's been ended.")
         self.input.data.extend(buf)
         for x in self.next:
             if x is _feed_me:
                 return x
+        self.callback(*x)
+        self.ended = True
+
+
+    def end(self):
+        if self.ended:
+            return
+        self.ended = True
+        for x in self.next:
+            pass
         self.callback(*x)
 
 
@@ -62,10 +75,11 @@ class TrampolinedGrammarInterpreter(object):
             memoRec = self.input.setMemo(ruleName, lr)
 
             try:
+                inp = self.input
                 for x in rule():
                     if x is _feed_me:
                         yield x
-                memoRec = self.input.setMemo(ruleName, [x, self.input])
+                memoRec = inp.setMemo(ruleName, [x, self.input])
             except ParseError:
                 raise
             if lr.detected:
@@ -98,6 +112,13 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Apply(self, ruleName, codeName, args):
+        for x in self.apply(ruleName.data, codeName.data, args.args):
+            if x is _feed_me:
+                yield x
+        yield x
+
+
+    def apply(self, ruleName, codeName, args):
         argvals = []
         for a in args:
             for x in self._eval(a):
@@ -181,6 +202,7 @@ class TrampolinedGrammarInterpreter(object):
                 break
         yield ans, err
 
+
     def parse_Many1(self, expr):
         for x in self._eval(expr):
             if x is _feed_me:
@@ -189,6 +211,55 @@ class TrampolinedGrammarInterpreter(object):
             if x is _feed_me:
                 yield _feed_me
         yield x
+
+
+    def parse_Optional(self, expr):
+        i = self.input
+        try:
+            for x in self._eval(expr):
+                if x is _feed_me:
+                    yield _feed_me
+            yield x
+        except ParseError:
+            self.input = i
+            yield (None, self.input.nullError())
+
+
+    def parse_Not(self, expr):
+        m = self.input
+        try:
+            for x in self._eval(expr):
+                if x is _feed_me:
+                    yield x
+        except ParseError, err:
+            self.input = m
+            yield True, self.input.nullError()
+        else:
+            raise ParseError(*self.input.nullError())
+
+
+    def parse_Lookahead(self, expr):
+        try:
+            i = self.input
+            for x in self._eval(expr):
+                if x is _feed_me:
+                    yield x
+        finally:
+            self.input = i
+
+
+    def parse_Bind(self, name, expr):
+        for x in self._eval(expr):
+            if x is _feed_me:
+                yield x
+        v, err = x
+        self._localsStack[-1][name.data] = v
+        yield v, err
+
+
+    def parse_Predicate(self, expr):
+        pass
+
 
 
 class GrammarInterpreter(object):
@@ -254,9 +325,11 @@ class GrammarInterpreter(object):
             return ans, err
 
         elif name == "Optional":
+            i = run.input
             try:
                 return self._eval(run, args[0])
             except ParseError:
+                run.input = i
                 return (None, run.input.nullError())
 
         elif name == "Or":

@@ -1164,8 +1164,9 @@ class TrampolinedInterpWrapper(object):
             for i, c in enumerate(s):
                 assert len(results) == 0
                 parser.receive(c)
-            if results:
-                return results[0]
+            parser.end()
+            if results and parser.input.position == len(parser.input.data):
+                return ''.join(results[0])
             else:
                 raise ParseError(*parser.currentError)
         return doIt

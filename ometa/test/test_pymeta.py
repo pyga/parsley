@@ -1166,7 +1166,10 @@ class TrampolinedInterpWrapper(object):
                 parser.receive(c)
             parser.end()
             if results and parser.input.position == len(parser.input.data):
-                return ''.join(results[0])
+                try:
+                    return ''.join(results[0])
+                except TypeError:
+                    return results[0]
             else:
                 raise ParseError(*parser.currentError)
         return doIt

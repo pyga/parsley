@@ -1,4 +1,5 @@
-from ometa.runtime import (InputStream, OMetaBase, ParseError, EOFError,
+import string
+from ometa.runtime import (InputStream, ParseError, EOFError, ArgInput,
                            joinErrors, expected, LeftRecursion)
 
 def decomposeGrammar(grammar):
@@ -15,6 +16,11 @@ _feed_me = object()
 
 
 class TrampolinedGrammarInterpreter(object):
+    """
+    Each method, instead of being a function returning a value, is a
+    generator that will yield '_feed_me' an arbitrary number of times,
+    then finally yield the value of the expression being evaluated.
+    """
     def __init__(self, grammar, ruleName, callback=None, globals=None):
         self.grammar = grammar
         self.position = 0
@@ -63,7 +69,7 @@ class TrampolinedGrammarInterpreter(object):
                 g = rule()
             else:
                 g = rule(*args)
-            for x in rule():
+            for x in g:
                 if x is _feed_me:
                     yield x
             yield x
@@ -231,7 +237,7 @@ class TrampolinedGrammarInterpreter(object):
             for x in self._eval(expr):
                 if x is _feed_me:
                     yield x
-        except ParseError, err:
+        except ParseError:
             self.input = m
             yield True, self.input.nullError()
         else:
@@ -258,7 +264,61 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Predicate(self, expr):
-        pass
+        for x in self._eval(expr):
+            if x is _feed_me:
+                yield x
+        val, err = x
+        if not val:
+            raise ParseError(*err)
+        else:
+            yield True, err
+
+
+    def parse_Action(self, expr):
+        val = eval(expr.data, self.globals, self._localsStack[-1])
+        yield val, self.input.nullError()
+
+
+    def parse_ConsumedBy(self, expr):
+        oldInput = self.input
+        for x in self._eval(expr):
+            if x is _feed_me:
+                yield x
+        slice = oldInput.data[oldInput.position:self.input.position]
+        yield slice, x[1]
+
+    def rule_anything(self):
+        try:
+            val, p = self.input.head()
+        except EOFError:
+            yield _feed_me
+            val, p = self.input.head()
+        self.input = self.input.tail()
+        yield val, p
+
+    def rule_letter(self):
+        try:
+            val, p = self.input.head()
+        except EOFError:
+            yield _feed_me
+            val, p = self.input.head()
+        if val in string.letters:
+            self.input = self.input.tail()
+            yield val, p
+        else:
+            raise ParseError(val, expected(None, "a letter"))
+
+    def rule_digit(self):
+        try:
+            val, p = self.input.head()
+        except EOFError:
+            yield _feed_me
+            val, p = self.input.head()
+        if val in string.digits:
+            self.input = self.input.tail()
+            yield val, p
+        else:
+            raise ParseError(val, expected(None, "a digit"))
 
 
 

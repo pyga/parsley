@@ -6,41 +6,13 @@ import itertools, linecache, sys
 
 from terml.nodes import Term, Tag, coerceToTerm
 
-class TermBuilder(object):
-    def __init__(self, name, grammar=None, *args):
-        self.name = name
-
-    method2TermName = {
-        "rule": "Rule",
-        "exactly": "Exactly",
-        "many": "Many",
-        "many1": "Many1",
-        "optional": "Optional",
-        "_or": "Or",
-        "_not": "Not",
-        "lookahead": "Lookahead",
-        "sequence": "And",
-        "bind": "Bind",
-        "pred": "Predicate",
-        "action": "Action",
-        "expr": "Action",
-        "listpattern": "List",
-        "consumedBy": "ConsumedBy"
-}
-    def makeGrammar(self, rules):
-        return Term(Tag("Grammar"), None, [coerceToTerm(self.name), coerceToTerm(rules)], None)
-
-    def apply(self, ruleName, codeName, *exprs):
-        return Term(Tag("Apply"), None, [coerceToTerm(a) for a in [ruleName, codeName, exprs]], None)
-
+class TermMaker(object):
     def __getattr__(self, name):
-        if name in self.method2TermName:
-            termName = self.method2TermName[name]
-            def makeNode(*args):
-                return Term(Tag(termName), None, [coerceToTerm(a) for a in args], None)
-            return makeNode
-        else:
-            return object.__getattr__(self, name)
+        def mkterm(*args):
+            return Term(Tag(name), None, tuple([coerceToTerm(a) for a in args]), None)
+        return mkterm
+
+termMaker = TermMaker()
 
 
 class TextWriter(object):

@@ -4,7 +4,7 @@ Code needed to run a grammar after it has been compiled.
 """
 import operator
 from terml.twine import asTwineFrom
-from ometa.builder import TermBuilder, moduleFromGrammar
+from ometa.builder import moduleFromGrammar, termMaker as t
 
 class ParseError(Exception):
     """
@@ -670,11 +670,11 @@ class OMetaGrammarBase(OMetaBase):
         @param superclass: The class the generated class is a child of.
         """
         g = cls(grammar)
-        tree = g.parseGrammar(name, TermBuilder)
+        tree = g.parseGrammar(name)
         return moduleFromGrammar(tree, name, superclass or OMetaBase, globals)
 
 
-    def parseGrammar(self, name, builder, *args):
+    def parseGrammar(self, name):
         """
         Entry point for converting a grammar to code (of some variety).
 
@@ -683,7 +683,7 @@ class OMetaGrammarBase(OMetaBase):
         @param builder: A class that implements the grammar-building interface
         (interface to be explicitly defined later)
         """
-        self.builder = builder(name, self, *args)
+        self.name = name
         res, err = self.apply("grammar")
         try:
             x = self.input.head()
@@ -705,7 +705,7 @@ class OMetaGrammarBase(OMetaBase):
                 (arg, endchar), err = self.pythonExpr(" " + finalChar)
                 if not arg:
                     break
-                args.append(self.builder.expr(arg))
+                args.append(t.Action(arg))
                 if endchar == finalChar:
                     break
                 if endchar == ' ':
@@ -725,14 +725,14 @@ class OMetaGrammarBase(OMetaBase):
         (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
         # if str(endchar) in ")]" or (singleLine and endchar):
         #     self.input = self.input.prev()
-        return self.builder.expr(expr)
+        return t.Action(expr)
 
     def semanticActionExpr(self):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value is ignored.
         """
-        val = self.builder.action(self.pythonExpr(')')[0][0])
+        val = t.Action(self.pythonExpr(')')[0][0])
         self.exactly(')')
         return val
 
@@ -742,9 +742,9 @@ class OMetaGrammarBase(OMetaBase):
         close-paren, whose return value determines the success of the pattern
         it's in.
         """
-        expr = self.builder.expr(self.pythonExpr(')')[0][0])
+        expr = t.Action(self.pythonExpr(')')[0][0])
         self.exactly(')')
-        return self.builder.pred(expr)
+        return t.Predicate(expr)
 
 
     def eatWhitespace(self):

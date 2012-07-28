@@ -158,7 +158,7 @@ def matchArgs(quasiArglist, specimenArglist, args, bindings, index, max):
 class Tag(object):
     def __init__(self, name):
         if name[0] == '':
-            import pdb; pdb.set_trace()
+            raise ValueError("Tags must have names")
         self.name = name
 
     def __eq__(self, other):

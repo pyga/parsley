@@ -1,32 +1,30 @@
 from textwrap import dedent
 from twisted.trial import unittest
 
-from ometa.builder import TermBuilder, writePython
+from ometa.builder import TermMaker, writePython, termMaker as t
+from terml.parser import parseTerm as term
 
 def dd(txt):
     return dedent(txt).strip()
 
+
+class TermMakerTests(unittest.TestCase):
+    def test_make(self):
+        m = TermMaker()
+        t1 = m.Foo(1, 'a', m.Baz())
+        self.assertEqual(t1, term('Foo(1, "a", Baz)'))
 
 class PythonWriterTests(unittest.TestCase):
     """
     Tests for generating Python source from an AST.
     """
 
-
-    def setUp(self):
-        """
-        Create a L{PythonBuilder}.
-        """
-
-        self.builder = TermBuilder("BuilderTest")
-
-
     def test_exactly(self):
         """
         Test generation of code for the 'exactly' pattern.
         """
 
-        x = self.builder.exactly("x")
+        x = t.Exactly("x")
         self.assertEqual(writePython(x),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
@@ -41,9 +39,9 @@ class PythonWriterTests(unittest.TestCase):
         Test generation of code for rule application.
         """
 
-        one = self.builder.expr("1")
-        x = self.builder.expr("x")
-        a = self.builder.apply("foo", "main", one, x)
+        one = t.Action("1")
+        x = t.Action("x")
+        a = t.Apply("foo", "main", [one, x])
         self.assertEqual(writePython(a),
                          dd("""
                             _G_python_1, lastError = eval('1', self.globals, _locals), None
@@ -62,9 +60,9 @@ class PythonWriterTests(unittest.TestCase):
         Test generation of code for calling the superclass' implementation of
         the current rule.
         """
-        one = self.builder.expr("1")
-        x = self.builder.expr("x")
-        a = self.builder.apply("super", "main", one, x)
+        one = t.Action("1")
+        x = t.Action("x")
+        a = t.Apply("super", "main", [one, x])
         self.assertEqual(writePython(a),
                          dd("""
                             _G_python_1, lastError = eval('1', self.globals, _locals), None
@@ -83,7 +81,7 @@ class PythonWriterTests(unittest.TestCase):
         a pattern.
         """
 
-        xs = self.builder.many(self.builder.exactly("x"))
+        xs = t.Many(t.Exactly("x"))
         self.assertEqual(writePython(xs),
                          dd("""
                             def _G_many_1():
@@ -102,7 +100,7 @@ class PythonWriterTests(unittest.TestCase):
         a pattern.
         """
 
-        xs = self.builder.many1(self.builder.exactly("x"))
+        xs = t.Many1(t.Exactly("x"))
         self.assertEqual(writePython(xs),
                          dd("""
                             def _G_many1_1():
@@ -121,8 +119,8 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for a sequence of alternatives.
         """
 
-        xy = self.builder._or([self.builder.exactly("x"),
-                               self.builder.exactly("y")])
+        xy = t.Or([t.Exactly("x"),
+                               t.Exactly("y")])
         self.assertEqual(writePython(xy),
                          dd("""
                             def _G_or_1():
@@ -143,8 +141,8 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for a sequence of alternatives.
         """
 
-        x1 = self.builder._or([self.builder.exactly("x")])
-        x = self.builder.exactly("x")
+        x1 = t.Or([t.Exactly("x")])
+        x = t.Exactly("x")
         self.assertEqual(writePython(x), writePython(x1))
 
 
@@ -152,7 +150,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for optional terms.
         """
-        x = self.builder.optional(self.builder.exactly("x"))
+        x = t.Optional(t.Exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_optional_1():
@@ -171,7 +169,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for negated terms.
         """
-        x = self.builder._not(self.builder.exactly("x"))
+        x = t.Not(t.Exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_not_1():
@@ -188,7 +186,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for lookahead expressions.
         """
-        x = self.builder.lookahead(self.builder.exactly("x"))
+        x = t.Lookahead(t.Exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_lookahead_1():
@@ -206,9 +204,9 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test generation of code for sequence patterns.
         """
-        x = self.builder.exactly("x")
-        y = self.builder.exactly("y")
-        z = self.builder.sequence([x, y])
+        x = t.Exactly("x")
+        y = t.Exactly("y")
+        z = t.And([x, y])
         self.assertEqual(writePython(z),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
@@ -223,8 +221,8 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for variable assignment.
         """
-        x = self.builder.exactly("x")
-        b = self.builder.bind("var", x)
+        x = t.Exactly("x")
+        b = t.Bind("var", x)
         self.assertEqual(writePython(b),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
@@ -238,7 +236,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for predicate expressions.
         """
-        x = self.builder.pred(self.builder.exactly("x"))
+        x = t.Predicate(t.Exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_pred_1():
@@ -255,7 +253,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for semantic actions.
         """
-        x = self.builder.action("doStuff()")
+        x = t.Action("doStuff()")
         self.assertEqual(writePython(x),
                          dd("""
                             _G_python_1, lastError = eval('doStuff()', self.globals, _locals), None
@@ -268,7 +266,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for semantic predicates.
         """
-        x = self.builder.expr("returnStuff()")
+        x = t.Action("returnStuff()")
         self.assertEqual(writePython(x),
                          dd("""
                             _G_python_1, lastError = eval('returnStuff()', self.globals, _locals), None
@@ -280,7 +278,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test code generation for list patterns.
         """
-        x = self.builder.listpattern(self.builder.exactly("x"))
+        x = t.List(t.Exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
                             def _G_listpattern_1():
@@ -298,9 +296,9 @@ class PythonWriterTests(unittest.TestCase):
         Grammars containing list patterns are marked as taking
         tree-shaped input rather than character streams.
         """
-        x = self.builder.rule("foo", self.builder.listpattern(
-                self.builder.exactly("x")))
-        g = self.builder.makeGrammar([x])
+        x = t.Rule("foo", t.List(
+                t.Exactly("x")))
+        g = t.Grammar("TestGrammar", [x])
         self.assertTrue(writePython(g).endswith("    tree = True"))
 
 
@@ -309,7 +307,7 @@ class PythonWriterTests(unittest.TestCase):
         Test generation of entire rules.
         """
 
-        x = self.builder.rule("foo", self.builder.exactly("x"))
+        x = t.Rule("foo", t.Exactly("x"))
         self.assertEqual(writePython(x),
                          dd("""
                             def rule_foo(self):
@@ -325,9 +323,9 @@ class PythonWriterTests(unittest.TestCase):
         """
         Test generation of an entire grammar.
         """
-        r1 = self.builder.rule("foo", self.builder.exactly("x"))
-        r2 = self.builder.rule("baz", self.builder.exactly("y"))
-        x = self.builder.makeGrammar([r1, r2])
+        r1 = t.Rule("foo", t.Exactly("x"))
+        r2 = t.Rule("baz", t.Exactly("y"))
+        x = t.Grammar("BuilderTest", [r1, r2])
         self.assertEqual(writePython(x),
                          dd("""
                             class BuilderTest(GrammarBase):

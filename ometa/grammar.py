@@ -9,15 +9,14 @@ from StringIO import StringIO
 from terml.parser import TermLParser
 
 from ometa.boot import BootOMetaGrammar
-from ometa.builder import TermActionPythonWriter, TermBuilder, moduleFromGrammar, TextWriter
-from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError
-
+from ometa.builder import TermActionPythonWriter, moduleFromGrammar, TextWriter, termMaker as t
+from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError, expected
 
 v1Grammar = r"""
 hspace = ' ' | '\t' | ('#' (~vspace anything)*)
 vspace = (token("\r\n") | '\r' | '\n')
-number = spaces ('-' barenumber:x -> self.builder.exactly(-x)
-                    |barenumber:x -> self.builder.exactly(x))
+number = spaces ('-' barenumber:x -> t.Exactly(-x)
+                    |barenumber:x -> t.Exactly(x))
 barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
                |<digit+>:ds -> int(ds)
@@ -33,16 +32,16 @@ escapedChar = '\\' ('n' -> "\n"
                      |'\'' -> "'"
                      |'\\' -> "\\")
 
-character = token("'") (escapedChar | anything):c token("'") -> self.builder.exactly(c)
+character = token("'") (escapedChar | anything):c token("'") -> t.Exactly(c)
 
-string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> self.builder.exactly(''.join(c))
+string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> t.Exactly(''.join(c))
 
 name = <letter letterOrDigit*>
 application = (token('<') spaces name:name
                   (' ' !(self.applicationArgs(finalChar='>')):args '>'
-                     -> self.builder.apply(name, self.name, *args)
+                     -> t.Apply(name, self.rulename, args)
                   |token('>')
-                     -> self.builder.apply(name, self.name)))
+                     -> t.Apply(name, self.rulename, [])))
 
 expr1 = (application
           |ruleValue
@@ -52,25 +51,25 @@ expr1 = (application
           |character
           |string
           |token('(') expr:e token(')') -> e
-          |token('[') expr:e token(']') -> self.builder.listpattern(e))
+          |token('[') expr:e token(']') -> t.List(e))
 
-expr2 = (token('~') (token('~') expr2:e -> self.builder.lookahead(e)
-                       |expr2:e -> self.builder._not(e))
+expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
+                       |expr2:e -> t.Not(e))
           |expr1)
 
-expr3 = ((expr2:e ('*' -> self.builder.many(e)
-                      |'+' -> self.builder.many1(e)
-                      |'?' -> self.builder.optional(e)
+expr3 = ((expr2:e ('*' -> t.Many(e)
+                      |'+' -> t.Many1(e)
+                      |'?' -> t.Optional(e)
                       | -> e)):r
-           (':' name:n -> self.builder.bind(n, r)
+           (':' name:n -> t.Bind(n, r)
            | -> r)
           |token(':') name:n
-           -> self.builder.bind(n, self.builder.apply("anything", self.name)))
+           -> t.Bind(n, t.Apply("anything", self.rulename, [])))
 
-expr4 = expr3*:es -> self.builder.sequence(es)
+expr4 = expr3*:es -> t.And(es)
 
 expr = expr4:e (token('|') expr4)*:es
-          -> self.builder._or([e] + es)
+          -> t.Or([e] + es)
 
 ruleValue = token("=>") -> self.ruleValueExpr(False)
 
@@ -80,16 +79,16 @@ semanticAction = token("!(") -> self.semanticActionExpr()
 
 ruleEnd = (hspace* vspace+) | end
 rulePart :requiredName = (spaces name:n ?(n == requiredName)
-                            !(setattr(self, "name", n))
+                            !(setattr(self, "rulename", n))
                             expr4:args
                             (token("::=") expr:e ruleEnd
-                               -> self.builder.sequence([args, e])
+                               -> t.And([args, e])
                             | ruleEnd -> args))
 rule = (spaces ~~(name:n) rulePart(n):r
-          (rulePart(n)+:rs -> self.builder.rule(n, self.builder._or([r] + rs))
-          |                     -> self.builder.rule(n, r)))
+          (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs))
+          |                     -> t.Rule(n, r)))
 
-grammar = rule*:rs spaces -> self.builder.makeGrammar(rs)
+grammar = rule*:rs spaces -> t.Grammar(self.name, rs)
 """
 
 v2Grammar = r"""
@@ -99,8 +98,8 @@ emptyline = hspace* vspace
 indentation = emptyline* hspace+
 noindentation = emptyline* ~~~hspace
 
-number = spaces ('-' barenumber:x -> self.builder.exactly(-x)
-                    |barenumber:x -> self.builder.exactly(x))
+number = spaces ('-' barenumber:x -> t.Exactly(-x)
+                    |barenumber:x -> t.Exactly(x))
 barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
                |<digit+>:ds -> int(ds)
@@ -116,16 +115,16 @@ escapedChar = '\\' ('n' -> "\n"
                      |'\'' -> "'"
                      |'\\' -> "\\")
 
-character = token("'") (escapedChar | anything):c token("'") -> self.builder.exactly(c)
+character = token("'") (escapedChar | anything):c token("'") -> t.Exactly(c)
 
-string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> self.builder.exactly(''.join(c))
+string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> t.Exactly(''.join(c))
 
 name = <letter letterOrDigit*>
 
 application = indentation? name:name
                   ('(' !(self.applicationArgs(finalChar=')')):args ')'
-                    -> self.builder.apply(name, self.name, *args)
-                  | -> self.builder.apply(name, self.name))
+                    -> t.Apply(name, self.rulename, args)
+                  | -> t.Apply(name, self.rulename, []))
 
 expr1 = application
           |ruleValue
@@ -135,28 +134,30 @@ expr1 = application
           |character
           |string
           |token('(') expr:e token(')') -> e
-          |token('<') expr:e token('>') -> self.builder.consumedBy(e)
-          |token('[') expr:e token(']') -> self.builder.listpattern(e)
+          |token('<') expr:e token('>') -> t.ConsumedBy(e)
+          |token('[') expr:e token(']') -> t.List(e)
 
-expr2 = (token('~') (token('~') expr2:e -> self.builder.lookahead(e)
-                       |expr2:e -> self.builder._not(e)
+expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
+                       |expr2:e -> t.Not(e)
           )
           |expr1)
 
-expr3 = (expr2:e ('*' -> self.builder.many(e)
-                      |'+' -> self.builder.many1(e)
-                      |'?' -> self.builder.optional(e)
+expr3 = (expr2:e ('*' -> t.Many(e)
+                      |'+' -> t.Many1(e)
+                      |'?' -> t.Optional(e)
+#                      |'{' barenumber:start ',' barenumber:end '}' -> t.Repeat(start, end)
+#                      |'{' barenumber:n '}' -> t.Repeat(n, n)
                       | -> e
 )):r
-           (':' name:n -> self.builder.bind(n, r)
+           (':' name:n -> t.Bind(n, r)
            | -> r)
           |token(':') name:n
-           -> self.builder.bind(n, self.builder.apply("anything", self.name))
+           -> t.Bind(n, t.Apply("anything", self.rulename, []))
 
-expr4 = expr3*:es -> self.builder.sequence(es)
+expr4 = expr3*:es -> t.And(es)
 
 expr = expr4:e (token('|') expr4)*:es
-          -> self.builder._or([e] + es)
+          -> t.Or([e] + es)
 
 ruleValue = token("->") -> self.ruleValueExpr(True)
 
@@ -167,17 +168,17 @@ semanticAction = token("!(") -> self.semanticActionExpr()
 ruleEnd = (hspace* vspace+) | end
 
 rulePart :requiredName = noindentation name:n ?(n == requiredName)
-                            !(setattr(self, "name", n))
+                            !(setattr(self, "rulename", n))
                             expr4:args
                             (token("=") expr:e ruleEnd
-                               -> self.builder.sequence([args, e])
+                               -> t.And([args, e])
                             | ruleEnd -> args)
 
 rule = noindentation ~~(name:n) rulePart(n):r
-          (rulePart(n)+:rs -> self.builder.rule(n, self.builder._or([r] + rs))
-          |                -> self.builder.rule(n, r))
+          (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs))
+          |                -> t.Rule(n, r))
 
-grammar = rule*:rs spaces -> self.builder.makeGrammar(rs)
+grammar = rule*:rs spaces -> t.Grammar(self.name, rs)
 """
 OMeta = BootOMetaGrammar.makeGrammar(v2Grammar, globals(), name='OMeta',
                                       superclass=OMetaGrammarBase)
@@ -187,15 +188,15 @@ OMeta1 = BootOMetaGrammar.makeGrammar(v1Grammar, globals(), name='OMeta1',
 
 
 termOMeta2Grammar = """
-ruleValue = token("->") term:t -> self.builder.action(t)
+ruleValue = token("->") term:tt -> t.Action(tt)
 
-semanticPredicate = token("?(") term:t token(")") -> self.builder.pred(t)
+semanticPredicate = token("?(") term:tt token(")") -> t.Predicate(tt)
 
-semanticAction = token("!(") term:t token(")") -> self.builder.action(t)
+semanticAction = token("!(") term:tt token(")") -> t.Action(tt)
 
 application = indentation? name:name ('(' term_arglist:args ')'
-                    -> self.builder.apply(name, self.name, *args)
-                  | -> self.builder.apply(name, self.name))
+                    -> t.Apply(name, self.rulename, args)
+                  | -> t.Apply(name, self.rulename, []))
 """
 
 class TermOMeta(BootOMetaGrammar.makeGrammar(
@@ -214,7 +215,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         @param superclass: The class the generated class is a child of.
         """
         g = cls(grammar)
-        tree = g.parseGrammar(name, TermBuilder)
+        tree = g.parseGrammar(name)
         return moduleFromGrammar(
             tree, name, superclass or OMetaBase,
             globals, writer=g.writeTerm)

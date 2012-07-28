@@ -17,9 +17,8 @@ _feed_me = object()
 
 class TrampolinedGrammarInterpreter(object):
     """
-    Each method, instead of being a function returning a value, is a
-    generator that will yield '_feed_me' an arbitrary number of times,
-    then finally yield the value of the expression being evaluated.
+    An interpreter for OMeta grammars that processes input
+    incrementally.
     """
     def __init__(self, grammar, ruleName, callback=None, globals=None):
         self.grammar = grammar
@@ -35,6 +34,9 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def receive(self, buf):
+        """
+        Feed data to the parser.
+        """
         if self.ended:
             raise ValueError("Can't feed a parser that's been ended.")
         self.input.data.extend(buf)
@@ -46,12 +48,22 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def end(self):
+        """
+        Close the input stream, indicating to the grammar that no more
+        input will arrive.
+        """
         if self.ended:
             return
         self.ended = True
         for x in self.next:
             pass
         self.callback(*x)
+
+
+    ## Implementation note: each method, instead of being a function
+    ## returning a value, is a generator that will yield '_feed_me' an
+    ## arbitrary number of times, then finally yield the value of the
+    ## expression being evaluated.
 
 
     def _apply(self, rule, ruleName, args):
@@ -114,6 +126,9 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def _eval(self, expr):
+        """
+        Dispatch to a parse_<term name> method for the given grammar expression.
+        """
         return getattr(self, "parse_" + expr.tag.name)(*expr.args)
 
 
@@ -125,6 +140,9 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def apply(self, ruleName, codeName, args):
+        """
+        Invoke a rule, optionally with arguments.
+        """
         argvals = []
         for a in args:
             for x in self._eval(a):
@@ -150,6 +168,9 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Exactly(self, spec):
+        """
+        Accept a single character that equal the given spec.
+        """
         wanted = spec.data
         try:
             val, p = self.input.head()
@@ -164,6 +185,10 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_And(self, expr):
+        """
+        Execute multiple subexpressions in order, returning the result
+        of the last one.
+        """
         seq = expr.args
         val = None, self.input.nullError()
         for subexpr in seq:
@@ -175,6 +200,10 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Or(self, expr):
+        """
+        Execute multiple subexpressions, returning the result of the
+        first one that succeeds.
+        """
         errors = []
         i = self.input
         for subexpr in expr.args:
@@ -194,6 +223,10 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Many(self, expr, ans=None):
+        """
+        Execute an expression repeatedly until it fails to match,
+        collecting the results into a list. Implementation of '*'.
+        """
         ans = ans or []
         while True:
             try:
@@ -210,6 +243,10 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Many1(self, expr):
+        """
+        Execute an expression one or more times, collecting the
+        results into a list. Implementation of '+'.
+        """
         for x in self._eval(expr):
             if x is _feed_me:
                 yield _feed_me
@@ -220,6 +257,10 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Optional(self, expr):
+        """
+        Execute an expression, returning None if it
+        fails. Implementation of '?'.
+        """
         i = self.input
         try:
             for x in self._eval(expr):
@@ -232,6 +273,10 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Not(self, expr):
+        """
+        Execute an expression, returning True if it fails and failing
+        otherwise. Implementation of '~'.
+        """
         m = self.input
         try:
             for x in self._eval(expr):
@@ -245,6 +290,10 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Lookahead(self, expr):
+        """
+        Execute an expression, then reset the input stream to the
+        position before execution. Implementation of '~~'.
+        """
         try:
             i = self.input
             for x in self._eval(expr):
@@ -255,6 +304,9 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Bind(self, name, expr):
+        """
+        Execute an expression and bind its result to the given name.
+        """
         for x in self._eval(expr):
             if x is _feed_me:
                 yield x
@@ -264,6 +316,9 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Predicate(self, expr):
+        """
+        Run a Python expression and fail if it returns False.
+        """
         for x in self._eval(expr):
             if x is _feed_me:
                 yield x
@@ -275,11 +330,18 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def parse_Action(self, expr):
+        """
+        Run a Python expression, return its result.
+        """
         val = eval(expr.data, self.globals, self._localsStack[-1])
         yield val, self.input.nullError()
 
 
     def parse_ConsumedBy(self, expr):
+        """
+        Run an expression. Return the literal contents of the input
+        stream it consumed.
+        """
         oldInput = self.input
         for x in self._eval(expr):
             if x is _feed_me:
@@ -288,6 +350,9 @@ class TrampolinedGrammarInterpreter(object):
         yield slice, x[1]
 
     def rule_anything(self):
+        """
+        Match a single character.
+        """
         try:
             val, p = self.input.head()
         except EOFError:
@@ -297,6 +362,9 @@ class TrampolinedGrammarInterpreter(object):
         yield val, p
 
     def rule_letter(self):
+        """
+        Match a single letter.
+        """
         try:
             val, p = self.input.head()
         except EOFError:
@@ -309,6 +377,9 @@ class TrampolinedGrammarInterpreter(object):
             raise ParseError(val, expected(None, "a letter"))
 
     def rule_digit(self):
+        """
+        Match a digit.
+        """
         try:
             val, p = self.input.head()
         except EOFError:

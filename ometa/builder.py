@@ -9,7 +9,8 @@ from terml.nodes import Term, Tag, coerceToTerm
 class TermMaker(object):
     def __getattr__(self, name):
         def mkterm(*args):
-            return Term(Tag(name), None, tuple([coerceToTerm(a) for a in args]), None)
+            return Term(Tag(name), None,
+                        tuple([coerceToTerm(a) for a in args]), None)
         return mkterm
 
 termMaker = TermMaker()
@@ -108,7 +109,8 @@ class PythonWriter(object):
         """
         Generate code for running embedded Python expressions.
         """
-        return self._expr(out, 'python', 'eval(%r, self.globals, _locals), None' %(expr,))
+        return self._expr(out, 'python',
+                          'eval(%r, self.globals, _locals), None' % (expr,))
 
     def _convertArgs(self, out, rawArgs):
         return [self._generateNode(out, x) for x in rawArgs]
@@ -121,11 +123,10 @@ class PythonWriter(object):
         ruleName = ruleName.data
         args = self._convertArgs(out, rawArgs.args)
         if ruleName == 'super':
-            return self._expr(out, 'apply', 'self.superApply("%s", %s)' % (codeName.data,
-                                                              ', '.join(args)))
-        return self._expr(out, 'apply', 'self._apply(self.rule_%s, "%s", [%s])' % (ruleName,
-                                                                              ruleName,
-                                                             ', '.join(args)))
+            return self._expr(out, 'apply', 'self.superApply("%s", %s)'
+                              % (codeName.data, ', '.join(args)))
+        return self._expr(out, 'apply', 'self._apply(self.rule_%s, "%s", [%s])'
+                          % (ruleName, ruleName, ', '.join(args)))
 
     def generate_Exactly(self, out, literal):
         """
@@ -152,6 +153,14 @@ class PythonWriter(object):
         return self._expr(out, 'many1', 'self.many(%s, %s())' % (fname, fname))
 
 
+    def generate_Repeat(self, out, min, max, expr):
+        """
+        Create a call to self.repeat(min, max, lambda: expr).
+        """
+        fname = self._newThunkFor(out, "repeat", expr)
+        return self._expr(out, 'repeat', 'self.repeat(%s, %s, %s)'
+                          % (min.data, max.data, fname))
+
     def generate_Optional(self, out, expr):
         """
         Try to parse an expr and continue if it fails.
@@ -160,7 +169,8 @@ class PythonWriter(object):
         passf = self._gensym("optional")
         out.writeln("def %s():" % (passf,))
         out.indent().writeln("return (None, self.input.nullError())")
-        return self._expr(out, 'or', 'self._or([%s])' % (', '.join([realf, passf])))
+        return self._expr(out, 'or', 'self._or([%s])'
+                          % (', '.join([realf, passf])))
 
 
     def generate_Or(self, out, exprs):
@@ -280,7 +290,8 @@ class TermActionPythonWriter(PythonWriter):
         Generate a call to self.pred(lambda: expr).
         """
 
-        fname = self._newThunkFor(out, "pred", Term(Tag("Action"), None, [term], None))
+        fname = self._newThunkFor(out, "pred", Term(Tag("Action"), None,
+                                                    [term], None))
         return self._expr(out, "pred", "self.pred(%s)" %(fname,))
 
     def generate_Action(self, out, term):
@@ -338,7 +349,8 @@ class GeneratedCodeLoader(object):
 
 
 
-def moduleFromGrammar(tree, className, superclass, globalsDict, writer=writePython):
+def moduleFromGrammar(tree, className, superclass, globalsDict,
+                      writer=writePython):
     source = writer(tree)
     modname = "pymeta_grammar__" + className
     filename = "/pymeta_generated_code/" + modname + ".py"

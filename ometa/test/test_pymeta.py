@@ -492,6 +492,28 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.xs, "")
 
 
+    def test_repeat(self):
+        """
+        Match repetitions can be specifically numbered.
+        """
+        g = self.compile("xs = 'x'{2, 4}:n 'x'* -> n")
+        self.assertEqual(g.xs("xx"), "xx")
+        self.assertEqual(g.xs("xxxx"), "xxxx")
+        self.assertEqual(g.xs("xxxxxx"), "xxxx")
+        self.assertRaises(ParseError, g.xs, "x")
+        self.assertRaises(ParseError, g.xs, "")
+
+
+    def test_repeat_single(self):
+        """
+        Match repetitions can be specifically numbered.
+        """
+        g = self.compile("xs = 'x'{3}:n 'x'* -> n")
+        self.assertEqual(g.xs("xxx"), "xxx")
+        self.assertEqual(g.xs("xxxxxx"), "xxx")
+        self.assertRaises(ParseError, g.xs, "xx")
+
+
     def test_sequencing(self):
         """
         Input matches can be made on a sequence of patterns.

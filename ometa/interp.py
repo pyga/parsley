@@ -82,8 +82,7 @@ class TrampolinedGrammarInterpreter(object):
             else:
                 g = rule(*args)
             for x in g:
-                if x is _feed_me:
-                    yield x
+                if x is _feed_me: yield x
             yield x
             return
         memoRec = self.input.getMemo(ruleName)
@@ -95,8 +94,7 @@ class TrampolinedGrammarInterpreter(object):
             try:
                 inp = self.input
                 for x in rule():
-                    if x is _feed_me:
-                        yield x
+                    if x is _feed_me: yield x
                 memoRec = inp.setMemo(ruleName, [x, self.input])
             except ParseError:
                 raise
@@ -106,8 +104,7 @@ class TrampolinedGrammarInterpreter(object):
                     try:
                         self.input = oldPosition
                         for x in rule():
-                            if x is _feed_me:
-                                yield x
+                            if x is _feed_me: yield x
                         ans = x
                         if (self.input == sentinel):
                             break
@@ -134,8 +131,7 @@ class TrampolinedGrammarInterpreter(object):
 
     def parse_Apply(self, ruleName, codeName, args):
         for x in self.apply(ruleName.data, codeName.data, args.args):
-            if x is _feed_me:
-                yield x
+            if x is _feed_me: yield x
         yield x
 
 
@@ -146,8 +142,7 @@ class TrampolinedGrammarInterpreter(object):
         argvals = []
         for a in args:
             for x in self._eval(a):
-                if x is _feed_me:
-                    yield x
+                if x is _feed_me: yield x
             argvals.append(x[0])
         _locals = {}
         self._localsStack.append(_locals)
@@ -160,8 +155,7 @@ class TrampolinedGrammarInterpreter(object):
             else:
                 f = getattr(self, 'rule_' + ruleName)
             for x in self._apply(f, ruleName, argvals):
-                if x is _feed_me:
-                    yield x
+                if x is _feed_me: yield x
             yield x
         finally:
             self._localsStack.pop()
@@ -190,13 +184,12 @@ class TrampolinedGrammarInterpreter(object):
         of the last one.
         """
         seq = expr.args
-        val = None, self.input.nullError()
+        x = None, self.input.nullError()
         for subexpr in seq:
-            for val in self._eval(subexpr):
-                if val is _feed_me:
-                    yield val
-            self.currentError = val[1]
-        yield val
+            for x in self._eval(subexpr):
+                if x is _feed_me: yield x
+            self.currentError = x[1]
+        yield x
 
 
     def parse_Or(self, expr):
@@ -209,8 +202,7 @@ class TrampolinedGrammarInterpreter(object):
         for subexpr in expr.args:
             try:
                 for x in self._eval(subexpr):
-                    if x is _feed_me:
-                        yield x
+                    if x is _feed_me: yield x
                 val, p = x
                 errors.append(p)
                 self.currentError = joinErrors(errors)
@@ -232,8 +224,7 @@ class TrampolinedGrammarInterpreter(object):
             try:
                 m = self.input
                 for x in self._eval(expr):
-                    if x is _feed_me:
-                        yield _feed_me
+                    if x is _feed_me: yield x
                 ans.append(x[0])
                 self.currentError = x[1]
             except ParseError, err:
@@ -248,12 +239,36 @@ class TrampolinedGrammarInterpreter(object):
         results into a list. Implementation of '+'.
         """
         for x in self._eval(expr):
-            if x is _feed_me:
-                yield _feed_me
+            if x is _feed_me: yield x
         for x in self.parse_Many(expr, ans=[x[0]]):
-            if x is _feed_me:
-                yield _feed_me
+            if x is _feed_me: yield x
         yield x
+
+
+    def parse_Repeat(self, min, max, expr):
+        """
+        Execute an expression between C{min} and C{max} times,
+        collecting the results into a list. Implementation of '{}'.
+        """
+        ans = []
+        for i in range(min):
+            for x in self._eval(expr):
+                if x is _feed_me: yield x
+            v, e = x
+            ans.append(v)
+
+        for i in range(min, max):
+            try:
+                m = self.input
+                for x in self._eval(expr):
+                    if x is _feed_me: yield x
+                v, e = x
+                ans.append(v)
+            except ParseError, e:
+                self.input = m
+                break
+        yield ans, e
+
 
 
     def parse_Optional(self, expr):
@@ -264,8 +279,7 @@ class TrampolinedGrammarInterpreter(object):
         i = self.input
         try:
             for x in self._eval(expr):
-                if x is _feed_me:
-                    yield _feed_me
+                if x is _feed_me: yield x
             yield x
         except ParseError:
             self.input = i
@@ -280,8 +294,7 @@ class TrampolinedGrammarInterpreter(object):
         m = self.input
         try:
             for x in self._eval(expr):
-                if x is _feed_me:
-                    yield x
+                if x is _feed_me: yield x
         except ParseError:
             self.input = m
             yield True, self.input.nullError()
@@ -297,8 +310,7 @@ class TrampolinedGrammarInterpreter(object):
         try:
             i = self.input
             for x in self._eval(expr):
-                if x is _feed_me:
-                    yield x
+                if x is _feed_me: yield x
         finally:
             self.input = i
 
@@ -308,8 +320,7 @@ class TrampolinedGrammarInterpreter(object):
         Execute an expression and bind its result to the given name.
         """
         for x in self._eval(expr):
-            if x is _feed_me:
-                yield x
+            if x is _feed_me: yield x
         v, err = x
         self._localsStack[-1][name.data] = v
         yield v, err
@@ -320,8 +331,7 @@ class TrampolinedGrammarInterpreter(object):
         Run a Python expression and fail if it returns False.
         """
         for x in self._eval(expr):
-            if x is _feed_me:
-                yield x
+            if x is _feed_me: yield x
         val, err = x
         if not val:
             raise ParseError(*err)
@@ -344,8 +354,7 @@ class TrampolinedGrammarInterpreter(object):
         """
         oldInput = self.input
         for x in self._eval(expr):
-            if x is _feed_me:
-                yield x
+            if x is _feed_me: yield x
         slice = oldInput.data[oldInput.position:self.input.position]
         yield slice, x[1]
 
@@ -454,6 +463,22 @@ class GrammarInterpreter(object):
                     run.input = m
                     break
             return ans, err
+
+        elif name == "Repeat":
+            ans = []
+            for i in range(args[0].data):
+                v, e = self._eval(run, args[2])
+                ans.append(v)
+
+            for i in range(args[0].data, args[1].data):
+                try:
+                    m = run.input
+                    v, e = self._eval(run, args[2])
+                    ans.append(v)
+                except ParseError, e:
+                    run.input = m
+                    break
+            return ans, e
 
         elif name == "Optional":
             i = run.input

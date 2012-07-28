@@ -3,8 +3,8 @@
 
 import sys
 from ometa.runtime import ParseError
-from ometa.grammar import OMeta1
-from ometa.builder import TermBuilder, writePython
+from ometa.grammar import OMeta
+from ometa.builder import writePython
 
 if len(sys.argv) != 3:
  print "Usage: generate_grammar grammar-filename python-filename"
@@ -15,7 +15,7 @@ pythonFile =  open(sys.argv[2], 'w')
 s = grammarFile.read()
 g = OMeta(s)
 try:
-    tree = g.parseGrammar("Parser", TermBuilder)
+    tree = g.parseGrammar("Parser")
 except ParseError, e:
     print e.formatErrorTwine(g.input.data)
     raise

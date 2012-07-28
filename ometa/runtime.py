@@ -466,6 +466,27 @@ class OMetaBase(object):
         return ans, e
 
 
+    def repeat(self, min, max, fn):
+        """
+        Call C{fn} C{max} times or until it fails to match the
+        input. Fail if less than C{min} matches were made.
+        Collect the results into a list.
+        """
+        ans = []
+        for i in range(min):
+            v, e = fn()
+            ans.append(v)
+
+        for i in range(min, max):
+            try:
+                m = self.input
+                v, e = fn()
+                ans.append(v)
+            except ParseError, e:
+                self.input = m
+                break
+        return ans, e
+
     def _or(self, fns):
         """
         Call each of a list of functions in sequence until one succeeds,

@@ -145,8 +145,10 @@ expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
 expr3 = (expr2:e ('*' -> t.Many(e)
                       |'+' -> t.Many1(e)
                       |'?' -> t.Optional(e)
-#                      |'{' barenumber:start ',' barenumber:end '}' -> t.Repeat(start, end)
-#                      |'{' barenumber:n '}' -> t.Repeat(n, n)
+                      |'{' spaces barenumber:start spaces (
+                      (',' spaces barenumber:end spaces '}'
+                           -> t.Repeat(start, end, e))
+                         | spaces '}' -> t.Repeat(start, start, e))
                       | -> e
 )):r
            (':' name:n -> t.Bind(n, r)

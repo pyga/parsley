@@ -250,6 +250,17 @@ class TrampolinedGrammarInterpreter(object):
         Execute an expression between C{min} and C{max} times,
         collecting the results into a list. Implementation of '{}'.
         """
+        if min.tag.name == '.int.':
+            min = min.data
+        else:
+            min = self._localsStack[-1][min.data]
+        if max.tag.name == '.int.':
+            max = max.data
+        elif max.tag.name == 'null':
+            max = None
+        else:
+            max = self._localsStack[-1][max.data]
+
         ans = []
         for i in range(min):
             for x in self._eval(expr):
@@ -257,16 +268,18 @@ class TrampolinedGrammarInterpreter(object):
             v, e = x
             ans.append(v)
 
-        for i in range(min, max):
-            try:
-                m = self.input
-                for x in self._eval(expr):
-                    if x is _feed_me: yield x
-                v, e = x
-                ans.append(v)
-            except ParseError, e:
-                self.input = m
-                break
+        if max is not None:
+            repeats = xrange(min, max)
+            for i in repeats:
+                try:
+                    m = self.input
+                    for x in self._eval(expr):
+                        if x is _feed_me: yield x
+                    v, e = x
+                    ans.append(v)
+                except ParseError, e:
+                    self.input = m
+                    break
         yield ans, e
 
 
@@ -465,12 +478,23 @@ class GrammarInterpreter(object):
             return ans, err
 
         elif name == "Repeat":
+            if args[0].tag.name == '.int.':
+                min = args[0].data
+            else:
+                min = self._localsStack[-1][args[0].data]
+            if args[1].tag.name == '.int.':
+                max = args[1].data
+            elif args[1].tag.name == 'null':
+                max = None
+            else:
+                max = self._localsStack[-1][args[1].data]
+
             ans = []
-            for i in range(args[0].data):
+            for i in range(min):
                 v, e = self._eval(run, args[2])
                 ans.append(v)
 
-            for i in range(args[0].data, args[1].data):
+            for i in range(min, max):
                 try:
                     m = run.input
                     v, e = self._eval(run, args[2])

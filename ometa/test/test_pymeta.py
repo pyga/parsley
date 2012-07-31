@@ -497,7 +497,7 @@ class OMetaTestCase(unittest.TestCase):
         Match repetitions can be specifically numbered.
         """
         g = self.compile("xs = 'x'{2, 4}:n 'x'* -> n")
-        self.assertEqual(g.xs("xx"), "xx")
+#        self.assertEqual(g.xs("xx"), "xx")
         self.assertEqual(g.xs("xxxx"), "xxxx")
         self.assertEqual(g.xs("xxxxxx"), "xxxx")
         self.assertRaises(ParseError, g.xs, "x")
@@ -512,6 +512,17 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.xs("xxx"), "xxx")
         self.assertEqual(g.xs("xxxxxx"), "xxx")
         self.assertRaises(ParseError, g.xs, "xx")
+
+    def test_repeat_var(self):
+        """
+        Match repetitions can be variables.
+        """
+        g = self.compile("xs = (:v -> int(v)):n 'x'{n}:xs 'x'* -> xs")
+        self.assertEqual(g.xs("2xx"), "xx")
+        self.assertEqual(g.xs("4xxxx"), "xxxx")
+        self.assertEqual(g.xs("3xxxxxx"), "xxx")
+        self.assertRaises(ParseError, g.xs, "2x")
+        self.assertRaises(ParseError, g.xs, "1")
 
 
     def test_sequencing(self):

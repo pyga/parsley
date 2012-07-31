@@ -158,8 +158,17 @@ class PythonWriter(object):
         Create a call to self.repeat(min, max, lambda: expr).
         """
         fname = self._newThunkFor(out, "repeat", expr)
+        if min.tag.name == '.int.':
+            min = min.data
+        else:
+            min = '_locals["%s"]' % min.data
+        if max.tag.name == '.int.':
+            max = max.data
+        else:
+            max = '_locals["%s"]' % max.data
+
         return self._expr(out, 'repeat', 'self.repeat(%s, %s, %s)'
-                          % (min.data, max.data, fname))
+                          % (min, max, fname))
 
     def generate_Optional(self, out, expr):
         """

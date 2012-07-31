@@ -142,11 +142,13 @@ expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
           )
           |expr1)
 
+repeatTimes = (barenumber:x -> int(x)) | name
+
 expr3 = (expr2:e ('*' -> t.Many(e)
                       |'+' -> t.Many1(e)
                       |'?' -> t.Optional(e)
-                      |'{' spaces barenumber:start spaces (
-                      (',' spaces barenumber:end spaces '}'
+                      |'{' spaces repeatTimes:start spaces (
+                      (',' spaces repeatTimes:end spaces '}'
                            -> t.Repeat(start, end, e))
                          | spaces '}' -> t.Repeat(start, start, e))
                       | -> e

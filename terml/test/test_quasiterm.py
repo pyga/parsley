@@ -33,11 +33,20 @@ class QuasiTermMatchTests(TestCase):
         self.assertRaises(TypeError, quasiterm("hello@foo").match, "hello")
         self.assertEqual(quasiterm(".String.@foo").match(term('"hello"')),
                          {"foo": term('"hello"')})
-
+        self.assertEqual(quasiterm(".String.@foo").match("hello"),
+                         {"foo": term('"hello"')})
         self.assertEqual(quasiterm("hello@foo").match(term("hello(3, 4)")),
                          {"foo": term("hello(3, 4)")})
         self.assertEqual(quasiterm("hello@bar()").match(term("hello")),
                          {"bar": term("hello")})
-        self.assertEqual(quasiterm("hello@foo()").match("hello"), {"foo": term("hello")})
-        self.assertRaises(TypeError, quasiterm("hello@foo()").match, term("hello(3, 4)"))
-        self.assertRaises(TypeError, quasiterm("hello@foo").match, "hello")
+        self.assertEqual(quasiterm("hello@foo()").match("hello"),
+                         {"foo": term("hello")})
+        self.assertEqual(quasiterm("Foo(@x, Bar(1, @y))").match(
+                term("Foo(a, Bar(1, 2))")),
+                         {"x": term("a"), "y": term("2")})
+        self.assertRaises(TypeError, quasiterm("Foo(@x, Bar(3, @y))").match,
+                          term("Foo(a, Bar(1, 2))"))
+        self.assertRaises(TypeError, quasiterm("hello@foo()").match,
+                          term("hello(3, 4)"))
+        self.assertRaises(TypeError, quasiterm("hello@foo").match,
+                          "hello")

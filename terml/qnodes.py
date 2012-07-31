@@ -3,6 +3,11 @@ from collections import namedtuple
 from terml.nodes import Term, Tag, coerceToTerm
 
 class QTerm(namedtuple("QTerm", "functor data args span")):
+
+    @property
+    def tag(self):
+        return self.functor.tag
+
     def _substitute(self, map):
         candidate = self.functor._substitute(map)[0]
         args = tuple(itertools.chain.from_iterable(a._substitute(map) for a in self.args))
@@ -42,13 +47,13 @@ class QTerm(namedtuple("QTerm", "functor data args span")):
         if isinstance(spec, Term):
             newf = coerceToQuasiMatch(spec.withoutArgs(),
                                       self.functor.isFunctorHole,
-                                      self.functor.functor)
+                                      self.tag)
             if newf is None:
                 return None
             return Term(newf.asFunctor(), None, spec.args, None)
         else:
             return coerceToQuasiMatch(spec, self.functor.isFunctorHole,
-                                      self.functor.functor)
+                                      self.tag)
 
     def __eq__(self, other):
         return (     self.functor, self.data, self.args
@@ -128,7 +133,7 @@ def coerceToQuasiMatch(val, isFunctorHole, tag):
         return None
     return result
 
-class _Hole(namedtuple("_Hole", "functor name isFunctorHole")):
+class _Hole(namedtuple("_Hole", "tag name isFunctorHole")):
     def _reserve(self):
         return 1
 
@@ -172,7 +177,7 @@ class ValueHole(_Hole):
 
     def _substitute(self, map):
         termoid = map[self.name]
-        val = coerceToQuasiMatch(termoid, self.isFunctorHole, self.functor)
+        val = coerceToQuasiMatch(termoid, self.isFunctorHole, self.tag)
         if val is None:
             raise TypeError("%r doesn't match %r" % (termoid, self))
         return [val]
@@ -181,21 +186,21 @@ class ValueHole(_Hole):
         if self.isFunctorHole:
             return self
         else:
-            return ValueHole(self.functor, self.name, True)
+            return ValueHole(self.tag, self.name, True)
 
 
 class PatternHole(_Hole):
 
     def _unparse(self, indentLevel=0):
-        if self.functor:
-            return "%s@{%s}" % (self.functor.name, self.name)
+        if self.tag:
+            return "%s@{%s}" % (self.tag.name, self.name)
         else:
             return "@{%s}" % (self.name,)
 
     def _match(self, args, specimens, bindings, index, max):
         if not specimens:
             return -1
-        spec = coerceToQuasiMatch(specimens[0], self.isFunctorHole, self.functor)
+        spec = coerceToQuasiMatch(specimens[0], self.isFunctorHole, self.tag)
         if spec is None:
             return -1
         oldval = _multiput(bindings, self.name, index, spec)
@@ -209,7 +214,7 @@ class PatternHole(_Hole):
         if self.isFunctorHole:
             return self
         else:
-            return PatternHole(self.functor, self.name, True)
+            return PatternHole(self.tag, self.name, True)
 
 class QSome(namedtuple("_QSome", "value quant")):
     def _reserve(self):

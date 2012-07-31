@@ -1,7 +1,7 @@
 from ometa.boot import BootOMetaGrammar
 from ometa.runtime import ParseError, EOFError
-from terml.parser import TermLParser, makeTerm as baseMakeTerm
-from terml.nodes import ValueHole, PatternHole, Term, QSome, QFunctor
+from terml.parser import TermLParser
+from terml.qnodes import ValueHole, PatternHole, QTerm, QSome, QFunctor
 
 quasitermGrammar = """
 schema = production+:ps -> schema(ps)
@@ -68,7 +68,14 @@ def makeTerm(t, args=None, span=None):
     if args is None:
         return t
     else:
-        return baseMakeTerm(t.asFunctor(), args, span)
+        if isinstance(t, QTerm):
+            if t.data:
+                if not args:
+                    return t
+                else:
+                    raise ValueError("Literal terms can't have arguments")
+    return QTerm(t.asFunctor(), None, args and tuple(args), span)
+
 
 QTermParser = BootOMetaGrammar.makeGrammar(quasitermGrammar, TermLParser.globals,
                                            "QTermParser", TermLParser)

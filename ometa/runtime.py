@@ -4,7 +4,7 @@ Code needed to run a grammar after it has been compiled.
 """
 import operator
 from terml.twine import asTwineFrom
-from ometa.builder import moduleFromGrammar, termMaker as t
+from ometa.builder import moduleFromGrammar, writePython, termMaker as t
 
 class ParseError(Exception):
     """
@@ -692,7 +692,11 @@ class OMetaGrammarBase(OMetaBase):
         """
         g = cls(grammar)
         tree = g.parseGrammar(name)
-        return moduleFromGrammar(tree, name, superclass or OMetaBase, globals)
+        modname = "pymeta_grammar__" + name
+        filename = "/pymeta_generated_code/" + modname + ".py"
+        source = writePython(tree)
+        return moduleFromGrammar(source, name, superclass or OMetaBase, globals,
+                                 modname, filename)
 
 
     def parseGrammar(self, name):

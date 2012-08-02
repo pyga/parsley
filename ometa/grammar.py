@@ -247,9 +247,12 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         """
         g = cls(grammar)
         tree = g.parseGrammar(name)
-        return moduleFromGrammar(
-            tree, name, superclass or OMetaBase,
-            globals, writer=g.writeTerm)
+        modname = "pymeta_grammar__" + name
+        filename = "/pymeta_generated_code/" + modname + ".py"
+        source = g.writeTerm(tree)
+        return moduleFromGrammar(source, name, superclass or OMetaBase, globals,
+                                 modname, filename)
+
 
 
     def writeTerm(self, term):

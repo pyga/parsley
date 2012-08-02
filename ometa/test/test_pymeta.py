@@ -60,10 +60,8 @@ class OMeta1TestCase(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = self.classTested(dedent(grammar))
-        tree = g.parseGrammar('TestGrammar')
-        result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
-        return HandyWrapper(result)
+        g = self.classTested.makeGrammar(dedent(grammar), globals(), 'TestGrammar')
+        return HandyWrapper(g)
 
 
 
@@ -225,9 +223,8 @@ class OMeta1TestCase(unittest.TestCase):
         """
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
-        gg = self.classTested("stuff ::= '1':a ('2':b | '3':c)")
-        t = gg.parseGrammar('TestGrammar')
-        G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
+        G = self.classTested.makeGrammar(
+            "stuff ::= '1':a ('2':b | '3':c)", {}, 'TestGrammar')
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -607,9 +604,8 @@ class OMetaTestCase(unittest.TestCase):
         """
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
-        gg = self.classTested("stuff = '1':a ('2':b | '3':c)")
-        t = gg.parseGrammar('TestGrammar')
-        G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
+        G = self.classTested.makeGrammar(
+            "stuff = '1':a ('2':b | '3':c)", {}, 'TestGrammar', OMetaBase)
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -821,9 +817,8 @@ class TermActionGrammarTests(OMetaTestCase):
         """
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
-        gg = self.classTested("stuff = '1':a ('2':b | '3':c)")
-        t = gg.parseGrammar('TestGrammar')
-        G = moduleFromGrammar(t, 'TestGrammar', OMetaBase, {})
+        G = self.classTested.makeGrammar(
+            "stuff = '1':a ('2':b | '3':c)", {}, 'TestGrammar')
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -1227,10 +1222,8 @@ class ErrorReportingTests(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = BootOMetaGrammar(dedent(grammar))
-        tree = g.parseGrammar('TestGrammar')
-        result = moduleFromGrammar(tree, 'TestGrammar', OMetaBase, {})
-        return HandyWrapper(result)
+        g = BootOMetaGrammar.makeGrammar(dedent(grammar), {}, 'TestGrammar', OMetaBase)
+        return HandyWrapper(g)
 
 
     def test_rawReporting(self):

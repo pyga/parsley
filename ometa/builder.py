@@ -359,11 +359,8 @@ class GeneratedCodeLoader(object):
 
 
 
-def moduleFromGrammar(tree, className, superclass, globalsDict,
-                      writer=writePython):
-    source = writer(tree)
-    modname = "pymeta_grammar__" + className
-    filename = "/pymeta_generated_code/" + modname + ".py"
+def moduleFromGrammar(source, className, superclass, globalsDict,
+                      modname, filename):
     mod = module(modname)
     mod.__dict__.update(globalsDict)
     mod.__name__ = modname

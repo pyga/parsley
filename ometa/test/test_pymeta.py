@@ -497,7 +497,7 @@ class OMetaTestCase(unittest.TestCase):
         Match repetitions can be specifically numbered.
         """
         g = self.compile("xs = 'x'{2, 4}:n 'x'* -> n")
-#        self.assertEqual(g.xs("xx"), "xx")
+        self.assertEqual(g.xs("xx"), "xx")
         self.assertEqual(g.xs("xxxx"), "xxxx")
         self.assertEqual(g.xs("xxxxxx"), "xxxx")
         self.assertRaises(ParseError, g.xs, "x")

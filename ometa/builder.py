@@ -1,16 +1,17 @@
 # -*- test-case-name: ometa.test.test_builder -*-
-import os.path
+
 from StringIO import StringIO
 from types import ModuleType as module
-import itertools, linecache, sys
+import linecache, sys
 
 from terml.nodes import Term, Tag, coerceToTerm
 
 class TermMaker(object):
     def __getattr__(self, name):
-        def mkterm(*args):
+        def mkterm(*args, **kwargs):
             return Term(Tag(name), None,
-                        tuple([coerceToTerm(a) for a in args]), None)
+                        tuple([coerceToTerm(a) for a in args]),
+                        kwargs.get('span', None))
         return mkterm
 
 termMaker = TermMaker()

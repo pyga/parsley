@@ -15,8 +15,9 @@ from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError, exp
 v1Grammar = r"""
 hspace = ' ' | '\t' | ('#' (~vspace anything)*)
 vspace = (token("\r\n") | '\r' | '\n')
-number = spaces ('-' barenumber:x -> t.Exactly(-x)
-                    |barenumber:x -> t.Exactly(x))
+number = spaces !(self.startSpan()):s
+                   ('-' barenumber:x -> t.Exactly(-x, span=self.span(s))
+                    |barenumber:x -> t.Exactly(x, span=self.span(s)))
 barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
                |<digit+>:ds -> int(ds)
@@ -32,16 +33,18 @@ escapedChar = '\\' ('n' -> "\n"
                      |'\'' -> "'"
                      |'\\' -> "\\")
 
-character = token("'") (escapedChar | anything):c token("'") -> t.Exactly(c)
+character = !(self.startSpan()):s token("'") (escapedChar | anything):c
+            token("'") -> t.Exactly(c, span=self.span(s))
 
-string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> t.Exactly(''.join(c))
+string = !(self.startSpan()):s token('"') (escapedChar | ~('"') anything)*:c
+            token('"') -> t.Exactly(''.join(c))
 
 name = <letter letterOrDigit*>
-application = (token('<') spaces name:name
+application = !(self.startSpan()):s (token('<') spaces name:name
                   (' ' !(self.applicationArgs(finalChar='>')):args '>'
-                     -> t.Apply(name, self.rulename, args)
+                     -> t.Apply(name, self.rulename, args, span=self.span(s))
                   |token('>')
-                     -> t.Apply(name, self.rulename, [])))
+                     -> t.Apply(name, self.rulename, [], span=self.span(s))))
 
 expr1 = (application
           |ruleValue
@@ -51,29 +54,37 @@ expr1 = (application
           |character
           |string
           |token('(') expr:e token(')') -> e
-          |token('[') expr:e token(']') -> t.List(e))
+          |(!(self.startSpan()):s token('[') expr:e token(']')
+              -> t.List(e, span=self.span(s))))
 
-expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
-                       |expr2:e -> t.Not(e))
-          |expr1)
+expr2 = (!(self.startSpan()):s token('~') (token('~') expr2:e
+                                 -> t.Lookahead(e, span=self.span(s))
+                                          |expr2:e
+                                           -> t.Not(e, span=self.span(s)))
+                              |expr1)
 
-expr3 = ((expr2:e ('*' -> t.Many(e)
-                      |'+' -> t.Many1(e)
-                      |'?' -> t.Optional(e)
-                      | -> e)):r
-           (':' name:n -> t.Bind(n, r)
+expr3 = !(self.startSpan()):s (
+            (expr2:e !(self.startSpan()):s
+              ('*' -> t.Many(e, span=self.span(s))
+              |'+' -> t.Many1(e, span=self.span(s))
+              |'?' -> t.Optional(e, span=self.span(s))
+              | -> e)):r
+           (':' name:n -> t.Bind(n, r, span=self.span(s))
            | -> r)
-          |token(':') name:n
-           -> t.Bind(n, t.Apply("anything", self.rulename, [])))
+          | (!(self.startSpan()):s token(':') name:n
+              -> t.Bind(n, t.Apply("anything", self.rulename, [],
+                        span=self.span(s)))))
 
-expr4 = expr3*:es -> t.And(es)
+expr4 = !(self.startSpan()):s expr3*:es -> t.And(es, span=self.span(s))
 
-expr = expr4:e (token('|') expr4)*:es
-          -> t.Or([e] + es)
+expr = !(self.startSpan()):s expr4:e (token('|') expr4)*:es
+          -> t.Or([e] + es, span=self.span(s))
 
-ruleValue = token("=>") -> self.ruleValueExpr(False)
+ruleValue = !(self.startSpan()):s token("=>")
+              -> self.ruleValueExpr(False, span=self.span(s))
 
-semanticPredicate = token("?(") -> self.semanticPredicateExpr()
+semanticPredicate = !(self.startSpan()):s token("?(")
+                      -> self.semanticPredicateExpr(span=self.span(s))
 
 semanticAction = token("!(") -> self.semanticActionExpr()
 
@@ -84,9 +95,9 @@ rulePart :requiredName = (spaces name:n ?(n == requiredName)
                             (token("::=") expr:e ruleEnd
                                -> t.And([args, e])
                             | ruleEnd -> args))
-rule = (spaces ~~(name:n) rulePart(n):r
-          (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs))
-          |                     -> t.Rule(n, r)))
+rule = !(self.startSpan()):s (spaces ~~(name:n) rulePart(n):r
+          (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs), span=self.span(s))
+          |                     -> t.Rule(n, r, span=self.span(s))))
 
 grammar = rule*:rs spaces -> t.Grammar(self.name, rs)
 """
@@ -98,8 +109,9 @@ emptyline = hspace* vspace
 indentation = emptyline* hspace+
 noindentation = emptyline* ~~~hspace
 
-number = spaces ('-' barenumber:x -> t.Exactly(-x)
-                    |barenumber:x -> t.Exactly(x))
+number = spaces !(self.startSpan()):s
+               ('-' barenumber:x -> t.Exactly(-x, span=self.span(s))
+                    |barenumber:x -> t.Exactly(x, span=self.span(s)))
 barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
                |<digit+>:ds -> int(ds)
@@ -115,16 +127,18 @@ escapedChar = '\\' ('n' -> "\n"
                      |'\'' -> "'"
                      |'\\' -> "\\")
 
-character = token("'") (escapedChar | anything):c token("'") -> t.Exactly(c)
+character = !(self.startSpan()):s token("'") (escapedChar | anything):c
+            token("'") -> t.Exactly(c, span=self.span(s))
 
-string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> t.Exactly(''.join(c))
+string = !(self.startSpan()):s token('"') (escapedChar | ~('"') anything)*:c
+         token('"') -> t.Exactly(''.join(c), span=self.span(s))
 
 name = <letter letterOrDigit*>
 
-application = indentation? name:name
+application = indentation? !(self.startSpan()):s name:name
                   ('(' !(self.applicationArgs(finalChar=')')):args ')'
-                    -> t.Apply(name, self.rulename, args)
-                  | -> t.Apply(name, self.rulename, []))
+                    -> t.Apply(name, self.rulename, args, span=self.span(s))
+                  | -> t.Apply(name, self.rulename, [], span=self.span(s)))
 
 expr1 = application
           |ruleValue
@@ -134,40 +148,49 @@ expr1 = application
           |character
           |string
           |token('(') expr:e token(')') -> e
-          |token('<') expr:e token('>') -> t.ConsumedBy(e)
-          |token('[') expr:e token(']') -> t.List(e)
+          |!(self.startSpan()):s token('<') expr:e token('>')
+             -> t.ConsumedBy(e, s=self.span(s))
+          |!(self.startSpan()):s token('[') expr:e token(']')
+             -> t.List(e, s=self.span(s))
 
-expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
-                       |expr2:e -> t.Not(e)
+expr2 = !(self.startSpan()):s (token('~') (token('~') expr2:e
+                                           -> t.Lookahead(e, span=self.span(s))
+                       |expr2:e -> t.Not(e, span=self.span(s))
           )
           |expr1)
 
 repeatTimes = (barenumber:x -> int(x)) | name
 
-expr3 = (expr2:e ('*' -> t.Many(e)
-                      |'+' -> t.Many1(e)
-                      |'?' -> t.Optional(e)
+expr3 = !(self.startSpan()):s (expr2:e
+                      ('*' -> t.Many(e, span=self.span(s))
+                      |'+' -> t.Many1(e, span=self.span(s))
+                      |'?' -> t.Optional(e, span=self.span(s))
                       |'{' spaces repeatTimes:start spaces (
                       (',' spaces repeatTimes:end spaces '}'
-                           -> t.Repeat(start, end, e))
-                         | spaces '}' -> t.Repeat(start, start, e))
+                           -> t.Repeat(start, end, e, span=self.span(s)))
+                         | spaces '}'
+                           -> t.Repeat(start, start, e, span=self.span(s)))
                       | -> e
 )):r
-           (':' name:n -> t.Bind(n, r)
+           (':' name:n -> t.Bind(n, r, span=self.span(s))
            | -> r)
           |token(':') name:n
-           -> t.Bind(n, t.Apply("anything", self.rulename, []))
+           -> t.Bind(n, t.Apply("anything", self.rulename, []),
+                     span=self.span(s))
 
-expr4 = expr3*:es -> t.And(es)
+expr4 = !(self.startSpan()):s expr3*:es -> t.And(es, span=self.span(s))
 
-expr = expr4:e (token('|') expr4)*:es
-          -> t.Or([e] + es)
+expr = !(self.startSpan()):s expr4:e (token('|') expr4)*:es
+          -> t.Or([e] + es, span=self.span(s))
 
-ruleValue = token("->") -> self.ruleValueExpr(True)
+ruleValue = !(self.startSpan()):s token("->")
+             -> self.ruleValueExpr(True, span=self.span(s))
 
-semanticPredicate = token("?(") -> self.semanticPredicateExpr()
+semanticPredicate = !(self.startSpan()):s token("?(")
+                    -> self.semanticPredicateExpr(span=self.span(s))
 
-semanticAction = token("!(") -> self.semanticActionExpr()
+semanticAction = !(self.startSpan()):s token("!(")
+                    -> self.semanticActionExpr(span=self.span(s))
 
 ruleEnd = (hspace* vspace+) | end
 
@@ -178,9 +201,9 @@ rulePart :requiredName = noindentation name:n ?(n == requiredName)
                                -> t.And([args, e])
                             | ruleEnd -> args)
 
-rule = noindentation ~~(name:n) rulePart(n):r
-          (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs))
-          |                -> t.Rule(n, r))
+rule = noindentation ~~(name:n) !(self.startSpan()):s rulePart(n):r
+          (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs), span=self.span(s))
+          |                -> t.Rule(n, r, span=self.span(s)))
 
 grammar = rule*:rs spaces -> t.Grammar(self.name, rs)
 """
@@ -192,15 +215,19 @@ OMeta1 = BootOMetaGrammar.makeGrammar(v1Grammar, globals(), name='OMeta1',
 
 
 termOMeta2Grammar = """
-ruleValue = token("->") term:tt -> t.Action(tt)
+ruleValue = !(self.startSpan()):s token("->") term:tt
+            -> t.Action(tt, span=self.span(s))
 
-semanticPredicate = token("?(") term:tt token(")") -> t.Predicate(tt)
+semanticPredicate = !(self.startSpan()):s token("?(") term:tt token(")")
+                    -> t.Predicate(tt, span=self.span(s))
 
-semanticAction = token("!(") term:tt token(")") -> t.Action(tt)
+semanticAction = !(self.startSpan()):s token("!(") term:tt token(")")
+                    -> t.Action(tt, span=self.span(s))
 
-application = indentation? name:name ('(' term_arglist:args ')'
-                    -> t.Apply(name, self.rulename, args)
-                  | -> t.Apply(name, self.rulename, []))
+application = indentation? !(self.startSpan()):s name:name
+                  ('(' term_arglist:args ')'
+                    -> t.Apply(name, self.rulename, args, span=self.span(s))
+                  | -> t.Apply(name, self.rulename, [], span=self.span(s)))
 """
 
 class TermOMeta(BootOMetaGrammar.makeGrammar(

@@ -738,7 +738,7 @@ class OMetaGrammarBase(OMetaBase):
         else:
             raise ParseError()
 
-    def ruleValueExpr(self, singleLine):
+    def ruleValueExpr(self, singleLine, span=None):
         """
         Find and generate code for a Python expression terminated by a close
         paren/brace or end of line.
@@ -746,26 +746,26 @@ class OMetaGrammarBase(OMetaBase):
         (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
         # if str(endchar) in ")]" or (singleLine and endchar):
         #     self.input = self.input.prev()
-        return t.Action(expr)
+        return t.Action(expr, span=span)
 
-    def semanticActionExpr(self):
+    def semanticActionExpr(self, span=None):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value is ignored.
         """
-        val = t.Action(self.pythonExpr(')')[0][0])
+        val = t.Action(self.pythonExpr(')')[0][0], span=span)
         self.exactly(')')
         return val
 
-    def semanticPredicateExpr(self):
+    def semanticPredicateExpr(self, span=None):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value determines the success of the pattern
         it's in.
         """
-        expr = t.Action(self.pythonExpr(')')[0][0])
+        expr = t.Action(self.pythonExpr(')')[0][0], span=span)
         self.exactly(')')
-        return t.Predicate(expr)
+        return t.Predicate(expr, span=span)
 
 
     def eatWhitespace(self):
@@ -834,3 +834,11 @@ class OMetaGrammarBase(OMetaBase):
         if len(stack) > 0:
             raise ParseError(self.input.position, expected("Python expression"))
         return (''.join(expr).strip(), endchar), e
+
+
+    def startSpan(self):
+        return self.input.position
+
+    def span(self, start):
+        end = self.input.position
+        return self.input.data[start:end].span

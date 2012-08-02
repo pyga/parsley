@@ -50,8 +50,10 @@ they succeed in matching.
   Fail if the next item in the input matches =expr=.
 - =ruleName= or =ruleName(arg1 arg2 etc)= ::
   Call the rule =ruleName=, possibly with args.
-- ='x'= ::
+- 'x' ::
   Match the literal character 'x'.
+- =<expr>= ::
+  Returns the string consumed by matching =expr=. Good for tokenizing rules.
 - =expr:name= ::
   Bind the result of expr to the local variable =name=.
 - =-> pythonExpression= ::

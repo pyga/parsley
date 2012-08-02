@@ -1,7 +1,14 @@
 from twisted.trial import unittest
 from ometa.runtime import ParseError
-from terml.nodes import Tag, Term, coerceToTerm
+from terml.nodes import Tag, Term, coerceToTerm, TermMaker
 from terml.parser import TermLParser, character, _parseTerm
+
+
+class TermMakerTests(unittest.TestCase):
+    def test_make(self):
+        m = TermMaker()
+        t1 = m.Foo(1, 'a', m.Baz())
+        self.assertEqual(t1, _parseTerm('Foo(1, "a", Baz)'))
 
 
 class ParserTest(unittest.TestCase):

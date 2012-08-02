@@ -7,10 +7,10 @@ import string
 from StringIO import StringIO
 
 from terml.parser import TermLParser
-
+from terml.nodes import termMaker as t
 from ometa.boot import BootOMetaGrammar
-from ometa.builder import TermActionPythonWriter, moduleFromGrammar, TextWriter, termMaker as t
-from ometa.runtime import OMetaBase, OMetaGrammarBase, ParseError, EOFError, expected
+from ometa.builder import TermActionPythonWriter, moduleFromGrammar, TextWriter
+from ometa.runtime import OMetaBase, OMetaGrammarBase
 
 v1Grammar = r"""
 hspace = ' ' | '\t' | ('#' (~vspace anything)*)

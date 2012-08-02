@@ -135,3 +135,13 @@ def coerceToTerm(val):
                                                    (coerceToTerm(k), coerceToTerm(v)), None)
                                          for (k, v) in val.iteritems()),
                     None)
+class TermMaker(object):
+    def __getattr__(self, name):
+        def mkterm(*args, **kwargs):
+            return Term(Tag(name), None,
+                        tuple([coerceToTerm(a) for a in args]),
+                        kwargs.get('span', None))
+        return mkterm
+
+termMaker = TermMaker()
+

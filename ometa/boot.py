@@ -1,5 +1,5 @@
 from ometa.runtime import OMetaGrammarBase as GrammarBase
-from ometa.builder import termMaker as t
+from terml.nodes import termMaker as t
 
 class BootOMetaGrammar(GrammarBase):
     def __init__(self, *a, **kw):

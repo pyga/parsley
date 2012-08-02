@@ -1,18 +1,12 @@
 from textwrap import dedent
-from twisted.trial import unittest
+import unittest
 
-from ometa.builder import TermMaker, writePython, termMaker as t
+from ometa.builder import writePython
+from terml.nodes import termMaker as t
 from terml.parser import parseTerm as term
 
 def dd(txt):
     return dedent(txt).strip()
-
-
-class TermMakerTests(unittest.TestCase):
-    def test_make(self):
-        m = TermMaker()
-        t1 = m.Foo(1, 'a', m.Baz())
-        self.assertEqual(t1, term('Foo(1, "a", Baz)'))
 
 class PythonWriterTests(unittest.TestCase):
     """

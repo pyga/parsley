@@ -101,7 +101,7 @@ def _parseTerm(termString):
 
 def quasiterm(termString):
     """
-    Friendly interface for parsing.
+    Build a quasiterm from a string.
     """
     try:
         return _parseTerm(termString)

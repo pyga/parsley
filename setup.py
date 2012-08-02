@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-"""Setup script for the PyMeta distribution."""
+"""
+Setup script for the Parsley distribution.
+"""
+
 from distutils.core import setup
 setup(
     name="Parsley",

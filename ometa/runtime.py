@@ -4,7 +4,8 @@ Code needed to run a grammar after it has been compiled.
 """
 import operator
 from terml.twine import asTwineFrom
-from ometa.builder import moduleFromGrammar, writePython, termMaker as t
+from terml.nodes import termMaker as t
+from ometa.builder import moduleFromGrammar, writePython
 
 class ParseError(Exception):
     """

@@ -138,7 +138,7 @@ def _parseTerm(termString):
 
 def parseTerm(termString):
     """
-    Friendly interface for parsing.
+    Build a term tree from a string.
     """
     try:
         return _parseTerm(termString)

@@ -3,7 +3,9 @@ from collections import namedtuple
 from terml.nodes import Term, Tag, coerceToTerm
 
 class QTerm(namedtuple("QTerm", "functor data args span")):
-
+    """
+    A quasiterm, representing a template or pattern for a term tree.
+    """
     @property
     def tag(self):
         return self.functor.tag
@@ -15,9 +17,21 @@ class QTerm(namedtuple("QTerm", "functor data args span")):
         return [term]
 
     def substitute(self, map):
+        """
+        Fill $-holes with named values.
+
+        @param map: A mapping of names to values to be inserted into
+        the term tree.
+        """
         return self._substitute(map)[0]
 
     def match(self, specimen, substitutionArgs=()):
+        """
+        Search a term tree for matches to this pattern. Returns a
+        mapping of names to matched values.
+
+        @param specimen: A term tree to extract values from.
+        """
         bindings = {}
         if self._match(substitutionArgs, [specimen], bindings, (), 1) == 1:
             return bindings

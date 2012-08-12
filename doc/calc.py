@@ -2,7 +2,8 @@ from parsley import makeGrammar
 
 calcGrammar = """
 ws = ' '*
-number = digit+:ds -> int(''.join(ds))
+digit = anything:x ?(x in '0123456789')
+number = <digit+>:ds -> int(ds))
 parens = '(' ws expr:e ws ')' -> e
 value = ws (number | parens)
 expr = muldiv:left ws ('+' muldiv:right -> left + right

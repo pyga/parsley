@@ -101,7 +101,13 @@ class TwineMixin(object):
         elif len(parts) == 1:
             return parts[0]
         else:
-            return cls._makeComposite(parts)
+            ps = []
+            for p in parts:
+                if isinstance(p, CompositeTwineMixin):
+                    ps.extend(p._parts)
+                else:
+                    ps.append(p)
+            return cls._makeComposite(ps)
 
 
     def asFrom(self, sourceURI, startLine=1, startCol=0):
@@ -199,6 +205,10 @@ class TwineMixin(object):
             other = self.__class__._makeSimple(other)
         return self.__class__.fromParts([self, other])
 
+    def __radd__(self, other):
+        if not isinstance(other, TwineMixin):
+            other = self.__class__._makeSimple(other)
+        return self.__class__.fromParts([other, self])
 
     def split(self, sep, count=None):
         if sep == "":
@@ -272,6 +282,7 @@ class TwineMixin(object):
         else:
             span = self.span
         return self.__class__._makeSimple(target, span)
+
 
 class CompositeTwineMixin(TwineMixin):
 
@@ -430,6 +441,7 @@ class CompositeTwineText(CompositeTwineMixin, TwineTextBase):
 
     def __unicode__(self):
         return self._empty.join(self._parts)
+
 
 
 class CompositeTwineBytes(CompositeTwineMixin, TwineBytesBase):

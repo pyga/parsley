@@ -32,10 +32,12 @@ class ParseError(Exception):
 
     def formatReason(self):
         if len(self.error) == 1:
+            if self.error[0][0] == 'message':
+                return self.error[0][1]
             if self.error[0][2] == None:
                 return 'expected a ' + self.error[0][1]
             else:
-                return 'expected the %s %s' % (self.error[0][1], self.error[0][2])
+                return 'expected the %s %r' % (self.error[0][1], self.error[0][2])
         else:
             bits = []
             for s in self.error:

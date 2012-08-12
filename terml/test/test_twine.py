@@ -132,6 +132,8 @@ class TwineTestMixin(object):
         t1 = self.mktwine(u"foo\nbaz").asFrom("foo:bar")
         t2 = self.mktwine(u" boz").asFrom("foo:bar", 1, 6)
         self.assertEqual((t1 + t2).parts, ("foo\n", "baz", " boz"))
+        self.assertEqual('' + t1, t1)
+        self.assertEqual('biz' + t2, 'biz boz')
 
 
     def test_eq(self):

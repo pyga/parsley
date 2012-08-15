@@ -3,6 +3,8 @@ from ometa.runtime import ParseError, EOFError
 from terml.parser import parseTerm as term
 from terml.quasiterm import quasiterm
 
+__version__ = '1.0pre2'
+
 def makeGrammar(source, bindings, name='Grammar'):
     """
     Create a class from a Parsley grammar.

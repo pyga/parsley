@@ -86,7 +86,7 @@ stuff = (ones | twos)+
 """
 Example = makeGrammar(exampleGrammar, {})
 g = Example("11221111")
-result, error = g.apply("stuff")
+result, error = g.stuff()
 print result
 #+end_src python
 \rightarrow  =[1, 2, 1, 1]=

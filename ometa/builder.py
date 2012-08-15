@@ -85,8 +85,10 @@ class PythonWriter(object):
     def _writeFunction(self, out, fname, arglist, expr):
         """
         Generate a function.
-        @param head: The initial line defining the function.
-        @param body: A list of lines for the function body.
+        @param out: the TextWriter used for output.
+        @param fname: The name of the function generated.
+        @param arglist: A list of parameter names.
+        @param expr: The term tree to generate the function body from.
         """
 
         out.writeln("def %s(%s):" % (fname, ", ".join(arglist)))

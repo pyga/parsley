@@ -7,7 +7,7 @@ Setup script for the Parsley distribution.
 from distutils.core import setup
 setup(
     name="Parsley",
-    version="1.0pre1",
+    version="1.0pre2",
     url="http://launchpad.net/parsley",
     description="Pattern-matching language based on OMeta",
     long_description=open('README').read(),

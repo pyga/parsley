@@ -3,6 +3,10 @@
 Parsley Tutorial
 ================
 
+*************************************
+From Regular Expressions To Grammars
+*************************************
+
 Parsley is a pattern matching and parsing tool for Python programmers.
 
 Most Python programmers are familiar with regular expressions, as
@@ -129,6 +133,8 @@ string and call `int()`::
     >>> x("8675309").number()
     8675309
 
+Collecting Chunks Of Input
+--------------------------
 
 If it seemed kind of strange to break our input string up into a list
 and then reassemble it into a string using `join`, you're not
@@ -149,16 +155,19 @@ entire input, but we'll see some more complex cases soon.) Since it
 ignores the list returned by `digit+`, leaving the `-> x` out of
 `digit` doesn't change the result.
 
+**********************
+Building A Calculator
+**********************
+
 Now let's look at using these rules in a more complicated parser. We
 have support for parsing numbers; let's do addition, as well.
-
 ::
+
     >>> x = parsley.makeGrammar("""
     digit = anything:x ?(x in '0123456789')
     number = <digit+>:ds -> int(ds)
     expr = number:left ( '+' number:right -> left + right
                        | -> left)
-
     """, {})
     >>> x("17+34").expr()
     51
@@ -184,7 +193,7 @@ Now let's add subtraction::
                        | '-' number:right -> left - right
                        | -> left)
 
-This will accept things '5-4' now.
+This will accept things like '5-4' now.
 
 Normally we like to allow whitespace in our expressions, so let's add some support for spaces::
 

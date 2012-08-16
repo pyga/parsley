@@ -176,17 +176,95 @@ not match, so Parsley tries the next thing after `|`. Since this is
 just a Python expression, the match succeeds and the number 18 is
 returned.
 
-Four function calculator::
+Now let's add subtraction::
+
+    digit = anything:x ?(x in '0123456789')
+    number = <digit+>:ds -> int(ds)
+    expr = number:left ( '+' number:right -> left + right
+                       | '-' number:right -> left - right
+                       | -> left)
+
+This will accept things '5-4' now.
+
+Normally we like to allow whitespace in our expressions, so let's add some support for spaces::
 
     digit = anything:x ?(x in '0123456789')
     number = <digit+>:ds -> int(ds)
     ws = ' '*
-    muldiv = value:left ws ('*' value:right -> left * right
-                           |'/' value:right -> left / right
-                           | -> left)
+    expr = number:left ws ('+' ws number:right -> left + right
+                          |'-' ws number:right -> left - right
+                          | -> left)
 
-    expr = muldiv:left ws ('+' muldiv:right -> left + right
-                           |'-' muldiv:right -> left - right
-                           | -> left)
+Now we can handle "17 +34", "2  - 1", etc.
+
+We could go ahead and add multiplication and division here (and
+hopefully it's obvious how that would work), but let's complicate
+things further and allow multiple operations in our expressions --
+things like "1 - 2 + 3".
+
+There's a couple different ways to do this. We'll take advantage of
+subtraction being the same as negation followed by addition, and do
+this by repeatedly looking for `<operator> <operand>` pairs and making
+a list of values to sum::
+
+    digit = anything:x ?(x in '0123456789')
+    number = <digit+>:ds -> int(ds)
+    ws = ' '*
+    addsub = ws ('+' ws number
+                | '-' ws number:n -> -n)
+    expr = number:left (addsub+:vals -> left + sum(vals)
+                       | -> left)
+
+
+So now let's look at adding multiplication and division. Here, we run
+into precedence rules: should "4 * 5 + 6" give us 26, or 44? The
+traditional choice is for multiplication and division to take
+precedence over addition and subtraction, so the answer should
+be 26. We'll resolve this by making sure multiplication and division
+happen before addition and subtraction are considered::
+
+    digit = anything:x ?(x in '0123456789')
+    number = <digit+>:ds -> int(ds)
+    ws = ' '*
+    muldiv = ws ('*' ws number
+                |'/' ws number:n -> 1.0/n)
+    expr2 = number:n (muldiv+:vals -> n * reduce(lambda x, y: x * y, vals, 1)
+                        | -> n)
+    addsub = ws ('+' ws expr2
+                |'-' ws expr2:n -> -n)
+    expr = expr2:e (addsub+:vals -> e + sum(vals)
+                       | -> e)
+
+
+So now we have an `expr2` rule that will match multiplication and
+division, being used inside `expr` which then matches addition and
+subtraction. [XXX: the above feels like a big jump. Does this need
+further explanation? Is there an intermediate step I should describe
+first? A diagram maybe?]
+
+Finally let's add parentheses, so you can override the precedence and
+write "4 * (5 + 6)" when you do want 44.
+
+::
+
+    digit = anything:x ?(x in '0123456789')
+    number = <digit+>:ds -> int(ds)
+    ws = ' '*
     parens = '(' ws expr:e ws ')' -> e
-    value = ws (number | parens)
+    value = number | parens
+    muldiv = ws ('*' ws value
+                |'/' ws value:n -> 1.0/n)
+    expr2 = value:n (muldiv+:vals -> n * reduce(lambda x, y: x * y, vals, 1)
+                        | -> n)
+    addsub = ws ('+' ws expr2
+                |'-' ws expr2:n -> -n)
+    expr = expr2:e (addsub+:vals -> e + sum(vals)
+                       | -> e)
+
+
+
+And there you have it: a four-function calculator with precedence and
+parentheses.
+
+
+XXX conclusion and pointers to further discussion/docs

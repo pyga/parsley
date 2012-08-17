@@ -13,8 +13,9 @@ from ometa.builder import TermActionPythonWriter, moduleFromGrammar, TextWriter
 from ometa.runtime import OMetaBase, OMetaGrammarBase
 
 v1Grammar = r"""
-hspace = ' ' | '\t' | ('#' (~vspace anything)*)
-vspace = (token("\r\n") | '\r' | '\n')
+comment = '#' (~'\n' anything)*
+hspace = ' ' | '\t' | comment
+vspace = token("\r\n") | '\r' | '\n'
 number = spaces !(self.startSpan()):s
                    ('-' barenumber:x -> t.Exactly(-x, span=self.span(s))
                     |barenumber:x -> t.Exactly(x, span=self.span(s)))
@@ -103,8 +104,9 @@ grammar = rule*:rs spaces -> t.Grammar(self.name, rs)
 """
 
 v2Grammar = r"""
-hspace  = (' ' | '\t')
-vspace = (token("\r\n") | '\r' | '\n')
+comment = '#' (~'\n' anything)*
+hspace = ' ' | '\t' | comment
+vspace = token("\r\n") | '\r' | '\n'
 emptyline = hspace* vspace
 indentation = emptyline* hspace+
 noindentation = emptyline* ~~~hspace

@@ -5,22 +5,25 @@ from terml.quasiterm import quasiterm
 
 __version__ = '1.0pre2'
 
-def makeGrammar(source, bindings, name='Grammar'):
+def makeGrammar(source, bindings, name='Grammar', unwrap=False):
     """
     Create a class from a Parsley grammar.
 
     @param source: A grammar, as a string.
     @param bindings: A mapping of variable names to objects.
     @param name: Name used for the generated class.
+
+    @param unwrap: If True, return a parser class suitable for
+    subclassing. If False, return a wrapper with the friendly API.
     """
     try:
         g = BootOMetaGrammar.makeGrammar(source, bindings, name=name)
     except ParseError, p:
         print p.formatError(source)
         raise
-    return _makeWrappedGrammar(g)
+    return wrapGrammar(g)
 
-def _makeWrappedGrammar(g):
+def wrapGrammar(g):
     def makeParser(input):
         """
         Creates a parser for the given input, with methods for

@@ -153,7 +153,8 @@ class TrampolinedGrammarInterpreter(object):
                 def f():
                     return self._eval(rul)
             else:
-                f = getattr(self, 'rule_' + ruleName)
+                #ruleName may be a Twine, so gotta call str()
+                f = getattr(self, str('rule_' + ruleName))
             for x in self._apply(f, ruleName, argvals):
                 if x is _feed_me: yield x
             yield x
@@ -449,7 +450,9 @@ class GrammarInterpreter(object):
                         (lambda: self._eval(run, rul)),
                         ruleName, argvals)
                 else:
-                    x = run._apply(getattr(run, 'rule_' + ruleName), ruleName, argvals)
+                    #ruleName may be a Twine, so calling str()
+                    x = run._apply(getattr(run, str('rule_' + ruleName)),
+                                   ruleName, argvals)
                     return x
         finally:
             self._localsStack.pop()

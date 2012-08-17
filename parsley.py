@@ -1,4 +1,4 @@
-from ometa.grammar import OMeta
+from ometa.boot import BootOMetaGrammar
 from ometa.runtime import ParseError, EOFError
 from terml.parser import parseTerm as term
 from terml.quasiterm import quasiterm
@@ -14,7 +14,7 @@ def makeGrammar(source, bindings, name='Grammar'):
     @param name: Name used for the generated class.
     """
     try:
-        g = OMeta.makeGrammar(source, bindings, name=name)
+        g = BootOMetaGrammar.makeGrammar(source, bindings, name=name)
     except ParseError, p:
         print p.formatError(source)
         raise

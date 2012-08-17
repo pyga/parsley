@@ -3,17 +3,27 @@
 
 import sys
 from ometa.runtime import ParseError
-from ometa.grammar import OMeta
+from ometa.boot import BootOMetaGrammar as OMeta
 from ometa.builder import writePython
 
 if len(sys.argv) != 3:
  print "Usage: generate_grammar grammar-filename python-filename"
  sys.exit(1)
 
-grammarFile = open(sys.argv[1], 'r')
+
+def findObject(name):
+    classSplit = name.split('.')
+    modname = '.'.join(classSplit[:-1])
+    topLevel = __import__(modname)
+    packages = modname.split(".")[1:]
+    module = topLevel
+    for p in packages:
+        module = getattr(module, p)
+    return getattr(module, classSplit[-1])
+
+grammar = findObject(sys.argv[1])
 pythonFile =  open(sys.argv[2], 'w')
-s = grammarFile.read()
-g = OMeta(s)
+g = OMeta(grammar)
 try:
     tree = g.parseGrammar("Parser")
 except ParseError, e:

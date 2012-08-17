@@ -3,6 +3,7 @@
 Code needed to run a grammar after it has been compiled.
 """
 import operator
+from textwrap import dedent
 from terml.twine import asTwineFrom
 from terml.nodes import termMaker as t
 from ometa.builder import moduleFromGrammar, writePython
@@ -700,6 +701,10 @@ class OMetaGrammarBase(OMetaBase):
         source = writePython(tree)
         return moduleFromGrammar(source, name, superclass or OMetaBase, globals,
                                  modname, filename)
+
+
+    def __init__(self, grammar, *a, **kw):
+        OMetaBase.__init__(self, dedent(grammar), *a, **kw)
 
 
     def parseGrammar(self, name):

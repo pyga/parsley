@@ -1,9 +1,9 @@
 import operator
 from textwrap import dedent
 from twisted.trial import unittest
-from ometa.runtime import ParseError, OMetaBase, OMetaGrammarBase, EOFError, expected
+from ometa.runtime import (ParseError, OMetaBase, OMetaGrammarBase, EOFError,
+                           expected)
 from ometa.boot import BootOMetaGrammar
-from ometa.builder import moduleFromGrammar
 from ometa.interp import GrammarInterpreter, TrampolinedGrammarInterpreter
 
 class HandyWrapper(object):
@@ -392,6 +392,7 @@ class OMeta1TestCase(unittest.TestCase):
         #comment here
         digit ::= ( '0' #second comment
                   | '1') #another one
+        #comments after rules are cool too
         bits ::= <digit>+   #last one
         """)
         self.assertEqual(g.bits('0110110'), '0110110')
@@ -424,7 +425,7 @@ class OMetaTestCase(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = self.classTested.makeGrammar(dedent(grammar), globals or {},
+        g = self.classTested.makeGrammar(grammar, globals or {},
                                          name='TestGrammar')
         return HandyWrapper(g)
 
@@ -1037,7 +1038,7 @@ class MakeGrammarTest(unittest.TestCase):
         num = (num:n digit:d !(results.append(True)) -> n * 10 + d
                | digit)
         """
-        TestGrammar = OMeta.makeGrammar(dedent(grammar), {'results':results})
+        TestGrammar = OMeta.makeGrammar(grammar, {'results':results})
         g = TestGrammar("314159")
         self.assertEqual(g.apply("num")[0], 314159)
         self.assertNotEqual(len(results), 0)
@@ -1048,7 +1049,8 @@ class MakeGrammarTest(unittest.TestCase):
         grammar = """
         andHandler = handler:h1 'and' handler:h2 -> And(h1, h2)
         """
-        e = self.assertRaises(ParseError, BootOMetaGrammar.makeGrammar, dedent(grammar), {})
+        e = self.assertRaises(ParseError, BootOMetaGrammar.makeGrammar, grammar,
+                              {})
         self.assertEquals(e.position, 27)
         self.assertEquals(e.error, [("expected", "token", "'")])
 
@@ -1063,13 +1065,13 @@ class MakeGrammarTest(unittest.TestCase):
         grammar1 = """
         dig = :x ?(a <= x <= b) -> int(x)
         """
-        TestGrammar1 = OMeta.makeGrammar(dedent(grammar1), {'a':'0', 'b':'9'})
+        TestGrammar1 = OMeta.makeGrammar(grammar1, {'a':'0', 'b':'9'})
 
         grammar2 = """
         num = (num:n dig:d -> n * base + d
                 | dig)
         """
-        TestGrammar2 = OMeta.makeGrammar(dedent(grammar2), {'base':10},
+        TestGrammar2 = OMeta.makeGrammar(grammar2, {'base':10},
                                          superclass=TestGrammar1)
         g = TestGrammar2("314159")
         self.assertEqual(g.apply("num")[0], 314159)
@@ -1077,7 +1079,7 @@ class MakeGrammarTest(unittest.TestCase):
         grammar3 = """
         dig = :x ?(a <= x <= b or c <= x <= d) -> int(x, base)
         """
-        TestGrammar3 = OMeta.makeGrammar(dedent(grammar3), {'c':'a', 'd':'f', 'base':16},
+        TestGrammar3 = OMeta.makeGrammar(grammar3, {'c':'a', 'd':'f', 'base':16},
                                          superclass=TestGrammar2)
         g = TestGrammar3("abc123")
         self.assertEqual(g.apply("num")[0], 11256099)
@@ -1156,7 +1158,7 @@ class InterpTestCase(OMetaTestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = BootOMetaGrammar(dedent(grammar))
+        g = BootOMetaGrammar(grammar)
         tree = g.parseGrammar('TestGrammar')
         g = GrammarInterpreter(tree, OMetaBase, globals)
         return HandyInterpWrapper(g)
@@ -1207,7 +1209,7 @@ class TrampolinedInterpWrapper(object):
 class TrampolinedInterpreterTestCase(OMetaTestCase):
 
     def compile(self, grammar, globals=None):
-        g = BootOMetaGrammar(dedent(grammar))
+        g = BootOMetaGrammar(grammar)
         tree = g.parseGrammar('TestGrammar')
         return TrampolinedInterpWrapper(tree, globals)
 
@@ -1222,7 +1224,7 @@ class ErrorReportingTests(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = BootOMetaGrammar.makeGrammar(dedent(grammar), {}, 'TestGrammar', OMetaBase)
+        g = BootOMetaGrammar.makeGrammar(grammar, {}, 'TestGrammar', OMetaBase)
         return HandyWrapper(g)
 
 

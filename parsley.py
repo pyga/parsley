@@ -3,18 +3,19 @@ from ometa.runtime import ParseError, EOFError
 from terml.parser import parseTerm as term
 from terml.quasiterm import quasiterm
 
-__version__ = '1.0pre2'
+__version__ = '1.0pre3'
 
 def makeGrammar(source, bindings, name='Grammar', unwrap=False):
     """
     Create a class from a Parsley grammar.
 
-    @param source: A grammar, as a string.
-    @param bindings: A mapping of variable names to objects.
-    @param name: Name used for the generated class.
+    :param source: A grammar, as a string.
+    :param bindings: A mapping of variable names to objects.
+    :param name: Name used for the generated class.
 
-    @param unwrap: If True, return a parser class suitable for
-    subclassing. If False, return a wrapper with the friendly API.
+    :param unwrap: If True, return a parser class suitable for
+                   subclassing. If False, return a wrapper with the
+                   friendly API.
     """
     try:
         g = BootOMetaGrammar.makeGrammar(source, bindings, name=name)
@@ -29,7 +30,7 @@ def wrapGrammar(g):
         Creates a parser for the given input, with methods for
         invoking each rule.
 
-        @param input: The string you want to parse.
+        :param input: The string you want to parse.
         """
         return _GrammarWrapper(g(input), input)
     makeParser._grammarClass = g
@@ -58,7 +59,7 @@ class _GrammarWrapper(object):
         """
         Return a function that will instantiate a grammar and invoke the named
         rule.
-        @param: Rule name.
+        :param name: Rule name.
         """
         def invokeRule(*args, **kwargs):
             """

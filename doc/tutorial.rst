@@ -85,6 +85,7 @@ and use them in Python code. So things like this are possible::
     print x("abdde").foo()
 
 ::
+
     ('a', 'b')
 
 Literal match expressions like `'a'` return the character they
@@ -123,6 +124,7 @@ repetition operators return a list containing each match they made.
     print x("314159").number()
 
 ::
+
     ['3', '1', '4', '1', '5', '9']
 
 The `number` rule repeatedly matches `digit` and collects the matches
@@ -137,6 +139,7 @@ string and call `int()`::
     print x("8675309").number()
 
 ::
+
     8675309
 
 Collecting Chunks Of Input
@@ -155,6 +158,7 @@ consumes, ignoring the actual return value of the rule. For example::
     print x("11235").number()
 
 ::
+
     11235
 
 Here, `<digit+>` returns the string `"11235"`, since that's the
@@ -181,6 +185,7 @@ have support for parsing numbers; let's do addition, as well.
     print x("18").expr()
 
 ::
+
     51
     18
 
@@ -241,6 +246,7 @@ build a list of numbers and operations, then do the math.::
     print x("1 + 2 - 3").expr()
 
 ::
+
     [('+', 2), ('-, 3)]
 
 Oops, this is only half the job done. We're collecting the operators
@@ -273,6 +279,7 @@ such as functions, this way::
     print x("4 + 5 - 6").expr()
 
 ::
+
     3
 
 
@@ -309,16 +316,17 @@ happen before addition and subtraction are considered::
     sub = '-' ws expr2:n -> ('-', n)
     mul = '*' ws number:n -> ('*', n)
     div = '/' ws number:n -> ('/', n)
-    
+
     addsub = ws (add | sub)
     muldiv = ws (mul | div)
-    
+
     expr = expr2:left addsub*:right -> calculate(left, right)
     expr2 = number:left muldiv*:right -> calculate(left, right)
     """, {"calculate": calculate})
     print x("4 * 5 + 6").expr()
 
 ::
+
     26
 
 Notice particularly that ``add``, ``sub``, and ``expr`` all call the
@@ -331,9 +339,10 @@ Finally let's add parentheses, so you can override the precedence and
 write "4 * (5 + 6)" when you do want 44. We'll do this by adding a
 ``value`` rule that accepts either a number or an expression in
 parentheses, and replace existing calls to ``number`` with calls to
-value``.
+``value``.
 
 ::
+
     def calculate(start, pairs):
         result = start
         for op, value in pairs:
@@ -366,6 +375,7 @@ value``.
     print x("4 * (5 + 6) + 1").expr()
 
 ::
+
     45
 
 

@@ -449,7 +449,11 @@ class CompositeTwineBytes(CompositeTwineMixin, TwineBytesBase):
         return str.__new__(self)
 
     def __str__(self):
-        return self._empty.join(self._parts)
+        try:
+            return self._empty.join(self._parts)
+        except TypeError:
+            print "!#", repr(self._parts)
+            return "#!ERR"
 
 
 def asTwineFrom(bytesOrText, uri):

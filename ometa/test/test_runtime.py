@@ -8,7 +8,8 @@ class RuntimeTests(unittest.TestCase):
 
     def test_anything(self):
         """
-        L{OMetaBase.rule_anything} returns each item from the input along with its position.
+        L{OMetaBase.rule_anything} returns each item from the input
+        along with its position.
         """
 
         data = "foo"
@@ -84,12 +85,15 @@ class RuntimeTests(unittest.TestCase):
 
         data = "ooops"
         o  = OMetaBase(data)
-        self.assertEqual(o.many(lambda: o.rule_exactly('o')), (['o'] * 3, ParseError(3, expected(None, 'o'))))
+        self.assertEqual(o.many(lambda: o.rule_exactly('o')),
+                         (['o'] * 3, ParseError(o.input, 3,
+                                                expected(None, 'o'))))
 
 
     def test_or(self):
         """
-        L{OMetaBase._or} returns the result of the first of its arguments to succeed.
+        L{OMetaBase._or} returns the result of the first of its
+        arguments to succeed.
         """
 
         data = "a"
@@ -155,12 +159,14 @@ class RuntimeTests(unittest.TestCase):
                                lambda: o.token("foz"),
                                lambda: o.token("f")])
         self.assertEqual(e[0], 2)
-        self.assertEqual(e[1], [expected("token", "fog")[0], expected("token", "foz")[0]])
+        self.assertEqual(e[1], [expected("token", "fog")[0],
+                                expected("token", "foz")[0]])
 
 
     def test_notError(self):
         """
-        When L{OMetaBase._not} fails, its error contains the current input position and no error info.
+        When L{OMetaBase._not} fails, its error contains the current
+        input position and no error info.
         """
 
         data = "xy"
@@ -188,8 +194,8 @@ class RuntimeTests(unittest.TestCase):
         """
 
         o = OMetaBase("")
-        v, e = o.pred(lambda: (True, ParseError(0, None)))
-        self.assertEqual((v, e), (True, ParseError(0, None)))
+        v, e = o.pred(lambda: (True, ParseError(o.input, 0, None)))
+        self.assertEqual((v, e), (True, ParseError(o.input, 0, None)))
 
 
     def test_predFailure(self):
@@ -199,8 +205,8 @@ class RuntimeTests(unittest.TestCase):
 
         o = OMetaBase("")
         with self.assertRaises(ParseError) as e:
-            o.pred(lambda: (False, ParseError(0, None)))
-        self.assertEqual(e.exception, ParseError(0, None))
+            o.pred(lambda: (False, ParseError(o.input, 0, None)))
+        self.assertEqual(e.exception, ParseError(o.input, 0, None))
 
 
     def test_end(self):
@@ -211,7 +217,7 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase("abc")
         with self.assertRaises(ParseError) as e:
             o.rule_end()
-        self.assertEqual(e.exception, ParseError(1, None))
+        self.assertEqual(e.exception, ParseError(o.input, 1, None))
         o.many(o.rule_anything)
         self.assertEqual(o.rule_end(), (True, [3, None]))
 
@@ -226,7 +232,8 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual((v, e), ("a", [0, None]))
         with self.assertRaises(ParseError) as e:
             o.rule_letter()
-        self.assertEqual(e.exception, ParseError(1, expected("letter")))
+        self.assertEqual(e.exception, ParseError(o.input, 1,
+                                                 expected("letter")))
 
 
     def test_letterOrDigit(self):
@@ -240,7 +247,8 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual((v, e), ("1", [1, None]))
         with self.assertRaises(ParseError) as e:
             o.rule_letterOrDigit()
-        self.assertEqual(e.exception, ParseError(2, expected("letter or digit")))
+        self.assertEqual(e.exception,
+                         ParseError(o.input, 2, expected("letter or digit")))
 
 
     def test_digit(self):
@@ -252,7 +260,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual((v, e), ("1", [0, None]))
         with self.assertRaises(ParseError) as e:
             o.rule_digit()
-        self.assertEqual(e.exception, ParseError(1, expected("digit")))
+        self.assertEqual(e.exception, ParseError(o.input, 1, expected("digit")))
 
 
 

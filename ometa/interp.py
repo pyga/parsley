@@ -117,7 +117,7 @@ class TrampolinedGrammarInterpreter(object):
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
-            raise ParseError(None, None)
+            raise ParseError(self.input, None, None)
         self.input = memoRec[1]
         yield memoRec[0]
 
@@ -176,7 +176,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            raise ParseError(val, expected(None, wanted))
+            raise ParseError(self.input, val, expected(None, wanted))
 
 
     def parse_And(self, expr):
@@ -212,7 +212,7 @@ class TrampolinedGrammarInterpreter(object):
             except ParseError, err:
                 errors.append(err)
                 self.input = i
-        raise ParseError(*joinErrors(errors))
+        raise ParseError(self.input, *joinErrors(errors))
 
 
     def parse_Many(self, expr, ans=None):
@@ -313,7 +313,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = m
             yield True, self.input.nullError()
         else:
-            raise ParseError(*self.input.nullError())
+            raise ParseError(self.input, *self.input.nullError())
 
 
     def parse_Lookahead(self, expr):
@@ -348,7 +348,7 @@ class TrampolinedGrammarInterpreter(object):
             if x is _feed_me: yield x
         val, err = x
         if not val:
-            raise ParseError(*err)
+            raise ParseError(self.input, *err)
         else:
             yield True, err
 
@@ -397,7 +397,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            raise ParseError(val, expected(None, "a letter"))
+            raise ParseError(self.input, val, expected(None, "a letter"))
 
     def rule_digit(self):
         """
@@ -412,7 +412,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            raise ParseError(val, expected(None, "a digit"))
+            raise ParseError(self.input, val, expected(None, "a digit"))
 
 
 
@@ -433,7 +433,7 @@ class GrammarInterpreter(object):
     def apply(self, input, rulename, tree=False):
         run = self.base(input, self._globals, tree=tree)
         v, err = self._apply(run, rulename, ())
-        return run.input, v, ParseError(*err)
+        return run.input, v, ParseError(run.input, *err)
 
 
     def _apply(self, run, ruleName, args):
@@ -527,7 +527,7 @@ class GrammarInterpreter(object):
                 except ParseError, err:
                     errors.append(err)
                     run.input = m
-            raise ParseError(*joinErrors(errors))
+            raise ParseError(run.input, *joinErrors(errors))
 
 
         elif name == "Not":
@@ -538,7 +538,7 @@ class GrammarInterpreter(object):
                 run.input = m
                 return True, run.input.nullError()
             else:
-                raise ParseError(*run.input.nullError())
+                raise ParseError(run.input, *run.input.nullError())
 
 
         elif name == "Lookahead":
@@ -562,7 +562,7 @@ class GrammarInterpreter(object):
         elif name == "Predicate":
             val, err = self._eval(run, args[0])
             if not val:
-                raise ParseError(*err)
+                raise ParseError(run.input, *err)
             else:
                 return True, err
 
@@ -574,7 +574,7 @@ class GrammarInterpreter(object):
             except TypeError:
                 e = run.input.nullError()
                 e[1] = expected("an iterable")
-                raise ParseError(*e)
+                raise ParseError(run.input, *e)
             self._eval(run, args[0])
             run.end()
             run.input = oldInput

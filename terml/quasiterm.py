@@ -77,16 +77,17 @@ def makeTerm(t, args=None, span=None):
     return QTerm(t.asFunctor(), None, args and tuple(args), span)
 
 
-QTermParser = BootOMetaGrammar.makeGrammar(quasitermGrammar, TermLParser.globals,
+QTermParser = BootOMetaGrammar.makeGrammar(quasitermGrammar,
+                                           TermLParser.globals,
                                            "QTermParser", TermLParser)
 QTermParser.globals.update(globals())
 
 
 
 
-def _parseTerm(termString):
+def quasiterm(termString):
     """
-    Parser frontend for term strings.
+    Build a quasiterm from a string.
     """
     p = QTermParser(termString)
     result, error = p.apply("term")
@@ -97,15 +98,3 @@ def _parseTerm(termString):
     else:
         raise error
     return result
-
-
-def quasiterm(termString):
-    """
-    Build a quasiterm from a string.
-    """
-    try:
-        return _parseTerm(termString)
-    except ParseError, e:
-        print e.formatError(termString)
-        raise
-

@@ -3,4 +3,5 @@ include LICENSE
 include NEWS
 graft examples
 graft bin
+graft doc
 global-exclude *.pyc

@@ -32,16 +32,21 @@ def wrapGrammar(g):
         @param input: The string you want to parse.
         """
         return _GrammarWrapper(g(input), input)
+    makeParser._grammarClass = g
     return makeParser
+
+def unwrapGrammar(w):
+    """
+    Access the internal parser class for a Parsley grammar object.
+    """
+    return w._grammarClass
 
 class _GrammarWrapper(object):
     """
     A wrapper for Parsley grammar instances.
 
-    To invoke a Parsley rule, invoke a method with that name. You can
-    pass debug=True to rules for nicely formatted parse errors.
-
-    This turns x(input).foo() calls into grammar.apply("foo") calls.
+    To invoke a Parsley rule, invoke a method with that name -- this
+    turns x(input).foo() calls into grammar.apply("foo") calls.
     """
     def __init__(self, grammar, input):
         self._grammar = grammar
@@ -55,13 +60,10 @@ class _GrammarWrapper(object):
         rule.
         @param: Rule name.
         """
-        def doIt(*args, **kwargs):
+        def invokeRule(*args, **kwargs):
             """
             Invoke a Parsley rule. Passes any positional args to the rule.
-
-            Call with "debug=True" for nice formatting of errors.
             """
-            debug = kwargs.get("debug", False)
             try:
                 ret, err = self._grammar.apply(name, *args)
             except ParseError, e:
@@ -71,12 +73,7 @@ class _GrammarWrapper(object):
                     extra, _ = self._grammar.input.head()
                 except EOFError:
                     return ret
+            raise err
+        return invokeRule
 
-            if debug:
-                print err.formatError(self._input)
-                raise ParseError()
-            else:
-                raise err
-        return doIt
-
-__all__ = ['makeGrammar', 'term', 'quasiterm']
+__all__ = ['makeGrammar', 'wrapGrammar', 'unwrapGrammar', 'term', 'quasiterm']

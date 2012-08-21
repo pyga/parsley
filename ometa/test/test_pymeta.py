@@ -1291,7 +1291,7 @@ class ErrorReportingTests(unittest.TestCase):
 
         input = "123x321"
         e = self.assertRaises(ParseError, g.bits, input)
-        self.assertEqual(e.formatError(input),
+        self.assertEqual(e.formatError(),
                          dedent("""
                          123x321
                             ^

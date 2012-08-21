@@ -121,9 +121,9 @@ class TermLParser(BaseTermLParser, CommonParser):
 
 TermLParser.globals.update(CommonParser.globals)
 
-def _parseTerm(termString):
+def parseTerm(termString):
     """
-    Parser frontend for term strings.
+    Build a TermL term tree from a string.
     """
     p = TermLParser(termString)
     result, error = p.apply("term")
@@ -134,14 +134,3 @@ def _parseTerm(termString):
     else:
         raise error
     return result
-
-
-def parseTerm(termString):
-    """
-    Build a term tree from a string.
-    """
-    try:
-        return _parseTerm(termString)
-    except ParseError, e:
-        print e.formatError(termString)
-        raise

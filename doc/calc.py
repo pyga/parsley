@@ -1,19 +1,43 @@
-from parsley import makeGrammar
+import math
+from parsley import makeGrammar, unwrapGrammar
+from ometa.grammar import OMeta
+
+def calculate(start, pairs):
+        result = start
+        for op, value in pairs:
+            if op == '+':
+                result += value
+            elif op == '-':
+                result -= value
+            elif op == '*':
+                result *= value
+            elif op == '/':
+                result /= value
+        return result
 
 calcGrammar = """
-digit = anything:x ?(x in '0123456789')
 number = <digit+>:ds -> int(ds)
-ws = ' '*
 parens = '(' ws expr:e ws ')' -> e
 value = number | parens
-muldiv = ws ('*' ws value
-            |'/' ws value:n -> 1.0/n)
-expr2 = value:n (muldiv+:vals -> n * reduce(lambda x, y: x * y, vals, 1)
-                    | -> n)
-addsub = ws ('+' ws expr2
-            |'-' ws expr2:n -> -n)
-expr = expr2:e (addsub+:vals -> e + sum(vals)
-                   | -> e)
+ws = ' '*
+add = '+' ws expr2:n -> ('+', n)
+sub = '-' ws expr2:n -> ('-', n)
+mul = '*' ws value:n -> ('*', n)
+div = '/' ws value:n -> ('/', n)
+
+addsub = ws (add | sub)
+muldiv = ws (mul | div)
+
+expr = expr2:left addsub*:right -> calculate(left, right)
+expr2 = value:left muldiv*:right -> calculate(left, right)
 """
 
-Calc = makeGrammar(calcGrammar, {})
+Calc = makeGrammar(calcGrammar, {"calculate": calculate}, name="Calc")
+
+calcGrammarEx = """
+value = super | constant
+constant = 'p' 'i' -> math.pi
+         | 'e' -> math.e
+"""
+CalcEx = OMeta.makeGrammar(calcGrammarEx, {"math": math}, name="CalcEx",
+                           superclass=unwrapGrammar(Calc))

@@ -78,11 +78,13 @@ changing the return value of a rule. The Parsley expression for this
 is `->`. We can also bind the results of expressions to variable names
 and use them in Python code. So things like this are possible::
 
-    >>> x = parsley.makeGrammar("""
+    x = parsley.makeGrammar("""
     foo = 'a':one baz:two 'd'+ 'e' -> (one, two)
     baz = 'b' | 'c'
     """, {})
-    >>> x("abdde").foo()
+    print x("abdde").foo()
+
+::
     ('a', 'b')
 
 Literal match expressions like `'a'` return the character they
@@ -114,11 +116,13 @@ repetition operators return a list containing each match they made.
 
 ::
 
-    >>> x = parsley.makeGrammar("""
+    x = parsley.makeGrammar("""
     digit = anything:x ?(x in '0123456789') -> x
     number = digit+
     """, {})
-    >>> x("314159").number()
+    print x("314159").number()
+
+::
     ['3', '1', '4', '1', '5', '9']
 
 The `number` rule repeatedly matches `digit` and collects the matches
@@ -126,11 +130,13 @@ into a list. This gets us part way to turning a string like `314159`
 into an integer. All we need now is to turn the list back into a
 string and call `int()`::
 
-    >>> x = parsley.makeGrammar("""
+    x = parsley.makeGrammar("""
     digit = anything:x ?(x in '0123456789') -> x
     number = digit+:ds -> int(''.join(ds))
     """, {})
-    >>> x("8675309").number()
+    print x("8675309").number()
+
+::
     8675309
 
 Collecting Chunks Of Input
@@ -142,11 +148,13 @@ alone. Parsley has a shortcut for this since it's a common case: you
 can use `<>` around a rule to make it return the slice of input it
 consumes, ignoring the actual return value of the rule. For example::
 
-    >>> x = parsley.makeGrammar("""
+    x = parsley.makeGrammar("""
     digit = anything:x ?(x in '0123456789')
     number = <digit+>:ds -> int(ds)
     """, {})
-    >>> x("11235").number()
+    print x("11235").number()
+
+::
     11235
 
 Here, `<digit+>` returns the string `"11235"`, since that's the
@@ -163,15 +171,17 @@ Now let's look at using these rules in a more complicated parser. We
 have support for parsing numbers; let's do addition, as well.
 ::
 
-    >>> x = parsley.makeGrammar("""
+    x = parsley.makeGrammar("""
     digit = anything:x ?(x in '0123456789')
     number = <digit+>:ds -> int(ds)
     expr = number:left ( '+' number:right -> left + right
                        | -> left)
     """, {})
-    >>> x("17+34").expr()
+    print x("17+34").expr()
+    print x("18").expr()
+
+::
     51
-    >>> x("18").expr()
     18
 
 Parentheses group expressions just like in Python. the '`|`' operator
@@ -195,9 +205,14 @@ Now let's add subtraction::
 
 This will accept things like '5-4' now.
 
-Normally we like to allow whitespace in our expressions, so let's add some support for spaces::
+Since parsing numbers is so common and useful, Parsley actually has
+'digit' as a builtin rule, so we don't even need to define it
+ourselves. We'll leave it out in further examples and rely on the
+version Parsley provides.
 
-    digit = anything:x ?(x in '0123456789')
+Normally we like to allow whitespace in our expressions, so let's add
+some support for spaces::
+
     number = <digit+>:ds -> int(ds)
     ws = ' '*
     expr = number:left ws ('+' ws number:right -> left + right
@@ -211,18 +226,61 @@ hopefully it's obvious how that would work), but let's complicate
 things further and allow multiple operations in our expressions --
 things like "1 - 2 + 3".
 
-There's a couple different ways to do this. We'll take advantage of
-subtraction being the same as negation followed by addition, and do
-this by repeatedly looking for `<operator> <operand>` pairs and making
-a list of values to sum::
+There's a couple different ways to do this. Possibly the easiest is to
+build a list of numbers and operations, then do the math.::
 
-    digit = anything:x ?(x in '0123456789')
+    x = parsley.makeGrammar("""
     number = <digit+>:ds -> int(ds)
     ws = ' '*
-    addsub = ws ('+' ws number
-                | '-' ws number:n -> -n)
-    expr = number:left (addsub+:vals -> left + sum(vals)
+    add = '+' ws number:n -> ('+', n)
+    sub = '-' ws number:n -> ('-', n)
+    addsub = ws (add | sub)
+    expr = number:left (addsub+:right -> right
                        | -> left)
+    """, {})
+    print x("1 + 2 - 3").expr()
+
+::
+    [('+', 2), ('-, 3)]
+
+Oops, this is only half the job done. We're collecting the operators
+and values, but now we need to do the actual calculation. The easiest
+way to do it is probably to write a Python function and call it from
+inside the grammar.
+
+So far we have been passing an empty dict as the second argument to
+``makeGrammar``. This is a dict of variable bindings that can be used
+in Python expressions in the grammar. So we can pass Python objects,
+such as functions, this way::
+
+    def calculate(start, pairs):
+        result = start
+        for op, value in pairs:
+            if op == '+':
+                result += value
+            elif op == '-':
+                result -= value
+        return result
+    x = parsley.makeGrammar("""
+    number = <digit+>:ds -> int(ds)
+    ws = ' '*
+    add = '+' ws number:n -> ('+', n)
+    sub = '-' ws number:n -> ('-', n)
+    addsub = ws (add | sub)
+    expr = number:left (addsub+:right -> calculate(left, right)
+                       | -> left)
+    """, {"calculate": calculate})
+    print x("4 + 5 - 6").expr()
+
+::
+    3
+
+
+Introducing this function lets us simplify even further: instead of
+using ``addsub+``, we can use ``addsub*``, since ``calculate(left, [])``
+will return ``left`` -- so now ``expr`` becomes::
+
+    expr = number:left addsub*:right -> calculate(left, right)
 
 
 So now let's look at adding multiplication and division. Here, we run
@@ -232,48 +290,85 @@ precedence over addition and subtraction, so the answer should
 be 26. We'll resolve this by making sure multiplication and division
 happen before addition and subtraction are considered::
 
-    digit = anything:x ?(x in '0123456789')
+    def calculate(start, pairs):
+        result = start
+        for op, value in pairs:
+            if op == '+':
+                result += value
+            elif op == '-':
+                result -= value
+           elif op == '*':
+                result *= value
+          elif op == '/':
+                result /= value
+        return result
+    x = parsley.makeGrammar("""
     number = <digit+>:ds -> int(ds)
     ws = ' '*
-    muldiv = ws ('*' ws number
-                |'/' ws number:n -> 1.0/n)
-    expr2 = number:n (muldiv+:vals -> n * reduce(lambda x, y: x * y, vals, 1)
-                        | -> n)
-    addsub = ws ('+' ws expr2
-                |'-' ws expr2:n -> -n)
-    expr = expr2:e (addsub+:vals -> e + sum(vals)
-                       | -> e)
-
-
-So now we have an `expr2` rule that will match multiplication and
-division, being used inside `expr` which then matches addition and
-subtraction. [XXX: the above feels like a big jump. Does this need
-further explanation? Is there an intermediate step I should describe
-first? A diagram maybe?]
-
-Finally let's add parentheses, so you can override the precedence and
-write "4 * (5 + 6)" when you do want 44.
+    add = '+' ws expr2:n -> ('+', n)
+    sub = '-' ws expr2:n -> ('-', n)
+    mul = '*' ws number:n -> ('*', n)
+    div = '/' ws number:n -> ('/', n)
+    
+    addsub = ws (add | sub)
+    muldiv = ws (mul | div)
+    
+    expr = expr2:left addsub*:right -> calculate(left, right)
+    expr2 = number:left muldiv*:right -> calculate(left, right)
+    """, {"calculate": calculate})
+    print x("4 * 5 + 6").expr()
 
 ::
+    26
 
-    digit = anything:x ?(x in '0123456789')
+Notice particularly that ``add``, ``sub``, and ``expr`` all call the
+``expr2`` rule now where they called ``number`` before. This means
+that all the places where a number was expected previously, a
+multiplication or division expression can appear instead.
+
+
+Finally let's add parentheses, so you can override the precedence and
+write "4 * (5 + 6)" when you do want 44. We'll do this by adding a
+``value`` rule that accepts either a number or an expression in
+parentheses, and replace existing calls to ``number`` with calls to
+value``.
+
+::
+    def calculate(start, pairs):
+        result = start
+        for op, value in pairs:
+            if op == '+':
+                result += value
+            elif op == '-':
+                result -= value
+           elif op == '*':
+                result *= value
+          elif op == '/':
+                result /= value
+        return result
+    x = parsley.makeGrammar("""
     number = <digit+>:ds -> int(ds)
-    ws = ' '*
     parens = '(' ws expr:e ws ')' -> e
     value = number | parens
-    muldiv = ws ('*' ws value
-                |'/' ws value:n -> 1.0/n)
-    expr2 = value:n (muldiv+:vals -> n * reduce(lambda x, y: x * y, vals, 1)
-                        | -> n)
-    addsub = ws ('+' ws expr2
-                |'-' ws expr2:n -> -n)
-    expr = expr2:e (addsub+:vals -> e + sum(vals)
-                       | -> e)
+    ws = ' '*
+    add = '+' ws expr2:n -> ('+', n)
+    sub = '-' ws expr2:n -> ('-', n)
+    mul = '*' ws value:n -> ('*', n)
+    div = '/' ws value:n -> ('/', n)
+
+    addsub = ws (add | sub)
+    muldiv = ws (mul | div)
+
+    expr = expr2:left addsub*:right -> calculate(left, right)
+    expr2 = value:left muldiv*:right -> calculate(left, right)
+    """, {"calculate": calculate})
+
+    print x("4 * (5 + 6) + 1").expr()
+
+::
+    45
 
 
 
 And there you have it: a four-function calculator with precedence and
 parentheses.
-
-
-XXX conclusion and pointers to further discussion/docs

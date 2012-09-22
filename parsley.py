@@ -17,11 +17,7 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False):
                    subclassing. If False, return a wrapper with the
                    friendly API.
     """
-    try:
-        g = BootOMetaGrammar.makeGrammar(source, bindings, name=name)
-    except ParseError, p:
-        print p.formatError(source)
-        raise
+    g = BootOMetaGrammar.makeGrammar(source, bindings, name=name)
     return wrapGrammar(g)
 
 def wrapGrammar(g):

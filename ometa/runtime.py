@@ -36,6 +36,8 @@ class ParseError(Exception):
 
 
     def formatReason(self):
+        if self.error is None:
+            return "Syntax error"
         if len(self.error) == 1:
             if self.error[0][0] == 'message':
                 return self.error[0][1]
@@ -171,7 +173,7 @@ def joinErrors(errors):
         else:
             break
 
-    return [pos, list(results)]
+    return [pos, list(results) or None]
 
 
 class character(str):
@@ -463,7 +465,7 @@ class OMetaBase(object):
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
-            raise ParseError(self.input.data, None, None)
+            raise ParseError(self.input.data, *self.input.nullError())
         self.input = memoRec[1]
         return memoRec[0]
 

@@ -1,4 +1,4 @@
-from ometa.runtime import OMetaGrammarBase as GrammarBase
+from ometa.runtime import OMetaBase as GrammarBase
 class Parser(GrammarBase):
     def rule_horizontal_space(self):
         _locals = {'self': self}

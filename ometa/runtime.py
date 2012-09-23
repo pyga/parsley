@@ -737,6 +737,7 @@ class OMetaGrammarBase(OMetaBase):
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
         source = writePython(tree)
+
         return moduleFromGrammar(source, name, superclass or OMetaBase, globals,
                                  modname, filename)
 

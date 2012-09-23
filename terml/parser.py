@@ -7,7 +7,7 @@ termLGrammar = r"""
 spaces = ('\r' '\n'|'\r' | '\n' | horizontal_space)*
 literal =  !(self.startSpan()):s (
               string:x -> leafInternal(Tag(".String."), x, self.span(s))
-            | character:x -> leafInternal(Tag(".char."), x, self.span(s))
+            | character:x -> leafInternal(Tag(".char."), x.args[0].data, self.span(s))
             | number:x -> leafInternal(Tag(numberType(x)), x, self.span(s)))
 
 tag =  (

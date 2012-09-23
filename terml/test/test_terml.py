@@ -1,14 +1,14 @@
 from twisted.trial import unittest
 from ometa.runtime import ParseError
 from terml.nodes import Tag, Term, coerceToTerm, TermMaker
-from terml.parser import TermLParser, character, _parseTerm
+from terml.parser import TermLParser, character, parseTerm
 
 
 class TermMakerTests(unittest.TestCase):
     def test_make(self):
         m = TermMaker()
         t1 = m.Foo(1, 'a', m.Baz())
-        self.assertEqual(t1, _parseTerm('Foo(1, "a", Baz)'))
+        self.assertEqual(t1, parseTerm('Foo(1, "a", Baz)'))
 
 
 class ParserTest(unittest.TestCase):
@@ -114,20 +114,20 @@ class ParserTest(unittest.TestCase):
         Shortcut syntax for terms is handled.
         """
 
-        self.assertEqual(_parseTerm("[x, y, 1]"), _parseTerm(".tuple.(x, y, 1)"))
-        self.assertEqual(_parseTerm("{x, y, 1}"), _parseTerm(".bag.(x, y, 1)"))
-        self.assertEqual(_parseTerm("f {x, y, 1}"), _parseTerm("f(.bag.(x, y, 1))"))
-        self.assertEqual(_parseTerm("a: b"), _parseTerm(".attr.(a, b)"))
-        self.assertEqual(_parseTerm('"a": b'), _parseTerm('.attr.("a", b)'))
-        self.assertEqual(_parseTerm('a: [b]'), _parseTerm('.attr.(a, .tuple.(b))'))
+        self.assertEqual(parseTerm("[x, y, 1]"), parseTerm(".tuple.(x, y, 1)"))
+        self.assertEqual(parseTerm("{x, y, 1}"), parseTerm(".bag.(x, y, 1)"))
+        self.assertEqual(parseTerm("f {x, y, 1}"), parseTerm("f(.bag.(x, y, 1))"))
+        self.assertEqual(parseTerm("a: b"), parseTerm(".attr.(a, b)"))
+        self.assertEqual(parseTerm('"a": b'), parseTerm('.attr.("a", b)'))
+        self.assertEqual(parseTerm('a: [b]'), parseTerm('.attr.(a, .tuple.(b))'))
 
 
     def test_multiline(self):
         """
         Terms spread across multiple lines are parsed correctly.
         """
-        single = _parseTerm('foo(baz({x: "y", boz: 42}))')
-        multi = _parseTerm(
+        single = parseTerm('foo(baz({x: "y", boz: 42}))')
+        multi = parseTerm(
                 """foo(
                     baz({
                      x: "y",
@@ -137,14 +137,14 @@ class ParserTest(unittest.TestCase):
 
 
     def test_leftovers(self):
-        e = self.assertRaises(ParseError, _parseTerm, "foo(x) and stuff")
+        e = self.assertRaises(ParseError, parseTerm, "foo(x) and stuff")
         self.assertEqual(e.position, 7)
 
 
     def test_unparse(self):
 
         def assertRoundtrip(txt):
-            self.assertEqual('term(%r)' % (txt,), repr(_parseTerm(txt)))
+            self.assertEqual('term(%r)' % (txt,), repr(parseTerm(txt)))
         cases = ["1", "3.25", "f", "f(1)", "f(1, 2)", "f(a, b)",
                   "{a, b}", "[a, b]", "f{1, 2}",  '''{"name": "Robert", attrs: {'c': 3}}''']
         for case in cases:
@@ -154,5 +154,5 @@ class ParserTest(unittest.TestCase):
     def test_coerce(self):
         self.assertEqual(
             coerceToTerm({3: 4, "a": character('x'), (2, 3): [4, 5]}),
-            _parseTerm('{"a": \'x\', 3: 4, [2, 3]: [4, 5]}'))
+            parseTerm('{"a": \'x\', 3: 4, [2, 3]: [4, 5]}'))
 

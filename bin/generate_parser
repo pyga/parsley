@@ -30,5 +30,5 @@ except ParseError, e:
     print e.formatErrorTwine(g.input.data)
     raise
 source = writePython(tree)
-pythonFile.write("from ometa.runtime import OMetaGrammarBase as GrammarBase\n")
+pythonFile.write("from ometa.runtime import OMetaBase as GrammarBase\n")
 pythonFile.write(source)

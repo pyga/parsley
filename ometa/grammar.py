@@ -236,6 +236,8 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         termOMeta2Grammar,
         globals(), name='TermOMeta2', superclass=OMeta)):
 
+    _writer = TermActionPythonWriter
+
     @classmethod
     def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
         """
@@ -259,7 +261,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
 
     def writeTerm(self, term):
         f = StringIO()
-        pw = TermActionPythonWriter(term)
+        pw = self._writer(term)
         out = TextWriter(f)
         pw.output(out)
         return f.getvalue().strip()

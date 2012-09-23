@@ -135,6 +135,8 @@ def coerceToTerm(val):
                                                    (coerceToTerm(k), coerceToTerm(v)), None)
                                          for (k, v) in val.iteritems()),
                     None)
+    raise ValueError("Could not coerce %r to Term" % (val,))
+
 class TermMaker(object):
     def __getattr__(self, name):
         def mkterm(*args, **kwargs):

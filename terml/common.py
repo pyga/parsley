@@ -1,4 +1,5 @@
 import string
+from terml.nodes import termMaker
 
 baseGrammar = r"""
 horizontal_space = (' '|'\t'|'\f'|('#' (~eol anything)*))
@@ -53,6 +54,7 @@ uriBody = <(letterOrDigit |';'|'/'|'?'|':'|'@'|'&'|'='|'+'|'$'|','|'-'|'.'|'!'|'
 def concat(*bits):
     return ''.join(map(str, bits))
 
+Character = termMaker.Character
 
 def makeFloat(sign, ds, tail):
         return float((sign or '') + ds + tail)

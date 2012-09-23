@@ -1,4 +1,4 @@
-from ometa.runtime import OMetaGrammarBase as GrammarBase
+from ometa.runtime import OMetaBase as GrammarBase
 class Parser(GrammarBase):
     def rule_spaces(self):
         _locals = {'self': self}
@@ -47,7 +47,7 @@ class Parser(GrammarBase):
             _G_apply_18, lastError = self._apply(self.rule_character, "character", [])
             self.considerError(lastError)
             _locals['x'] = _G_apply_18
-            _G_python_19, lastError = eval('leafInternal(Tag(".char."), x, self.span(s))', self.globals, _locals), None
+            _G_python_19, lastError = eval('leafInternal(Tag(".char."), x.args[0].data, self.span(s))', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_19, self.currentError)
         def _G_or_20():

@@ -279,7 +279,27 @@ class PythonWriter(object):
             out.writeln("tree = True")
 
 
+class _Term2PythonAction(object):
+    def leafData(bldr, data, span):
+        return repr(data)
+
+    def leafTag(bldr, tag, span):
+        return tag.name
+
+    def term(bldr, tag, args):
+        if tag == '.tuple.':
+            return "[%s]" % (', '.join(args),)
+        elif tag == '.attr.':
+            return "(%s)" % (', '.join(args),)
+        elif tag == '.bag.':
+            return "dict(%s)" % (', '.join(args),)
+        if not args:
+            return tag
+        return "%s(%s)" % (tag, ', '.join(args))
+
+
 class TermActionPythonWriter(PythonWriter):
+    builder = _Term2PythonAction
 
     def _convertArgs(self, out, termArgs):
         return [self._termAsPython(out, a) for a in termArgs]
@@ -300,24 +320,6 @@ class TermActionPythonWriter(PythonWriter):
     generate_Python = generate_Action
 
     def _termAsPython(self, out, term):
-        lines = []
-        class Term2PythonAction(object):
-            def leafData(bldr, data, span):
-                return repr(data)
-
-            def leafTag(bldr, tag, span):
-                return tag.name
-
-            def term(bldr, tag, args):
-                if not args:
-                    return tag
-                if tag == '.tuple.':
-                    return "[%s]" % (', '.join(args),)
-                elif tag == '.attr.':
-                    return "(%s)" % (', '.join(args),)
-                elif tag == '.bag.':
-                    return "dict(%s)" % (', '.join(args),)
-                return "%s(%s)" % (tag, ', '.join(args))
         if not term.args:
             if term.data is None:
                 return self.compilePythonExpr(out, term.tag.name)
@@ -326,7 +328,7 @@ class TermActionPythonWriter(PythonWriter):
                 out.writeln("%s = %r" % (name, term.data))
                 return name
         else:
-            return self.compilePythonExpr(out, term.build(Term2PythonAction()))
+            return self.compilePythonExpr(out, term.build(self.builder()))
 
 
 def writePython(tree):

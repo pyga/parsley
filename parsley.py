@@ -3,7 +3,7 @@ from ometa.runtime import ParseError, EOFError
 from terml.parser import parseTerm as term
 from terml.quasiterm import quasiterm
 
-__version__ = '1.0pre3'
+__version__ = '1.0'
 
 def makeGrammar(source, bindings, name='Grammar', unwrap=False):
     """

@@ -62,7 +62,7 @@ class ParseError(Exception):
                     if s[1] is not None:
                         desc = "%s %s" % (s[1], desc)
                 bits.append(desc)
-
+            bits.sort()
             return "expected one of %s, or %s" % (', '.join(bits[:-1]),
                                                   bits[-1])
 

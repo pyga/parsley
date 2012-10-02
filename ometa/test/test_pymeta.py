@@ -1295,22 +1295,20 @@ class ErrorReportingTests(unittest.TestCase):
                          dedent("""
                          123x321
                             ^
-                         Parse error at line 1, column 3: expected one of '3', '2', or '1'
+                         Parse error at line 1, column 3: expected one of '1', '2', or '3'
                          """))
-
         input = "foo\nbaz\nboz\ncharlie\nbuz"
-        e = ParseError(12, expected('token', 'foo') + expected(None, 'b'))
-
-        self.assertEqual(e.formatError(input),
+        e = ParseError(input, 12, expected('token', 'foo') + expected(None, 'b'))
+        self.assertEqual(e.formatError(),
                          dedent("""
                          charlie
                          ^
-                         Parse error at line 4, column 0: expected one of token 'foo', or 'b'
+                         Parse error at line 4, column 0: expected one of 'b', or token 'foo'
                          """))
 
         input = '123x321'
-        e = ParseError(3, expected('digit'))
-        self.assertEqual(e.formatError(input),
+        e = ParseError(input, 3, expected('digit'))
+        self.assertEqual(e.formatError(),
                          dedent("""
                          123x321
                             ^

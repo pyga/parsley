@@ -1,8 +1,10 @@
-# -*- mode: rst -*-
+.. -*- mode: rst -*-
 
 ===============================================================
 Parsley: A Pattern-Matching Language Based on OMeta and Python
 ===============================================================
+
+You can read further docs at: http://parsley.readthedocs.org/en/latest/
 
 Summary
 -------
@@ -27,7 +29,7 @@ pattern-matching language developed by Alessandro Warth
 How It Works
 ------------
 
-PyMeta compiles a grammar to a Python class, with the rules as methods. The
+Parsley compiles a grammar to a Python class, with the rules as methods. The
 rules specify parsing expressions, which consume input and return values if
 they succeed in matching.
 

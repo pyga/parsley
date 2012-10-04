@@ -18,7 +18,11 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False):
                    friendly API.
     """
     g = BootOMetaGrammar.makeGrammar(source, bindings, name=name)
-    return wrapGrammar(g)
+    if unwrap:
+        return g
+    else:
+        return wrapGrammar(g)
+
 
 def wrapGrammar(g):
     def makeParser(input):

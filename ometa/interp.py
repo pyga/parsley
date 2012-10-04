@@ -40,10 +40,12 @@ class TrampolinedGrammarInterpreter(object):
         if self.ended:
             raise ValueError("Can't feed a parser that's been ended.")
         self.input.data.extend(buf)
+        x = None
         for x in self.next:
             if x is _feed_me:
                 return x
-        self.callback(*x)
+        if self.callback:
+            self.callback(*x)
         self.ended = True
 
 
@@ -55,9 +57,11 @@ class TrampolinedGrammarInterpreter(object):
         if self.ended:
             return
         self.ended = True
+        x = None
         for x in self.next:
             pass
-        self.callback(*x)
+        if self.callback:
+            self.callback(*x)
 
 
     ## Implementation note: each method, instead of being a function

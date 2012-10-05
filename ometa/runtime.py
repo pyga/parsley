@@ -225,7 +225,7 @@ class InputStream(object):
 
 
     def fromFile(cls, f, encoding='utf-8'):
-        if getattr(f, 'seek', None) and gettattr(f, 'tell', None):
+        if getattr(f, 'seek', None) and getattr(f, 'tell', None):
             position = f.tell()
             f.seek(0)
         else:

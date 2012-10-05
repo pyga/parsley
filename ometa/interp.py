@@ -37,6 +37,9 @@ class TrampolinedGrammarInterpreter(object):
         """
         Feed data to the parser.
         """
+        if not buf:
+            # No data. Nothing to do.
+            return
         if self.ended:
             raise ValueError("Can't feed a parser that's been ended.")
         self.input.data.extend(buf)

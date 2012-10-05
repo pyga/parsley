@@ -1214,6 +1214,18 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
         return TrampolinedInterpWrapper(tree, globals)
 
 
+    def test_failure(self):
+        g = BootOMetaGrammar("""
+           foo = 'a':one baz:two 'd'+ 'e' -> (one, two)
+           baz = 'b' | 'c'
+           """, {})
+        tree = g.parseGrammar('TestGrammar')
+        i = TrampolinedGrammarInterpreter(
+            tree, 'foo', callback=lambda x: setattr(self, 'result', x))
+        e = self.assertRaises(ParseError, i.receive, 'foobar')
+        self.assertEqual(str(e),
+        "\nfoobar\n^\nParse error at line 2, column 0:"
+        " expected the character 'a'\n")
 
 class ErrorReportingTests(unittest.TestCase):
 

@@ -64,6 +64,9 @@ class TrampolinedGrammarInterpreter(object):
             self.callback(*x)
 
 
+    def error(self, typ, val):
+        raise ParseError(''.join(self.input.data), typ, val)
+
     ## Implementation note: each method, instead of being a function
     ## returning a value, is a generator that will yield '_feed_me' an
     ## arbitrary number of times, then finally yield the value of the
@@ -121,7 +124,7 @@ class TrampolinedGrammarInterpreter(object):
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
-            raise ParseError(self.input, None, None)
+            self.error(None, None)
         self.input = memoRec[1]
         yield memoRec[0]
 
@@ -180,7 +183,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            raise ParseError(self.input, val, expected(None, wanted))
+            self.error(val, expected(None, wanted))
 
 
     def parse_And(self, expr):
@@ -216,7 +219,7 @@ class TrampolinedGrammarInterpreter(object):
             except ParseError, err:
                 errors.append(err)
                 self.input = i
-        raise ParseError(self.input, *joinErrors(errors))
+        self.error(*joinErrors(errors))
 
 
     def parse_Many(self, expr, ans=None):
@@ -317,7 +320,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = m
             yield True, self.input.nullError()
         else:
-            raise ParseError(self.input, *self.input.nullError())
+            self.error(*self.input.nullError())
 
 
     def parse_Lookahead(self, expr):
@@ -352,7 +355,7 @@ class TrampolinedGrammarInterpreter(object):
             if x is _feed_me: yield x
         val, err = x
         if not val:
-            raise ParseError(self.input, *err)
+            self.error(*err)
         else:
             yield True, err
 
@@ -401,7 +404,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            raise ParseError(self.input, val, expected(None, "a letter"))
+            self.error(val, expected(None, "a letter"))
 
     def rule_digit(self):
         """
@@ -416,8 +419,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            raise ParseError(self.input, val, expected(None, "a digit"))
-
+            self.error(val, expected(None, "a digit"))
 
 
 class GrammarInterpreter(object):
@@ -437,7 +439,7 @@ class GrammarInterpreter(object):
     def apply(self, input, rulename, tree=False):
         run = self.base(input, self._globals, tree=tree)
         v, err = self._apply(run, rulename, ())
-        return run.input, v, ParseError(run.input, *err)
+        return run.input, v, ParseError(run.input.data, *err)
 
 
     def _apply(self, run, ruleName, args):
@@ -531,7 +533,7 @@ class GrammarInterpreter(object):
                 except ParseError, err:
                     errors.append(err)
                     run.input = m
-            raise ParseError(run.input, *joinErrors(errors))
+            raise ParseError(run.input.data, *joinErrors(errors))
 
 
         elif name == "Not":
@@ -542,7 +544,7 @@ class GrammarInterpreter(object):
                 run.input = m
                 return True, run.input.nullError()
             else:
-                raise ParseError(run.input, *run.input.nullError())
+                raise ParseError(run.input.data, *run.input.nullError())
 
 
         elif name == "Lookahead":
@@ -566,7 +568,7 @@ class GrammarInterpreter(object):
         elif name == "Predicate":
             val, err = self._eval(run, args[0])
             if not val:
-                raise ParseError(run.input, *err)
+                raise ParseError(run.input.data, *err)
             else:
                 return True, err
 
@@ -578,7 +580,7 @@ class GrammarInterpreter(object):
             except TypeError:
                 e = run.input.nullError()
                 e[1] = expected("an iterable")
-                raise ParseError(run.input, *e)
+                raise ParseError(run.input.data, *e)
             self._eval(run, args[0])
             run.end()
             run.input = oldInput

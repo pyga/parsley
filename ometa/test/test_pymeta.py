@@ -511,6 +511,26 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.xs("xxxxxx"), "xxx")
         self.assertRaises(ParseError, g.xs, "xx")
 
+    def test_repeat_zero(self):
+        """
+        Match repetitions can be specifically numbered.
+        """
+        g = self.compile("xs = 'x'{0}:n 'y' -> n")
+        self.assertEqual(g.xs("y"), "")
+        self.assertRaises(ParseError, g.xs, "xy")
+
+    def test_repeat_zero_n(self):
+        """
+        Match repetitions can be specifically numbered.
+        """
+        g = self.compile("""
+                         xs :n = 'x'{n}:a 'y' -> a
+                         start = xs(0)
+                         """)
+        self.assertEqual(g.start("y"), "")
+        self.assertRaises(ParseError, g.start, "xy")
+
+
     def test_repeat_var(self):
         """
         Match repetitions can be variables.

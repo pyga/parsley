@@ -78,7 +78,7 @@ def leafInternal(tag, data, span):
 
 def makeTerm(t, args=None, span=None):
     if isinstance(t, Term):
-        if t.data:
+        if t.data is not None:
             if not args:
                 return t
             else:

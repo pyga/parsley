@@ -157,7 +157,8 @@ class PythonWriter(object):
             max = max.data
         else:
             max = '_locals["%s"]' % max.data
-
+        if min == max == 0:
+            return "''"
         return self._expr(out, 'repeat', 'self.repeat(%s, %s, %s)'
                           % (min, max, fname))
 

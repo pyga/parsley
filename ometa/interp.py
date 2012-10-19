@@ -272,6 +272,9 @@ class TrampolinedGrammarInterpreter(object):
         else:
             max = self._localsStack[-1][max.data]
 
+        if min == max == 0:
+            yield '', None
+            return
         ans = []
         for i in range(min):
             for x in self._eval(expr):
@@ -500,7 +503,8 @@ class GrammarInterpreter(object):
                 max = None
             else:
                 max = self._localsStack[-1][args[1].data]
-
+            if min == max == 0:
+                return "", None
             ans = []
             for i in range(min):
                 v, e = self._eval(run, args[2])

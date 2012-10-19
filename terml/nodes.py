@@ -27,7 +27,7 @@ class Term(_Term):
 
     def _unparse(self, indentLevel=0):
         newlineAndIndent = '\n' + (' ' * indentLevel)
-        if self.data:
+        if self.data is not None:
             if self.tag.name == '.String.':
                 return '"%s"' % self.data
             elif self.tag.name == '.char.':

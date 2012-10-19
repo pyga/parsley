@@ -518,6 +518,8 @@ class OMetaBase(object):
         input. Fail if less than C{min} matches were made.
         Collect the results into a list.
         """
+        if min == max == 0:
+            return '', None
         ans = []
         for i in range(min):
             v, e = fn()

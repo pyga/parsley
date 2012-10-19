@@ -250,7 +250,11 @@ class InputStream(object):
 
     def head(self):
         if self.position >= len(self.data):
-            raise EOFError(''.join(self.data), self.position)
+            try:
+                data = ''.join(self.data)
+            except TypeError:
+                data = self.data
+            raise EOFError(data, self.position)
         return self.data[self.position], [self.position, None]
 
     def nullError(self):

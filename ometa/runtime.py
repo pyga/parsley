@@ -224,21 +224,25 @@ class InputStream(object):
     fromIterable = classmethod(fromIterable)
 
 
-    def fromFile(cls, f, encoding='utf-8'):
+    def fromFile(cls, f, encoding='utf-8', twine=False):
         if getattr(f, 'seek', None) and getattr(f, 'tell', None):
             position = f.tell()
-            f.seek(0)
         else:
             position = 0
-        t = asTwineFrom(f.read(), getattr(f, 'name', repr(f)))
-        return cls(t, 0)
+        if twine:
+            txt = asTwineFrom(f.read(), getattr(f, 'name', repr(f)))
+        else:
+            txt = f.read()
+        return cls(txt, position)
     fromFile = classmethod(fromFile)
 
 
-    def fromText(cls, t, name="<string>"):
-        if getattr(t, 'span', None):
+    def fromText(cls, t, name="<string>", twine=False):
+        if twine and not getattr(t, 'span', None):
+             return cls(asTwineFrom(t, name), 0)
+        else:
             return cls(t, 0)
-        return cls(asTwineFrom(t, name), 0)
+
     fromText = classmethod(fromText)
 
 
@@ -899,5 +903,6 @@ class OMetaGrammarBase(OMetaBase):
         return self.input.position
 
     def span(self, start):
+        return None
         end = self.input.position
         return self.input.data[start:end].span

@@ -114,6 +114,8 @@ class TermLParser(BaseTermLParser, CommonParser):
         return self.input.position
 
     def span(self, start):
+        if not getattr(self.input.data, 'span', None):
+            return None
         end = self.input.position
         return self.input.data[start:end].span
 

@@ -373,6 +373,8 @@ class CompositeTwineMixin(TwineMixin):
     def __eq__(self, other):
         return self._empty.join(self._parts) == other
 
+    def __hash__(self):
+        return hash(self._empty.join(self._parts))
 
     def find(self, *args):
         #XXX more efficientness
@@ -388,6 +390,10 @@ class CompositeTwineMixin(TwineMixin):
     def __float__(self):
         return float(self._empty.join(self._parts))
 
+    # def strip(self, removeset=None):
+    #     left = self._parts[0].strip(removeset)
+    #     right = self._parts[-1].strip(removeset)
+    #     return self.__class__.fromParts([left] + self._parts[1:-1] + [right])
 
 
     ## Maybe this is faster?

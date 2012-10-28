@@ -67,8 +67,8 @@ class TrampolinedGrammarInterpreter(object):
             self.callback(*x)
 
 
-    def error(self, typ, val):
-        raise ParseError(''.join(self.input.data), typ, val)
+    def error(self, typ, val, trail=None):
+        raise ParseError(''.join(self.input.data), typ, val, trail=trail)
 
     ## Implementation note: each method, instead of being a function
     ## returning a value, is a generator that will yield '_feed_me' an
@@ -445,7 +445,7 @@ class GrammarInterpreter(object):
     def apply(self, input, rulename, tree=False):
         run = self.base(input, self._globals, tree=tree)
         v, err = self._apply(run, rulename, ())
-        return run.input, v, ParseError(run.input.data, *err)
+        return run.input, v, err
 
 
     def _apply(self, run, ruleName, args):
@@ -540,7 +540,7 @@ class GrammarInterpreter(object):
                 except ParseError, err:
                     errors.append(err)
                     run.input = m
-            raise ParseError(run.input.data, *joinErrors(errors))
+            raise joinErrors(errors)
 
 
         elif name == "Not":
@@ -551,7 +551,7 @@ class GrammarInterpreter(object):
                 run.input = m
                 return True, run.input.nullError()
             else:
-                raise ParseError(run.input.data, *run.input.nullError())
+                raise run.input.nullError()
 
 
         elif name == "Lookahead":
@@ -575,7 +575,7 @@ class GrammarInterpreter(object):
         elif name == "Predicate":
             val, err = self._eval(run, args[0])
             if not val:
-                raise ParseError(run.input.data, *err)
+                raise err
             else:
                 return True, err
 
@@ -585,9 +585,7 @@ class GrammarInterpreter(object):
             try:
                 run.input = InputStream.fromIterable(v)
             except TypeError:
-                e = run.input.nullError()
-                e[1] = expected("an iterable")
-                raise ParseError(run.input.data, *e)
+                raise e.withMessage(expected("an iterable"))
             self._eval(run, args[0])
             run.end()
             run.input = oldInput

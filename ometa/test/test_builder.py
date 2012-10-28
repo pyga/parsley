@@ -22,7 +22,7 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_exactly_1
                             """))
 
@@ -39,11 +39,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(a),
                          dd("""
                             _G_python_1, lastError = eval('1', self.globals, _locals), None
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_python_2, lastError = eval('x', self.globals, _locals), None
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_apply_3, lastError = self._apply(self.rule_foo, "foo", [_G_python_1, _G_python_2])
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_apply_3
                             """))
 
@@ -60,11 +60,11 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(a),
                          dd("""
                             _G_python_1, lastError = eval('1', self.globals, _locals), None
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_python_2, lastError = eval('x', self.globals, _locals), None
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_apply_3, lastError = self.superApply("main", _G_python_1, _G_python_2)
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_apply_3
                             """))
 
@@ -80,10 +80,10 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_many_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             _G_many_3, lastError = self.many(_G_many_1)
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_many_3
                             """))
 
@@ -99,10 +99,10 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_many1_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             _G_many1_3, lastError = self.many(_G_many1_1, _G_many1_1())
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_many1_3
                             """))
 
@@ -119,14 +119,14 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_or_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             def _G_or_3():
                                 _G_exactly_4, lastError = self.exactly('y')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_4, self.currentError)
                             _G_or_5, lastError = self._or([_G_or_1, _G_or_3])
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_or_5
                             """))
 
@@ -149,12 +149,12 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_optional_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             def _G_optional_3():
                                 return (None, self.input.nullError())
                             _G_or_4, lastError = self._or([_G_optional_1, _G_optional_3])
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_or_4
                             """))
 
@@ -168,10 +168,10 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_not_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             _G_not_3, lastError = self._not(_G_not_1)
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_not_3
                             """))
 
@@ -185,10 +185,10 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_lookahead_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             _G_lookahead_3, lastError = self.lookahead(_G_lookahead_1)
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_lookahead_3
                             """))
 
@@ -204,9 +204,9 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(z),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_exactly_2, lastError = self.exactly('y')
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_exactly_2
                             """))
 
@@ -220,7 +220,7 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(b),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _locals['var'] = _G_exactly_1
                             _locals['var']
                             """))
@@ -235,10 +235,10 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_pred_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             _G_pred_3, lastError = self.pred(_G_pred_1)
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_pred_3
                             """))
 
@@ -251,7 +251,7 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             _G_python_1, lastError = eval('doStuff()', self.globals, _locals), None
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_python_1
                             """))
 
@@ -264,7 +264,7 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(writePython(x),
                          dd("""
                             _G_python_1, lastError = eval('returnStuff()', self.globals, _locals), None
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_python_1
                             """))
 
@@ -277,10 +277,10 @@ class PythonWriterTests(unittest.TestCase):
                          dd("""
                             def _G_listpattern_1():
                                 _G_exactly_2, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, None)
                                 return (_G_exactly_2, self.currentError)
                             _G_listpattern_3, lastError = self.listpattern(_G_listpattern_1)
-                            self.considerError(lastError)
+                            self.considerError(lastError, None)
                             _G_listpattern_3
                             """))
 
@@ -308,7 +308,7 @@ class PythonWriterTests(unittest.TestCase):
                                 _locals = {'self': self}
                                 self.locals['foo'] = _locals
                                 _G_exactly_1, lastError = self.exactly('x')
-                                self.considerError(lastError)
+                                self.considerError(lastError, 'foo')
                                 return (_G_exactly_1, self.currentError)
                             """))
 
@@ -327,7 +327,7 @@ class PythonWriterTests(unittest.TestCase):
                                     _locals = {'self': self}
                                     self.locals['foo'] = _locals
                                     _G_exactly_1, lastError = self.exactly('x')
-                                    self.considerError(lastError)
+                                    self.considerError(lastError, 'foo')
                                     return (_G_exactly_1, self.currentError)
 
 
@@ -335,6 +335,6 @@ class PythonWriterTests(unittest.TestCase):
                                     _locals = {'self': self}
                                     self.locals['baz'] = _locals
                                     _G_exactly_2, lastError = self.exactly('y')
-                                    self.considerError(lastError)
+                                    self.considerError(lastError, 'baz')
                                     return (_G_exactly_2, self.currentError)
                             """))

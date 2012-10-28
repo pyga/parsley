@@ -1221,7 +1221,7 @@ class TrampolinedInterpWrapper(object):
                 except TypeError:
                     return results[0]
             else:
-                raise ParseError(*parser.currentError)
+                raise parser.currentError
         return doIt
 
 
@@ -1245,7 +1245,7 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
         e = self.assertRaises(ParseError, i.receive, 'foobar')
         self.assertEqual(str(e),
         "\nfoobar\n^\nParse error at line 2, column 0:"
-        " expected the character 'a'\n")
+        " expected the character 'a'. trail: []\n")
 
 class ErrorReportingTests(unittest.TestCase):
 
@@ -1327,7 +1327,7 @@ class ErrorReportingTests(unittest.TestCase):
                          dedent("""
                          123x321
                             ^
-                         Parse error at line 1, column 3: expected one of '1', '2', or '3'
+                         Parse error at line 1, column 3: expected one of '1', '2', or '3'. trail: [dig]
                          """))
         input = "foo\nbaz\nboz\ncharlie\nbuz"
         e = ParseError(input, 12, expected('token', 'foo') + expected(None, 'b'))
@@ -1335,7 +1335,7 @@ class ErrorReportingTests(unittest.TestCase):
                          dedent("""
                          charlie
                          ^
-                         Parse error at line 4, column 0: expected one of 'b', or token 'foo'
+                         Parse error at line 4, column 0: expected one of 'b', or token 'foo'. trail: []
                          """))
 
         input = '123x321'
@@ -1344,6 +1344,6 @@ class ErrorReportingTests(unittest.TestCase):
                          dedent("""
                          123x321
                             ^
-                         Parse error at line 1, column 3: expected a digit
+                         Parse error at line 1, column 3: expected a digit. trail: []
                          """))
 

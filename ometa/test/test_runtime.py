@@ -219,17 +219,16 @@ class RuntimeTests(unittest.TestCase):
             o.rule_end()
         self.assertEqual(e.exception, ParseError(o.input, 1, None))
         o.many(o.rule_anything)
-        self.assertEqual(o.rule_end(), (True, [3, None]))
+        self.assertEqual(o.rule_end(), (True, ParseError("abc", 3, None)))
 
 
     def test_letter(self):
         """
         L{OMetaBase.rule_letter} matches letters.
         """
-
         o = OMetaBase("a1")
         v, e = o.rule_letter()
-        self.assertEqual((v, e), ("a", [0, None]))
+        self.assertEqual((v, e), ("a", ParseError(o.input, 0, None)))
         with self.assertRaises(ParseError) as e:
             o.rule_letter()
         self.assertEqual(e.exception, ParseError(o.input, 1,
@@ -242,9 +241,9 @@ class RuntimeTests(unittest.TestCase):
         """
         o = OMetaBase("a1@")
         v, e = o.rule_letterOrDigit()
-        self.assertEqual((v, e), ("a", [0, None]))
+        self.assertEqual((v, e), ("a", ParseError(None, 0, None)))
         v, e = o.rule_letterOrDigit()
-        self.assertEqual((v, e), ("1", [1, None]))
+        self.assertEqual((v, e), ("1", ParseError(None, 1, None)))
         with self.assertRaises(ParseError) as e:
             o.rule_letterOrDigit()
         self.assertEqual(e.exception,
@@ -257,7 +256,7 @@ class RuntimeTests(unittest.TestCase):
         """
         o = OMetaBase("1a")
         v, e = o.rule_digit()
-        self.assertEqual((v, e), ("1", [0, None]))
+        self.assertEqual((v, e), ("1", ParseError("1a", 0, None)))
         with self.assertRaises(ParseError) as e:
             o.rule_digit()
         self.assertEqual(e.exception, ParseError(o.input, 1, expected("digit")))
@@ -270,4 +269,4 @@ class RuntimeTests(unittest.TestCase):
         """
         o = OMetaBase([["a"]], tree=True)
         v, e = o.listpattern(lambda: o.exactly("a"))
-        self.assertEqual((v, e), (["a"], [0, None]))
+        self.assertEqual((v, e), (["a"], ParseError("a", 0, None)))

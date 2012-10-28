@@ -2,6 +2,7 @@
 """
 Code needed to run a grammar after it has been compiled.
 """
+import sys
 import operator
 from textwrap import dedent
 from terml.twine import asTwineFrom
@@ -22,12 +23,10 @@ class ParseError(Exception):
     def error(self):
         return self.args[1]
 
-
-    def __init__(self, input, *a):
-        Exception.__init__(self, *a)
+    def __init__(self, input, position, message, trail=None):
+        Exception.__init__(self, position, message)
         self.input = input
-        if len(a) > 2:
-            self.message = a[2]
+        self.trail = trail or []
 
 
     def __eq__(self, other):
@@ -42,7 +41,7 @@ class ParseError(Exception):
             if self.error[0][0] == 'message':
                 return self.error[0][1]
             if self.error[0][2] == None:
-                return 'expected a ' + self.error[0][1]
+                return 'expected a %s' % (self.error[0][1])
             else:
                 typ = self.error[0][1]
                 if typ is None:
@@ -50,8 +49,7 @@ class ParseError(Exception):
                         typ = 'character'
                     else:
                         typ = 'object'
-                return 'expected the %s %r' % (typ,
-                                               self.error[0][2])
+                return 'expected the %s %r' % (typ, self.error[0][2])
         else:
             bits = []
             for s in self.error:
@@ -87,9 +85,8 @@ class ParseError(Exception):
                 lineNo += 1
         reason = self.formatReason()
         return ('\n' + line + '\n' + (' ' * columnNo + '^') +
-                "\nParse error at line %s, column %s: %s\n" % (lineNo,
-                                                               columnNo,
-                                                               reason))
+                "\nParse error at line %s, column %s: %s. trail: [%s]\n"
+                % (lineNo, columnNo, reason, ' '.join(self.trail)))
 
 
     def formatErrorTwine(self):
@@ -133,6 +130,10 @@ class ParseError(Exception):
         return self.formatError()
 
 
+    def withMessage(self, msg):
+        return ParseError(self.input, self.position, msg, self.trail)
+
+
 class EOFError(ParseError):
     """
     Raised when the end of input is encountered.
@@ -163,17 +164,17 @@ def joinErrors(errors):
     """
     errors.sort(reverse=True, key=operator.itemgetter(0))
     results = set()
-    pos = errors[0][0]
+    pos = errors[0].position
+    trail = None
     for err in errors:
-        if pos == err[0]:
-            e = err[1]
+        if pos == err.position:
+            e, trail = err.error, (err.trail or trail)
             if e is not None:
                 for item in e:
                         results.add(item)
         else:
             break
-
-    return [pos, list(results) or None]
+    return ParseError(errors[0].input,  pos, list(results) or None, trail)
 
 
 class character(str):
@@ -254,15 +255,15 @@ class InputStream(object):
 
     def head(self):
         if self.position >= len(self.data):
-            try:
-                data = ''.join(self.data)
-            except TypeError:
+            if getattr(self.data, 'join', None):
+                data = self.data.__class__('').join(self.data)
+            else:
                 data = self.data
             raise EOFError(data, self.position)
-        return self.data[self.position], [self.position, None]
+        return self.data[self.position], ParseError(self.data, self.position, None)
 
-    def nullError(self):
-        return [self.position, None]
+    def nullError(self, msg=None):
+        return ParseError(self.data, self.position, msg)
 
     def tail(self):
         if self.tl is None:
@@ -391,7 +392,7 @@ class OMetaBase(object):
 
         self.currentError = self.input.nullError()
 
-    def considerError(self, error):
+    def considerError(self, error, typ=None):
         if error:
             if error[0] > self.currentError[0]:
                 self.currentError = error
@@ -421,7 +422,7 @@ class OMetaBase(object):
         r = getattr(self, "rule_"+ruleName, None)
         if r is not None:
             val, err = self._apply(r, ruleName, args)
-            return val, ParseError(self.input.data, *err)
+            return val, err
 
         else:
             raise NameError("No rule named '%s'" %(ruleName,))
@@ -452,8 +453,8 @@ class OMetaBase(object):
             try:
                 memoRec = self.input.setMemo(ruleName,
                                              [rule(), self.input])
-            except ParseError:
-                #print "Failed", rule
+            except ParseError, e:
+                e.trail.append(ruleName)
                 raise
             #print "Success", ruleName, memoRec
             if lr.detected:
@@ -473,7 +474,7 @@ class OMetaBase(object):
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
-            raise ParseError(self.input.data, *self.input.nullError())
+            raise self.input.nullError()
         self.input = memoRec[1]
         return memoRec[0]
 
@@ -556,7 +557,7 @@ class OMetaBase(object):
             except ParseError, e:
                 errors.append(e)
                 self.input = m
-        raise ParseError(self.input.data, *joinErrors(errors))
+        raise joinErrors(errors)
 
 
     def _not(self, fn):
@@ -572,7 +573,7 @@ class OMetaBase(object):
             self.input = m
             return True, self.input.nullError()
         else:
-            raise ParseError(self.input.data, *self.input.nullError())
+            raise self.input.nullError()
 
 
     def eatWhitespace(self):
@@ -600,7 +601,7 @@ class OMetaBase(object):
         """
         val, e = expr()
         if not val:
-            raise ParseError(self.input.data, *e)
+            raise e
         else:
             return True, e
 
@@ -617,9 +618,8 @@ class OMetaBase(object):
         try:
             self.input = InputStream.fromIterable(v)
         except TypeError:
-            e = self.input.nullError()
-            e[1] = expected("an iterable")
-            raise ParseError(self.input.data, *e)
+            raise e.withMessage(expected("an iterable"))
+
         expr()
         self.end()
         self.input = oldInput
@@ -667,8 +667,7 @@ class OMetaBase(object):
             return tok, e
         except ParseError, e:
             self.input = m
-
-            raise ParseError(self.input.data, e[0], expected("token", tok))
+            raise e.withMessage(expected("token", tok))
 
 
     def letter(self):
@@ -679,8 +678,7 @@ class OMetaBase(object):
         if x.isalpha():
             return x, e
         else:
-            e[1] = expected("letter")
-            raise ParseError(self.input.data, *e)
+            raise e.withMessage(expected("letter"))
 
 
     def letterOrDigit(self):
@@ -691,9 +689,7 @@ class OMetaBase(object):
         if x.isalnum() or x == '_':
             return x, e
         else:
-            e[1] = expected("letter or digit")
-            raise ParseError(self.input.data, *e)
-
+            raise e.withMessage(expected("letter or digit"))
 
     def digit(self):
         """
@@ -703,8 +699,7 @@ class OMetaBase(object):
         if x.isdigit():
             return x, e
         else:
-            e[1] = expected("digit")
-            raise ParseError(self.input.data, *e)
+            raise e.withMessage(expected("digit"))
 
     rule_digit = digit
 
@@ -797,7 +792,7 @@ class OMetaGrammarBase(OMetaBase):
         if args:
             return args
         else:
-            raise ParseError(self.input.data, )
+            raise self.input.nullError()
 
     def ruleValueExpr(self, singleLine, span=None):
         """

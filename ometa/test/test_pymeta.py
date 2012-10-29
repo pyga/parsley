@@ -51,7 +51,7 @@ class OMeta1TestCase(unittest.TestCase):
 
     def setUp(self):
         if self.classTested is None:
-            from ometa.grammar import OMeta1
+            from ometa.compat import OMeta1
             self.classTested = OMeta1
 
     def compile(self, grammar):

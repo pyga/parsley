@@ -2,12 +2,14 @@
 """
 Code needed to run a grammar after it has been compiled.
 """
-import sys
+import time
 import operator
 from textwrap import dedent
 from terml.twine import asTwineFrom
 from terml.nodes import termMaker as t
 from ometa.builder import moduleFromGrammar, writePython
+
+TIMING = False
 
 class ParseError(Exception):
     """
@@ -100,7 +102,6 @@ class ParseError(Exception):
         test = end / 2
         for _ in xrange(10):
             candidate = map[test]
-            print start, end, test, candidate, self.position
             if (candidate[0][0] <= self.position
                 and candidate[0][1] >= self.position):
                 span = candidate[1]
@@ -448,15 +449,12 @@ class OMetaBase(object):
             oldPosition = self.input
             lr = LeftRecursion()
             memoRec = self.input.setMemo(ruleName, lr)
-
-            #print "Calling", ruleName
             try:
                 memoRec = self.input.setMemo(ruleName,
-                                             [rule(), self.input])
+                                         [rule(), self.input])
             except ParseError, e:
                 e.trail.append(ruleName)
                 raise
-            #print "Success", ruleName, memoRec
             if lr.detected:
                 sentinel = self.input
                 while True:
@@ -738,11 +736,17 @@ class OMetaGrammarBase(OMetaBase):
         @param superclass: The class the generated class is a child of.
         """
         g = cls(grammar)
+        if TIMING:
+            start = time.time()
         tree = g.parseGrammar(name)
+        if TIMING:
+            print "Grammar %r parsed in %g secs" % (name, time.time() - start)
+            start = time.time()
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
         source = writePython(tree)
-
+        if TIMING:
+            print "Grammar %r generated in %g secs" % (name, time.time() - start)
         return moduleFromGrammar(source, name, superclass or OMetaBase, globals,
                                  modname, filename)
 

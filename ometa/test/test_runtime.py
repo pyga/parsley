@@ -32,6 +32,18 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(v, "f")
         self.assertEqual(e[0], 0)
 
+    def test_exactly_multi(self):
+        """
+        L{OMetaBase.rule_exactly} returns the requested item from the input
+        string along with its position, if it's there.
+        """
+
+        data = "foo"
+        o = OMetaBase(data)
+        v, e = o.rule_exactly("fo")
+        self.assertEqual(v, "fo")
+        self.assertEqual(e[0], 0)
+
     def test_exactlyFail(self):
         """
         L{OMetaBase.rule_exactly} raises L{ParseError} when the requested item

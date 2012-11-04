@@ -307,7 +307,14 @@ class BootOMetaGrammar(GrammarBase):
             _G_python_115, lastError = eval('"\\\\"', self.globals, _locals), None
             self.considerError(lastError)
             return (_G_python_115, self.currentError)
-        _G_or_116, lastError = self._or([_G_or_92, _G_or_95, _G_or_98, _G_or_101, _G_or_104, _G_or_107, _G_or_110, _G_or_113])
+        def _G_or_hexdigit():
+            _, lastError = self.exactly('x')
+            a, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+            b, lastError = self._apply(self.rule_hexdigit, "hexdigit", [])
+            self.considerError(lastError)
+            return (chr(int(a + b, 16)), self.currentError)
+        _G_or_116, lastError = self._or([_G_or_92, _G_or_95, _G_or_98, _G_or_101, _G_or_104, _G_or_107, _G_or_110, _G_or_113,
+                                         _G_or_hexdigit])
         self.considerError(lastError)
         return (_G_or_116, self.currentError)
 
@@ -327,17 +334,19 @@ class BootOMetaGrammar(GrammarBase):
             self.considerError(lastError)
             return (_G_apply_121, self.currentError)
         def _G_or_122():
+            _G_not_137, lastError = self._not(lambda: self.exactly('\''))
+            self.considerError(lastError)
             _G_apply_123, lastError = self._apply(self.rule_anything, "anything", [])
             self.considerError(lastError)
             return (_G_apply_123, self.currentError)
-        _G_or_124, lastError = self._or([_G_or_120, _G_or_122])
+        _G_or_124, lastError = self.many(lambda: self._or([_G_or_120, _G_or_122]))
         self.considerError(lastError)
         _locals['c'] = _G_or_124
         _G_python_125, lastError = eval('"\'"', self.globals, _locals), None
         self.considerError(lastError)
         _G_apply_126, lastError = self._apply(self.rule_token, "token", [_G_python_125])
         self.considerError(lastError)
-        _G_python_127, lastError = eval('t.Exactly(c, span=self.span(s))', self.globals, _locals), None
+        _G_python_127, lastError = eval('t.Exactly("".join(c), span=self.span(s))', self.globals, _locals), None
         self.considerError(lastError)
         return (_G_python_127, self.currentError)
 
@@ -377,7 +386,7 @@ class BootOMetaGrammar(GrammarBase):
         self.considerError(lastError)
         _G_apply_142, lastError = self._apply(self.rule_token, "token", [_G_python_141])
         self.considerError(lastError)
-        _G_python_143, lastError = eval("t.Exactly(''.join(c), span=self.span(s))", self.globals, _locals), None
+        _G_python_143, lastError = eval("t.Token(''.join(c), span=self.span(s))", self.globals, _locals), None
         self.considerError(lastError)
         return (_G_python_143, self.currentError)
 
@@ -459,6 +468,7 @@ class BootOMetaGrammar(GrammarBase):
         def _G_or_172():
             _G_apply_173, lastError = self._apply(self.rule_number, "number", [])
             self.considerError(lastError)
+            self.isTree()
             return (_G_apply_173, self.currentError)
         def _G_or_174():
             _G_apply_175, lastError = self._apply(self.rule_character, "character", [])
@@ -518,6 +528,7 @@ class BootOMetaGrammar(GrammarBase):
             self.considerError(lastError)
             _G_python_200, lastError = eval('t.List(e, s=self.span(s))', self.globals, _locals), None
             self.considerError(lastError)
+            self.isTree()
             return (_G_python_200, self.currentError)
         _G_or_201, lastError = self._or([_G_or_164, _G_or_166, _G_or_168, _G_or_170, _G_or_172, _G_or_174, _G_or_176, _G_or_178, _G_or_185, _G_or_193])
         self.considerError(lastError)
@@ -901,6 +912,6 @@ class BootOMetaGrammar(GrammarBase):
         _locals['rs'] = _G_many_340
         _G_apply_341, lastError = self._apply(self.rule_spaces, "spaces", [])
         self.considerError(lastError)
-        _G_python_342, lastError = eval('t.Grammar(self.name, rs)', self.globals, _locals), None
+        _G_python_342, lastError = eval('t.Grammar(self.name, %s, rs)' % (self.tree,), self.globals, _locals), None
         self.considerError(lastError)
         return (_G_python_342, self.currentError)

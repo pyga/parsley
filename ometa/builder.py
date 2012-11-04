@@ -29,7 +29,6 @@ class PythonWriter(object):
     Converts an OMeta syntax tree into Python source.
     """
     def __init__(self, tree):
-        self.takesTreeInput = False
         self.tree = tree
         self.gensymCounter = 0
 
@@ -126,9 +125,17 @@ class PythonWriter(object):
         """
         Create a call to self.exactly(expr).
         """
-        if not literal.tag.name == ".String.":
-            self.takesTreeInput = True
         return self._expr(out, 'exactly', 'self.exactly(%r)' % (literal.data,), debugname)
+
+
+    def generate_Token(self, out, literal, debugname=None):
+        if self.takesTreeInput:
+            return self.generate_Exactly(out, literal, debugname)
+        else:
+            return self._expr(out, 'apply',
+                              'self._apply(self.rule_token, "token", ["%s"])'
+                              % (literal.data,),
+                              debugname)
 
 
     def generate_Many(self, out, expr, debugname=None):
@@ -253,7 +260,6 @@ class PythonWriter(object):
         """
         Generate a call to self.listpattern(lambda: expr).
         """
-        self.takesTreeInput = True
         fname = self._newThunkFor(out, "listpattern", expr)
         return  self._expr(out, "listpattern", "self.listpattern(%s)" %(fname,),
                            debugname)
@@ -275,7 +281,9 @@ class PythonWriter(object):
         out.writeln("self.locals[%r] = _locals" % (name.data,))
         self._generate(prevOut.indent(), expr, retrn=True, debugname=name)
 
-    def generate_Grammar(self, out, name, rules, debugname=None):
+    def generate_Grammar(self, out, name, takesTreeInput, rules,
+                         debugname=None):
+        self.takesTreeInput = takesTreeInput.tag.name == 'true'
         out.writeln("class %s(GrammarBase):" % (name.data,))
         out = out.indent()
         for rule in rules.args:
@@ -283,7 +291,7 @@ class PythonWriter(object):
             out.writeln("")
             out.writeln("")
         if self.takesTreeInput:
-            out.writeln("tree = True")
+            out.writeln("tree = %s" % self.takesTreeInput)
 
 
 class _Term2PythonAction(object):

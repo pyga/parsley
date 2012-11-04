@@ -292,7 +292,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         x = t.Rule("foo", t.List(
                 t.Exactly("x")))
-        g = t.Grammar("TestGrammar", [x])
+        g = t.Grammar("TestGrammar", True, [x])
         self.assertTrue(writePython(g).endswith("    tree = True"))
 
 
@@ -319,7 +319,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         r1 = t.Rule("foo", t.Exactly("x"))
         r2 = t.Rule("baz", t.Exactly("y"))
-        x = t.Grammar("BuilderTest", [r1, r2])
+        x = t.Grammar("BuilderTest", False, [r1, r2])
         self.assertEqual(writePython(x),
                          dd("""
                             class BuilderTest(GrammarBase):

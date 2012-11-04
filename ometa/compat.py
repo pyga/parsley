@@ -41,11 +41,11 @@ expr1 = (application
           |ruleValue
           |semanticPredicate
           |semanticAction
-          |number
+          |number:n !(self.isTree()) -> n
           |character
           |string
           |token('(') expr:e token(')') -> e
-          |(!(self.startSpan()):s token('[') expr:e token(']')
+          |(!(self.startSpan()):s token('[') expr:e token(']') !(self.isTree())
               -> t.List(e, span=self.span(s))))
 
 expr2 = (!(self.startSpan()):s token('~') (token('~') expr2:e
@@ -90,7 +90,7 @@ rule = !(self.startSpan()):s (spaces ~~(name:n) rulePart(n):r
           (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs), span=self.span(s))
           |                     -> t.Rule(n, r, span=self.span(s))))
 
-grammar = rule*:rs spaces -> t.Grammar(self.name, rs)
+grammar = rule*:rs spaces -> t.Grammar(self.name, self.tree, rs)
 """
 
 OMeta1 = BootOMetaGrammar.makeGrammar(v1Grammar, globals(), name='OMeta1',

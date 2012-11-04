@@ -439,6 +439,33 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.digit, "4")
 
 
+    def test_escaped_char(self):
+        """
+        Hex escapes are supported in strings in grammars.
+        """
+        g = self.compile(r"bel = '\x07'")
+        self.assertEqual(g.bel("\x07"), "\x07")
+
+
+    def test_literals_multi(self):
+        """
+        Input matches can be made on multiple literal characters at
+        once.
+        """
+        g = self.compile("foo = 'foo'")
+        self.assertEqual(g.foo("foo"), "foo")
+        self.assertRaises(ParseError, g.foo, "for")
+
+    def test_token(self):
+        """
+        Input matches can be made on tokens, which default to
+        consuming leading whitespace.
+        """
+        g = self.compile('foo = "foo"')
+        self.assertEqual(g.foo("    foo"), "foo")
+        self.assertRaises(ParseError, g.foo, "fog")
+
+
     def test_multipleRules(self):
         """
         Grammars with more than one rule work properly.
@@ -1067,12 +1094,12 @@ class MakeGrammarTest(unittest.TestCase):
     def test_brokenGrammar(self):
         from ometa.grammar import BootOMetaGrammar
         grammar = """
-        andHandler = handler:h1 'and' handler:h2 -> And(h1, h2)
+        andHandler = handler:h1 'and handler:h2 -> And(h1, h2)
         """
         e = self.assertRaises(ParseError, BootOMetaGrammar.makeGrammar, grammar,
                               {})
-        self.assertEquals(e.position, 27)
-        self.assertEquals(e.error, [("expected", "token", "'")])
+        self.assertEquals(e.position, 56)
+        self.assertEquals(e.error, [("expected", "token", "'"), ("message", "end of input")])
 
 
     def test_subclassing(self):

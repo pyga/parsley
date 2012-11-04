@@ -6,7 +6,7 @@ def decomposeGrammar(grammar):
     rules = {}
     #XXX remove all these asserts once we have quasiterms
     assert grammar.tag.name == 'Grammar'
-    for rule in grammar.args[1].args:
+    for rule in grammar.args[2].args:
         assert rule.tag.name == 'Rule'
         rules[rule.args[0].data] = rule.args[1]
     return rules
@@ -174,19 +174,51 @@ class TrampolinedGrammarInterpreter(object):
 
     def parse_Exactly(self, spec):
         """
-        Accept a single character that equal the given spec.
+        Accept a one or more characters that equal the given spec.
         """
         wanted = spec.data
-        try:
-            val, p = self.input.head()
-        except EOFError:
-            yield _feed_me
-            val, p = self.input.head()
-        if val == wanted:
-            self.input = self.input.tail()
-            yield val, p
-        else:
-            self.error(val, expected(None, wanted))
+        result = []
+        for c in wanted:
+            try:
+                val, p = self.input.head()
+            except EOFError:
+                yield _feed_me
+                val, p = self.input.head()
+            result.append(val)
+            if val == c:
+                self.input = self.input.tail()
+            else:
+                self.error(''.join(result), expected(None, wanted))
+        yield ''.join(result), p
+
+
+    def parse_Token(self, spec):
+        """
+        Consume leading whitespace then the given string.
+        """
+        val = ' '
+        while val.isspace():
+            try:
+                val, p = self.input.head()
+            except EOFError:
+                yield _feed_me
+                val, p = self.input.head()
+            if val.isspace():
+                self.input = self.input.tail()
+        wanted = spec.data
+        result = []
+        for c in wanted:
+            try:
+                val, p = self.input.head()
+            except EOFError:
+                yield _feed_me
+                val, p = self.input.head()
+            result.append(val)
+            if val == c:
+                self.input = self.input.tail()
+            else:
+                self.error(''.join(result), expected(None, wanted))
+        yield ''.join(result), p
 
 
     def parse_And(self, expr):
@@ -440,17 +472,21 @@ class GrammarInterpreter(object):
         self._localsStack = []
         self._globals = globals or {}
         self.rules = decomposeGrammar(grammar)
-
+        self.run = None
 
     def apply(self, input, rulename, tree=False):
-        run = self.base(input, self._globals, tree=tree)
-        v, err = self._apply(run, rulename, ())
-        return run.input, v, err
+        self.run = self.base(input, self._globals, tree=tree)
+        #XXX hax, fix grammar parser to distinguish tree from nontree grammars
+        if not isinstance(self.run.input.data, basestring):
+            tree = True
+            self.run.tree = True
+        v, err = self._apply(self.run, rulename, ())
+        return self.run.input, v, err
 
 
     def _apply(self, run, ruleName, args):
         argvals = [self._eval(run, a)[0] for a in args]
-        _locals = {}
+        _locals = {'self': run}
         self._localsStack.append(_locals)
         try:
             if ruleName == 'super':
@@ -479,6 +515,12 @@ class GrammarInterpreter(object):
 
         elif name == "Exactly":
             return run.exactly(args[0].data)
+
+        elif name == "Token":
+            if run.tree:
+                return run._apply(run.rule_exactly, "exactly", [args[0].data])
+            else:
+                return run._apply(run.rule_token, "token", [args[0].data])
 
         elif name in ("Many", "Many1"):
             ans = [self._eval(run, args[0])[0]] if name == "Many1" else []

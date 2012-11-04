@@ -55,7 +55,9 @@ class ParseError(Exception):
         else:
             bits = []
             for s in self.error:
-                if s[2] is None:
+                if s[0] == 'message':
+                    desc = s[1]
+                elif s[2] is None:
                     desc = "a " + s[1]
                 else:
                     desc = repr(s[2])
@@ -89,42 +91,6 @@ class ParseError(Exception):
         return ('\n' + line + '\n' + (' ' * columnNo + '^') +
                 "\nParse error at line %s, column %s: %s. trail: [%s]\n"
                 % (lineNo, columnNo, reason, ' '.join(self.trail)))
-
-
-    def formatErrorTwine(self):
-        """
-        Report errors based on position info in Twine input.
-        """
-        reason = self.formatReason()
-        map = self.input.sourceMap
-        start = 0
-        end = len(map)
-        test = end / 2
-        for _ in xrange(10):
-            candidate = map[test]
-            if (candidate[0][0] <= self.position
-                and candidate[0][1] >= self.position):
-                span = candidate[1]
-                offset = self.position - candidate[0][0]
-                lineNo = span.startLine
-                columnNo = span.startCol + offset
-                line = self.input[candidate[0][0]:candidate[0][1]]
-                break
-            elif candidate[0][0] > self.position:
-                end = test
-                test = start + ((end - start) / 2)
-            elif candidate[0][1] < self.position:
-                start = test
-                test = start + ((end - start) / 2)
-            elif test < end:
-                test += 1
-        else:
-            span = None
-
-        return ('\n' +  line + (' ' * columnNo+ '^') +
-                "\nParse error at line %s, column %s: %s\n" % (lineNo,
-                                                               columnNo,
-                                                               reason))
 
 
     def __str__(self):
@@ -253,6 +219,7 @@ class InputStream(object):
         self.position = position
         self.memo = {}
         self.tl = None
+        self.error = ParseError(self.data, self.position, None)
 
     def head(self):
         if self.position >= len(self.data):
@@ -261,15 +228,26 @@ class InputStream(object):
             else:
                 data = self.data
             raise EOFError(data, self.position)
-        return self.data[self.position], ParseError(self.data, self.position, None)
+        return self.data[self.position], self.error
 
     def nullError(self, msg=None):
-        return ParseError(self.data, self.position, msg)
+        if msg:
+            return self.error.withMessage(msg)
+        else:
+            return self.error
 
     def tail(self):
         if self.tl is None:
             self.tl = InputStream(self.data, self.position+1)
         return self.tl
+
+    def advanceBy(self, n):
+        return InputStream(self.data, self.position + n)
+
+    def slice(self, n):
+        data = self.data[self.position:self.position + n]
+        tail = self.advanceBy(n)
+        return data, self.nullError(), tail
 
     def prev(self):
         return InputStream(self.data, self.position-1)
@@ -312,6 +290,13 @@ class WrappedValueInputStream(InputStream):
                                               self.wrapper)
         return self.tl
 
+    def advanceBy(self, n):
+        return InputStream(self.data, self.position + n, self.wrapper)
+
+    def slice(self, n):
+        data = self.data[self.position:self.position + n]
+        tail = self.advanceBy(n)
+        return [self.wrapper(x) for x in data], self.nullError(), tail
 
 class ArgInput(object):
     def __init__(self, arg, parent):
@@ -330,7 +315,12 @@ class ArgInput(object):
     def tail(self):
         return self.parent
 
+    def advanceBy(self, n):
+        return self.parent.advanceBy(n - 1)
 
+    def slice(self, n):
+        prevVal, _, input =  self.parent.slice(n - 1)
+        return [self.arg] + list(prevVal), self.err, input
 
     def nullError(self):
         return self.parent.nullError()
@@ -479,18 +469,21 @@ class OMetaBase(object):
 
     def exactly(self, wanted):
         """
-        Match a single item from the input equal to the given specimen.
-
+        Match a single item from the input equal to the given
+        specimen, or a sequence of characters if the input is string.
         @param wanted: What to match.
         """
         i = self.input
-        val, p = self.input.head()
-        self.input = self.input.tail()
+        if not self.tree and len(wanted) > 1:
+            val, p, self.input = self.input.slice(len(wanted))
+        else:
+            val, p = self.input.head()
+            self.input = self.input.tail()
         if wanted == val:
             return val, p
         else:
             self.input = i
-            raise ParseError(self.input.data, p[0], expected(None, wanted))
+            raise p.withMessage(expected(None, wanted))
 
 
     def many(self, fn, *initial):
@@ -723,6 +716,7 @@ class OMetaGrammarBase(OMetaBase):
     """
     Common methods for the OMeta grammar parser itself, and its variants.
     """
+    tree = False
 
     @classmethod
     def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
@@ -741,6 +735,10 @@ class OMetaGrammarBase(OMetaBase):
         tree = g.parseGrammar(name)
         if TIMING:
             print "Grammar %r parsed in %g secs" % (name, time.time() - start)
+            def cnt(n):
+                count = sum(cnt(a) for a in n.args) + 1
+                return count
+            print "%d nodes." % (cnt(tree))
             start = time.time()
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
@@ -905,3 +903,6 @@ class OMetaGrammarBase(OMetaBase):
         return None
         end = self.input.position
         return self.input.data[start:end].span
+
+    def isTree(self):
+        self.tree = True

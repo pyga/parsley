@@ -1,5 +1,5 @@
 # -*- test-case-name: ometa.test.test_builder -*-
-
+import ast
 from StringIO import StringIO
 from types import ModuleType as module
 import linecache, sys
@@ -99,9 +99,13 @@ class PythonWriter(object):
         """
         Generate code for running embedded Python expressions.
         """
-        return self._expr(out, 'python',
-                          'eval(%r, self.globals, _locals), None' % (expr,),
-                          debugname)
+        try:
+            ast.literal_eval(expr)
+            return self._expr(out, 'python', expr + ', None', debugname)
+        except ValueError:
+            return self._expr(out, 'python',
+                              'eval(%r, self.globals, _locals), None' % (expr,),
+                              debugname)
 
     def _convertArgs(self, out, rawArgs, debugname):
         return [self._generateNode(out, x, debugname) for x in rawArgs]

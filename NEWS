@@ -1,4 +1,18 @@
-1.0.0 (2012-08-xx):
+1.1.0 (2012-11-04):
+ - Single quotes can now be used around multiple characters to match
+   them consecutively. For example, 'abc' is equivalent 'a' 'b' 'c'.
+ - Double quotes now invoke the 'token' rule for string inputs, and
+   continue to match literal strings for tree grammars.
+ - Hex escapes can now be used in literals for matching bytes.
+ - 'makeGrammar' now takes an 'unwrap' argument, to get a grammar
+   class suitable for subclassing.
+ - 'repeat' expressions now work for 0 repetitions properly.
+ - ometa.runtime.TIMING flag added for enabling debug output of grammar load times.
+ - OMeta version 1 parser moved to ometa.compat.
+ - Twine no longer used by default for grammars or their inputs.
+ - Various bugfixes around error reporting.
+
+1.0.0 (2012-10-01):
  - PyMeta is now Parsley.
  - A new public API has been added in the 'parsley' module.
  - Grammars now use the OMeta 2 syntax by default. Compatibility is
@@ -12,7 +26,6 @@
    chunks, maintaining state while waiting for more input.
 
 0.4.0 (2010-05-15):
-
  - Builders now work from a grammar AST, rather than being driven by
    the grammar parser directly.
  - All parse operations now carry error information, including what

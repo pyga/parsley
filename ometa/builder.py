@@ -194,9 +194,25 @@ class PythonWriter(object):
         Create a call to
         self._or([lambda: expr1, lambda: expr2, ... , lambda: exprN]).
         """
+        def _writeOr(expr, out):
+            out.writeln('try:')
+            oi = out.indent()
+            oi.writeln(    "m = self.input")
+            result =     self._generateNode(oi, expr, debugname)
+            oi.writeln(    "%s = %s" % (final, result))
+            out.writeln("except ParseError, e:")
+            oi.writeln(    "%s.append(e)" % (errs,))
+            oi.writeln(    "self.input = m")
+            return oi
         if len(exprs.args) > 1:
-            fnames = [self._newThunkFor(out, "or", expr) for expr in exprs.args]
-            return self._expr(out, 'or', 'self._or([%s])' % (', '.join(fnames)), debugname)
+            final = self._gensym("or")
+            errs = self._gensym("or_errors")
+            out.writeln("%s = []" % (errs,))
+            orOut = out
+            for exp in exprs.args:
+                orOut = _writeOr(exp, orOut)
+            orOut.writeln("raise joinErrors(%s)" % (errs,))
+            return final
         else:
             return self._generateNode(out, exprs.args[0], debugname)
 
@@ -288,6 +304,7 @@ class PythonWriter(object):
     def generate_Grammar(self, out, name, takesTreeInput, rules,
                          debugname=None):
         self.takesTreeInput = takesTreeInput.tag.name == 'true'
+        out.writeln("from ometa.runtime import ParseError, joinErrors")
         out.writeln("class %s(GrammarBase):" % (name.data,))
         out = out.indent()
         for rule in rules.args:
@@ -372,11 +389,14 @@ class GeneratedCodeLoader(object):
 
 def moduleFromGrammar(source, className, superclass, globalsDict,
                       modname, filename):
+    from ometa.runtime import ParseError, joinErrors
     mod = module(modname)
     mod.__dict__.update(globalsDict)
     mod.__name__ = modname
     mod.__dict__[superclass.__name__] = superclass
     mod.__dict__["GrammarBase"] = superclass
+    mod.__dict__["ParseError"] = ParseError
+    mod.__dict__["joinErrors"] = joinErrors
     mod.__loader__ = GeneratedCodeLoader(source)
     code = compile(source, filename, "exec")
     eval(code, mod.__dict__)

@@ -7,7 +7,7 @@ Setup script for the Parsley distribution.
 from distutils.core import setup
 setup(
     name="Parsley",
-    version="1.1",
+    version="1.1pre1",
     url="http://launchpad.net/parsley",
     description="Parsing and pattern matching made easy.",
     author="Allen Short",

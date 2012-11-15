@@ -108,9 +108,8 @@ rulePart :requiredName = noindentation name:n ?(n == requiredName)
                                -> t.And([args, e])
                             | ruleEnd -> args)
 
-rule = noindentation ~~(name:n) rulePart(n):r
-          (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs))
-          |                -> t.Rule(n, r))
+rule = noindentation ~~(name:n) rulePart(n)+:rs -> t.Rule(n, t.Or(rs))
+
 
 grammar = rule*:rs spaces -> t.Grammar(self.name, self.tree, rs)
 """
@@ -183,3 +182,33 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         val, err = tp.apply('argList')
         self.input = tp.input
         return val, err
+
+
+treeTransformerGrammar = r"""
+termPattern = indentation? name:name ?(name[0] in string.uppercase)
+              '(' expr:patts ')' -> t.TermPattern(name, patts)
+
+subtransform = "@" name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
+
+expr1 = termPattern
+       |subtransform
+       |application
+       |ruleValue
+       |semanticPredicate
+       |semanticAction
+       |number:n !(self.isTree()) -> n
+       |character
+       |string
+       |token('(') expr:e token(')') -> e
+       |token('[') expr:e token(']') -> t.TermPattern(".tuple.", e)
+
+
+rule = noindentation ~~(name:n) (termRulePart(n)+:rs | rulePart(n)+:rs)  -> t.Rule(n, t.Or(rs))
+
+termRulePart :requiredName = noindentation !(setattr(self, "rulename", requiredName)) 
+                             termPattern:t ?(t.tag.name == requiredName) expr4:tail -> t.And([t, tail])
+"""
+
+TreeTransformerGrammar = BootOMetaGrammar.makeGrammar(
+    treeTransformerGrammar, globals(), name='TreeTransformer',
+    superclass=OMeta)

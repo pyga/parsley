@@ -6,7 +6,7 @@ import time
 import operator
 from textwrap import dedent
 from terml.twine import asTwineFrom
-from terml.nodes import termMaker as t
+from terml.nodes import coerceToTerm, Term, termMaker as t
 from ometa.builder import moduleFromGrammar, writePython
 
 TIMING = False
@@ -906,3 +906,55 @@ class OMetaGrammarBase(OMetaBase):
 
     def isTree(self):
         self.tree = True
+
+
+class TreeTransformerBase(OMetaBase):
+
+    @classmethod
+    def transform(cls, term):
+        g = cls([term])
+        return g.apply("transform")
+
+    def rule_transform(self):
+        tt, e = self.rule_anything()
+        if tt.data is not None:
+            return tt.data, e
+        name = tt.tag.name
+        if name == 'null':
+            return None, e
+        if name == 'true':
+            return True, e
+        if name == 'false':
+            return False, e
+        oldInput = self.input
+        try:
+            self.input = InputStream.fromIterable(tt.args)
+        except AttributeError:
+            raise e.withMessage(expected("a Term"))
+        if name == '.tuple.':
+            v = self.many(self.rule_transform)
+        elif not getattr(self, 'rule_' + name, None):
+            newargs, e = self.many(self.rule_transform)
+            v = Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs),
+                     tt.span), e
+        else:
+            v = self.apply(name)
+        self.end()
+        self.input = oldInput
+        return v
+
+
+    def termpattern(self, name, expr):
+        v, e = self.rule_anything()
+        if name != v.tag.name:
+            raise e.withMessage(expected("a Term named " + name))
+        oldInput = self.input
+        try:
+            self.input = InputStream.fromIterable(v.args)
+        except TypeError:
+            raise e.withMessage(expected("a Term"))
+
+        expr()
+        self.end()
+        self.input = oldInput
+        return v, e

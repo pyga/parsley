@@ -1274,6 +1274,53 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
         "\nfoobar\n^\nParse error at line 2, column 0:"
         " expected the character 'a'. trail: []\n")
 
+
+class TreeTransformerTestCase(unittest.TestCase):
+
+    def compile(self, grammar):
+        """
+        Produce an object capable of parsing via this grammar.
+
+        @param grammar: A string containing an OMeta grammar.
+        """
+        from ometa.grammar import TreeTransformerGrammar
+        from ometa.runtime import TreeTransformerBase
+        g = TreeTransformerGrammar.makeGrammar(dedent(grammar), globals(), 'TestGrammar', superclass=TreeTransformerBase)
+        return g
+
+    def test_termForm(self):
+        from terml.parser import parseTerm as term
+        g = self.compile("Foo(:left :right) -> left.data + right.data")
+        self.assertEqual(g.transform(term("Foo(1, 2)"))[0], 3)
+
+    def test_termFormNest(self):
+        from terml.parser import parseTerm as term
+        g = self.compile("Foo(:left Baz(:right)) -> left.data + right.data")
+        self.assertEqual(g.transform(term("Foo(1, Baz(2))"))[0], 3)
+
+    def test_listForm(self):
+        from terml.parser import parseTerm as term
+        g = self.compile("Foo(:left [:first :second]) -> left.data + first.data + second.data")
+        self.assertEqual(g.transform(term("Foo(1, [2, 3])"))[0], 6)
+
+    def test_subTransform(self):
+        from terml.parser import parseTerm as term
+        g = self.compile("""
+                         Foo(:left @right) -> left.data + right
+                         Baz(:front :back) -> front.data * back.data
+                         """)
+        self.assertEqual(g.transform(term("Foo(1, Baz(2, 3))"))[0], 7)
+
+
+    def test_defaultExpand(self):
+        from terml.parser import parseTerm as term
+        g = self.compile("""
+                         Foo(:left @right) -> left.data + right
+                         Baz(:front :back) -> front.data * back.data
+                         """)
+        self.assertEqual(g.transform(term("Blee(Foo(1, 2), Baz(2, 3))"))[0],
+                         term("Blee(3, 6)"))
+
 class ErrorReportingTests(unittest.TestCase):
 
 
@@ -1373,4 +1420,3 @@ class ErrorReportingTests(unittest.TestCase):
                             ^
                          Parse error at line 1, column 3: expected a digit. trail: []
                          """))
-

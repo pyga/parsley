@@ -269,6 +269,12 @@ class PythonWriter(object):
                            debugname)
 
 
+    def generate_TermPattern(self, out, name, expr, debugname=None):
+        fname = self._newThunkFor(out, "termpattern", expr)
+        return self._expr(out, 'termpattern', 'self.termpattern(%r, %s)' % (name.data, fname),
+                          debugname)
+
+
     def generate_ConsumedBy(self, out, expr, debugname=None):
         """
         Generate a call to self.consumedBy(lambda: expr).

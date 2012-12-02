@@ -47,12 +47,18 @@ string = token('"') (escapedChar | ~('"') anything)*:c
 
 name = <letter letterOrDigit*>
 
-application = indentation? name:name
-                  ('(' !(self.applicationArgs(finalChar=')')):args ')'
-                    -> t.Apply(name, self.rulename, args)
-                  | -> t.Apply(name, self.rulename, []))
+args = ('(' !(self.applicationArgs(finalChar=')')):args ')'
+            -> args
+          | -> [])
 
-expr1 = application
+application = indentation? name:name args:args
+                -> t.Apply(name, self.rulename, args)
+
+foreignApply = indentation? name:grammar_name '.' name:rule_name args:args
+                -> t.ForeignApply(grammar_name, rule_name, self.rulename, args)
+
+expr1 = foreignApply
+          |application
           |ruleValue
           |semanticPredicate
           |semanticAction

@@ -125,6 +125,18 @@ class PythonWriter(object):
                           % (ruleName, ruleName, ', '.join(args)),
                           debugname)
 
+    def generate_ForeignApply(self, out, grammarName, ruleName, codeName,
+            rawArgs, debugname=None):
+        """
+        Create a call to self.foreignApply(ruleName, *args)
+        """
+        grammarName = grammarName.data
+        ruleName = ruleName.data
+        args = self._convertArgs(out, rawArgs.args, debugname)
+        call = ('self.foreignApply("%s", "%s", self.globals, _locals, %s)'
+                            % (grammarName, ruleName, ', '.join(args)))
+        return self._expr(out, 'apply', call, debugname)
+
     def generate_Exactly(self, out, literal, debugname=None):
         """
         Create a call to self.exactly(expr).

@@ -1144,6 +1144,26 @@ class MakeGrammarTest(unittest.TestCase):
         self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
         self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
 
+    def test_foreign(self):
+        """
+        Rules can call the implementation in a superclass.
+        """
+        from ometa.grammar import OMeta
+        grammar_letter = "expr = letter"
+        GrammarLetter = OMeta.makeGrammar(grammar_letter, {})
+
+        grammar_digit = "expr '5' = digit"
+        GrammarDigit = OMeta.makeGrammar(grammar_digit, {})
+
+        grammar = ("expr = !(grammar_digit_global):grammar_digit "
+                        "grammar_letter.expr | grammar_digit.expr('5')")
+        TestGrammar = OMeta.makeGrammar(grammar, {
+            "grammar_letter": GrammarLetter,
+            "grammar_digit_global": GrammarDigit
+        })
+
+        self.assertEqual(TestGrammar("x").apply("expr")[0], "x")
+        self.assertEqual(TestGrammar("3").apply("expr")[0], "3")
 
 class SelfHostingTest(OMetaTestCase):
     """

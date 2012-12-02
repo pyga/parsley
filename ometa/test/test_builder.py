@@ -47,7 +47,23 @@ class PythonWriterTests(unittest.TestCase):
                             _G_apply_3
                             """))
 
-
+    def test_foreignApply(self):
+        """
+        Test generation of code for calling foreign grammar's rules.
+        """
+        one = t.Action("1")
+        x = t.Action("x")
+        a = t.ForeignApply("thegrammar", "foo", "main", [one, x])
+        self.assertEqual(writePython(a),
+                         dd("""
+                            _G_python_1, lastError = 1, None
+                            self.considerError(lastError, None)
+                            _G_python_2, lastError = eval('x', self.globals, _locals), None
+                            self.considerError(lastError, None)
+                            _G_apply_3, lastError = self.foreignApply("thegrammar", "foo", self.globals, _locals, _G_python_1, _G_python_2)
+                            self.considerError(lastError, None)
+                            _G_apply_3
+                            """))
 
     def test_superApply(self):
         """

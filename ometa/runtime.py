@@ -359,9 +359,10 @@ class OMetaBase(object):
     """
     globals = None
     tree = False
-    def __init__(self, string, globals=None, name='<string>', tree=False):
+    def __init__(self, input, globals=None, name='<string>', tree=False,
+            stream=False):
         """
-        @param string: The string to be parsed.
+        @param input: The string or input object (if stream=True) to be parsed.
 
         @param globals: A dictionary of names to objects, for use in evaluating
         embedded Python expressions.
@@ -369,11 +370,16 @@ class OMetaBase(object):
         @param tree: Whether the input should be treated as part of a
         tree of nested iterables, rather than being a standalone
         string.
+
+        @param stream: Whether the input should be treated as an existing
+        InputStream object.
         """
-        if self.tree or tree:
-            self.input = InputStream.fromIterable(string)
+        if stream:
+            self.input = input
+        elif self.tree or tree:
+            self.input = InputStream.fromIterable(input)
         else:
-            self.input = InputStream.fromText(string)
+            self.input = InputStream.fromText(input)
         self.locals = {}
         if self.globals is None:
             if globals is None:
@@ -403,6 +409,29 @@ class OMetaBase(object):
             return self._apply(r, ruleName, args)
         else:
             raise NameError("No rule named '%s'" %(ruleName,))
+
+    def foreignApply(self, grammarName, ruleName, globals_, locals_, *args):
+        """
+        Apply the named rule of a foreign grammar.
+
+        @param grammarName: name to look up in locals/globals for grammar
+        @param ruleName: rule name
+        """
+        grammar = locals_.get(grammarName, None)
+        if grammar is None:
+            grammar = globals_[grammarName]
+
+        grammar = getattr(grammar, "_grammarClass", grammar)
+        instance = grammar(self.input, stream=True)
+        rule = getattr(instance, "rule_" + ruleName, None)
+        if rule is not None:
+            self.input.setMemo(ruleName, None)
+            result = instance._apply(rule, ruleName, args)
+            self.input = instance.input
+            return result
+        else:
+            raise NameError("No rule named '%s' on grammar '%s'" %
+                    (ruleName, grammarName))
 
     def apply(self, ruleName, *args):
         """

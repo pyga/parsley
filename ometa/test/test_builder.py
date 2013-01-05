@@ -293,7 +293,7 @@ class PythonWriterTests(unittest.TestCase):
         x = t.Rule("foo", t.List(
                 t.Exactly("x")))
         g = t.Grammar("TestGrammar", True, [x])
-        self.assertTrue(writePython(g).endswith("    tree = True"))
+        self.assertIn("\n        tree = True\n", writePython(g))
 
 
     def test_rule(self):
@@ -320,21 +320,33 @@ class PythonWriterTests(unittest.TestCase):
         r1 = t.Rule("foo", t.Exactly("x"))
         r2 = t.Rule("baz", t.Exactly("y"))
         x = t.Grammar("BuilderTest", False, [r1, r2])
-        self.assertEqual(writePython(x),
-                         dd("""
-                            class BuilderTest(GrammarBase):
-                                def rule_foo(self):
-                                    _locals = {'self': self}
-                                    self.locals['foo'] = _locals
-                                    _G_exactly_1, lastError = self.exactly('x')
-                                    self.considerError(lastError, 'foo')
-                                    return (_G_exactly_1, self.currentError)
+        self.assertEqual(
+            writePython(x),
+            dd("""
+               def make_BuilderTest(GrammarBase, ruleGlobals):
+                   if ruleGlobals is None:
+                       ruleGlobals = {}
+                   class BuilderTest(GrammarBase):
+                       def rule_foo(self):
+                           _locals = {'self': self}
+                           self.locals['foo'] = _locals
+                           _G_exactly_1, lastError = self.exactly('x')
+                           self.considerError(lastError, 'foo')
+                           return (_G_exactly_1, self.currentError)
 
 
-                                def rule_baz(self):
-                                    _locals = {'self': self}
-                                    self.locals['baz'] = _locals
-                                    _G_exactly_2, lastError = self.exactly('y')
-                                    self.considerError(lastError, 'baz')
-                                    return (_G_exactly_2, self.currentError)
+                       def rule_baz(self):
+                           _locals = {'self': self}
+                           self.locals['baz'] = _locals
+                           _G_exactly_2, lastError = self.exactly('y')
+                           self.considerError(lastError, 'baz')
+                           return (_G_exactly_2, self.currentError)
+
+
+                   if BuilderTest.globals is not None:
+                       BuilderTest.globals = BuilderTest.globals.copy()
+                       BuilderTest.globals.update(ruleGlobals)
+                   else:
+                       BuilderTest.globals = ruleGlobals
+                   return BuilderTest
                             """))

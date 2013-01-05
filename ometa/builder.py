@@ -294,14 +294,27 @@ class PythonWriter(object):
     def generate_Grammar(self, out, name, takesTreeInput, rules,
                          debugname=None):
         self.takesTreeInput = takesTreeInput.tag.name == 'true'
-        out.writeln("class %s(GrammarBase):" % (name.data,))
-        out = out.indent()
+        out.writeln("def make_%s(GrammarBase, ruleGlobals):" % (name.data,))
+        funcOut = out.indent()
+        funcOut.writeln("if ruleGlobals is None:")
+        funcOut.indent().writeln("ruleGlobals = {}")
+        funcOut.writeln("class %s(GrammarBase):" % (name.data,))
+        out = funcOut.indent()
         for rule in rules.args:
             self._generateNode(out, rule, debugname)
             out.writeln("")
             out.writeln("")
         if self.takesTreeInput:
             out.writeln("tree = %s" % self.takesTreeInput)
+        funcOut.writeln(
+            "if %s.globals is not None:" % (name.data,))
+        out.writeln("%s.globals = %s.globals.copy()" % (name.data,
+                                                                 name.data))
+        out.writeln("%s.globals.update(ruleGlobals)" % (name.data,))
+        funcOut.writeln(
+            "else:")
+        out.writeln("%s.globals = ruleGlobals" % (name.data,))
+        funcOut.writeln("return " + name.data)
 
 
 class _Term2PythonAction(object):
@@ -379,16 +392,10 @@ class GeneratedCodeLoader(object):
 def moduleFromGrammar(source, className, superclass, globalsDict,
                       modname, filename):
     mod = module(modname)
-    mod.__dict__.update(globalsDict)
     mod.__name__ = modname
-    mod.__dict__[superclass.__name__] = superclass
-    mod.__dict__["GrammarBase"] = superclass
     mod.__loader__ = GeneratedCodeLoader(source)
     code = compile(source, filename, "exec")
     eval(code, mod.__dict__)
-    fullGlobals = dict(getattr(mod.__dict__[className], "globals", None) or {})
-    fullGlobals.update(globalsDict)
-    mod.__dict__[className].globals = fullGlobals
     sys.modules[modname] = mod
     linecache.getlines(filename, mod.__dict__)
-    return mod.__dict__[className]
+    return getattr(mod, 'make_' + className)(superclass, globalsDict)

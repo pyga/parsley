@@ -415,7 +415,7 @@ class TrampolinedGrammarInterpreter(object):
         for x in self._eval(expr):
             if x is _feed_me: yield x
         slice = oldInput.data[oldInput.position:self.input.position]
-        yield slice, x[1]
+        yield "".join(slice), x[1]
 
     def rule_anything(self):
         """

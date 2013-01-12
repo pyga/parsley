@@ -1275,6 +1275,19 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
         " expected the character 'a'. trail: []\n")
 
 
+    def test_stringConsumedBy(self):
+        called = []
+        grammarSource = "rule = <'x'+>:y -> y"
+        grammar = BootOMetaGrammar(grammarSource).parseGrammar("Parser")
+        def interp(result, error):
+            called.append(result)
+        trampoline = TrampolinedGrammarInterpreter(grammar, "rule", interp)
+        trampoline.receive("xxxxx")
+        trampoline.end()
+        self.assertEqual(called, ["xxxxx"])
+
+
+
 class TreeTransformerTestCase(unittest.TestCase):
 
     def compile(self, grammar):

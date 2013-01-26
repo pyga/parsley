@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    tutorial
+   tutorial2
    extending
    reference
 

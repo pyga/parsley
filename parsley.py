@@ -5,7 +5,7 @@ from terml.quasiterm import quasiterm
 
 __version__ = '1.1'
 
-def makeGrammar(source, bindings, name='Grammar', unwrap=False):
+def makeGrammar(source, bindings, name='Grammar', unwrap=False, extends=None):
     """
     Create a class from a Parsley grammar.
 
@@ -17,7 +17,7 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False):
                    subclassing. If False, return a wrapper with the
                    friendly API.
     """
-    g = BootOMetaGrammar.makeGrammar(source, bindings, name=name)
+    g = BootOMetaGrammar.makeGrammar(source, bindings, name=name, superclass=None)
     if unwrap:
         return g
     else:

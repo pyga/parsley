@@ -62,7 +62,12 @@ Basic syntax
   Match ``expr`` ``n`` times exactly.
 
 ``~expr``:
-  Fail if the next item in the input matches ``expr``.
+  Negative lookahead. Fails if the next item in the input matches
+  ``expr``. Consumes no input.
+
+``~~expr``:
+  Positive lookahead. Fails if the next item in the input does *not*
+  match ``expr``. Consumes no input.
 
 ``ruleName`` or ``ruleName(arg1 arg2 etc)``:
   Call the rule ``ruleName``, possibly with args.

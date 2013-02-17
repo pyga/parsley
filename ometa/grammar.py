@@ -196,10 +196,17 @@ termPattern = indentation? name:name ?(name[0] in string.uppercase)
 
 subtransform = "@" name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
 
+wide_templatedValue = token("-->") ' '* <(~(vspace | end) anything)*>:contents -> t.StringTemplate(contents)
+
+# this conflicts with '=' in rulePart, hence the crudtacular optional
+tall_templatedValue = hspace? '=' '='? '>' vspace <(~'\n<==' anything)*>:contents '\n<==' -> t.StringTemplate(contents)
+
 expr1 = termPattern
        |subtransform
        |application
        |ruleValue
+       |wide_templatedValue
+       |tall_templatedValue
        |semanticPredicate
        |semanticAction
        |number:n !(self.isTree()) -> n
@@ -211,8 +218,9 @@ expr1 = termPattern
 
 rule = noindentation ~~(name:n) (termRulePart(n)+:rs | rulePart(n)+:rs)  -> t.Rule(n, t.Or(rs))
 
-termRulePart :requiredName = noindentation !(setattr(self, "rulename", requiredName)) 
+termRulePart :requiredName = noindentation !(setattr(self, "rulename", requiredName))
                              termPattern:t ?(t.tag.name == requiredName) expr4:tail -> t.And([t, tail])
+grammar = rule*:rs spaces -> t.Grammar(self.name, True, rs)
 """
 
 TreeTransformerGrammar = BootOMetaGrammar.makeGrammar(

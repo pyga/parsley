@@ -972,6 +972,10 @@ class TreeTransformerBase(OMetaBase):
         self.input = oldInput
         return v
 
+    def rule_null(self):
+        tt, e = self.rule_anything()
+        if not tt.tag.name == "null":
+            raise self.input.nullError()
 
     def termpattern(self, name, expr):
         v, e = self.rule_anything()
@@ -987,3 +991,8 @@ class TreeTransformerBase(OMetaBase):
         self.end()
         self.input = oldInput
         return v, e
+
+
+
+
+

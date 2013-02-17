@@ -1354,6 +1354,33 @@ class TreeTransformerTestCase(unittest.TestCase):
         self.assertEqual(g.transform(term("Blee(Foo(1, 2), Baz(2, 3))"))[0],
                          term("Blee(3, 6)"))
 
+    def test_wide_template(self):
+        from terml.parser import parseTerm as term
+        g = self.compile(
+            """
+            Pair(@left @right) --> $left, $right
+            Name(@n) = ?(n == "a") --> foo
+                     |             --> baz
+            """)
+        self.assertEqual(g.transform(term('Pair(Name("a"), Name("b"))'))[0],
+                         "foo, baz")
+
+    def test_tall_template(self):
+        from terml.parser import parseTerm as term
+        g = self.compile(
+            """
+            Name(@n) = ?(n == "a") --> foo
+                     |             --> baz
+            Pair(@left @right) ==>
+            $left
+            also, $right
+            <==
+
+            """)
+        self.assertEqual(g.transform(term('Pair(Name("a"), Name("b"))'))[0],
+                         "foo\nalso, baz")
+
+
 class ErrorReportingTests(unittest.TestCase):
 
 

@@ -286,6 +286,8 @@ class PythonWriter(object):
         return self._expr(out, 'termpattern', 'self.termpattern(%r, %s)' % (name.data, fname),
                           debugname)
 
+    def generate_StringTemplate(self, out, template, debugname=None):
+        return self._expr(out, 'stringtemplate', 'string.Template(%r).substitute(_locals), None' % (template.data,))
 
     def generate_ConsumedBy(self, out, expr, debugname=None):
         """
@@ -306,6 +308,7 @@ class PythonWriter(object):
     def generate_Grammar(self, out, name, takesTreeInput, rules,
                          debugname=None):
         self.takesTreeInput = takesTreeInput.tag.name == 'true'
+        out.writeln("import string")
         out.writeln("def make_%s(GrammarBase, ruleGlobals):" % (name.data,))
         funcOut = out.indent()
         funcOut.writeln("if ruleGlobals is None:")

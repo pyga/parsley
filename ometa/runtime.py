@@ -2,6 +2,7 @@
 """
 Code needed to run a grammar after it has been compiled.
 """
+import string
 import time
 import operator
 from textwrap import dedent
@@ -652,6 +653,15 @@ class OMetaBase(object):
         slice = oldInput.data[oldInput.position:self.input.position]
         return slice, e
 
+
+    def stringtemplate(self, template, vals):
+        output = []
+        for chunk in template.args:
+            if chunk.tag.name == ".String.":
+                output.append(chunk.data)
+            elif chunk.tag.name == "QuasiExprHole":
+                output.append(vals[chunk.args[0].data])
+        return ''.join(output).rstrip('\n')
 
     def end(self):
         """

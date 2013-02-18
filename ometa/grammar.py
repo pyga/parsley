@@ -196,10 +196,16 @@ termPattern = indentation? name:name ?(name[0] in string.uppercase)
 
 subtransform = "@" name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
 
-wide_templatedValue = token("-->") ' '* <(~(vspace | end) anything)*>:contents -> t.StringTemplate(contents)
+wide_templatedValue = token("-->") ' '* wideTemplateBits:contents -> t.StringTemplate(contents)
+tall_templatedValue = hspace? '{{{' spaces tallTemplateBits:contents '}}}' -> t.StringTemplate(contents)
 
-# this conflicts with '=' in rulePart, hence the crudtacular optional
-tall_templatedValue = hspace? '=' '='? '>' vspace <(~'\n<==' anything)*>:contents '\n<==' -> t.StringTemplate(contents)
+tallTemplateBits = (exprHole | tallTemplateText)*
+tallTemplateText = <(~('}}}' | '$' | '\r' | '\n') anything | '$' '$')+ vspace?> | vspace
+
+wideTemplateBits = (exprHole | wideTemplateText)*
+wideTemplateText = <(~(vspace | end |'$') anything | '$' '$')+>
+
+exprHole = '$' name:n -> t.QuasiExprHole(n)
 
 expr1 = termPattern
        |subtransform

@@ -1371,11 +1371,10 @@ class TreeTransformerTestCase(unittest.TestCase):
             """
             Name(@n) = ?(n == "a") --> foo
                      |             --> baz
-            Pair(@left @right) ==>
+            Pair(@left @right) {{{
             $left
             also, $right
-            <==
-
+            }}}
             """)
         self.assertEqual(g.transform(term('Pair(Name("a"), Name("b"))'))[0],
                          "foo\nalso, baz")

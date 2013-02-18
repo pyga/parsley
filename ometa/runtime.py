@@ -656,11 +656,30 @@ class OMetaBase(object):
 
     def stringtemplate(self, template, vals):
         output = []
+        checkIndent = False
+        currentIndent = ""
         for chunk in template.args:
             if chunk.tag.name == ".String.":
                 output.append(chunk.data)
+                if checkIndent and chunk.data.isspace():
+                    currentIndent = chunk.data
+                    checkIndent = False
+                if chunk.data.endswith('\n'):
+                    checkIndent = True
             elif chunk.tag.name == "QuasiExprHole":
-                output.append(vals[chunk.args[0].data])
+                v = vals[chunk.args[0].data]
+                if not isinstance(v, basestring):
+                    try:
+                        vs = list(v)
+                    except TypeError:
+                        raise TypeError("Only know how to templatize strings and lists of strings")
+                    lines = []
+                    for x in vs:
+                        lines.extend(x.split('\n'))
+                    v = ("\n" + currentIndent).join(lines)
+                output.append(v)
+            else:
+                raise TypeError("didn't expect %r in string template" % chunk)
         return ''.join(output).rstrip('\n')
 
     def end(self):
@@ -956,21 +975,28 @@ class TreeTransformerBase(OMetaBase):
 
     def rule_transform(self):
         tt, e = self.rule_anything()
-        if tt.data is not None:
-            return tt.data, e
-        name = tt.tag.name
-        if name == 'null':
-            return None, e
-        if name == 'true':
-            return True, e
-        if name == 'false':
-            return False, e
+        if isinstance(tt, Term):
+            if tt.data is not None:
+                return tt.data, e
+            name = tt.tag.name
+            if name == 'null':
+                return None, e
+            if name == 'true':
+                return True, e
+            if name == 'false':
+                return False, e
+            contents = tt.args
+            isIterable = name == '.tuple.'
+        else:
+            contents = tt
+            isIterable = True
+
         oldInput = self.input
         try:
-            self.input = InputStream.fromIterable(tt.args)
+            self.input = InputStream.fromIterable(contents)
         except AttributeError:
             raise e.withMessage(expected("a Term"))
-        if name == '.tuple.':
+        if isIterable:
             v = self.many(self.rule_transform)
         elif not getattr(self, 'rule_' + name, None):
             newargs, e = self.many(self.rule_transform)
@@ -986,6 +1012,7 @@ class TreeTransformerBase(OMetaBase):
         tt, e = self.rule_anything()
         if not tt.tag.name == "null":
             raise self.input.nullError()
+        return None, self.input.nullError()
 
     def termpattern(self, name, expr):
         v, e = self.rule_anything()

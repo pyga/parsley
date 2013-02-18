@@ -1379,6 +1379,19 @@ class TreeTransformerTestCase(unittest.TestCase):
         self.assertEqual(g.transform(term('Pair(Name("a"), Name("b"))'))[0],
                          "foo\nalso, baz")
 
+    def test_tall_template_suite(self):
+        from terml.parser import parseTerm as term
+        g = self.compile(
+            """
+            Name(@n) -> n
+            If(@test @suite) {{{
+            if $test:
+              $suite
+            }}}
+            """)
+        self.assertEqual(g.transform(term('If(Name("a"), [Name("foo"), Name("baz")])'))[0],
+                         "if a:\n  foo\n  baz")
+
 
 class ErrorReportingTests(unittest.TestCase):
 

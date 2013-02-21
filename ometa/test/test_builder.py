@@ -339,6 +339,7 @@ class PythonWriterTests(unittest.TestCase):
         self.assertEqual(
             writePython(x),
             dd("""
+               from terml.parser import parseTerm as term
                def make_BuilderTest(GrammarBase, ruleGlobals):
                    if ruleGlobals is None:
                        ruleGlobals = {}

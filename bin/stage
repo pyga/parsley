@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+# -*- mode: python -*-
+import sys; sys.path.append(".")
+import os, glob, shutil, sys
+from ometa.runtime import ParseError
+from ometa.grammar import OMeta
+from ometa.builder import writePython
+
+
+
+def stage_pkg(pkg):
+    print "Copying", pkg
+    shutil.copytree(pkg, 'stage/' + pkg,
+                    ignore=lambda src, names: [n for n in names if n.endswith('pyc')])
+    for fn in glob.glob(pkg + "/*.parsley"):
+        grammar = open(fn).read()
+        g = OMeta(grammar)
+        try:
+            tree = g.parseGrammar("Parser")
+        except ParseError, e:
+            print e.formatErrorTwine(g.input.data)
+            raise
+        source = writePython(tree)
+        pyfn_base = fn.split('/')[1].split('.')[0] + ".py"
+        pyfn = "stage/%s/_generated/%s" % (pkg, pyfn_base)
+        print "%s => %s" % (fn, pyfn)
+        pythonFile = open(pyfn, 'w')
+        pythonFile.write(source)
+
+
+os.mkdir('stage')
+stage_pkg('ometa')
+stage_pkg('terml')
+
+
+
+
+
+
+
+
+
+
+

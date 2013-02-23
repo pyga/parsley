@@ -16,11 +16,7 @@ def stage_pkg(pkg):
         grammar = open(fn).read()
         grammarname = fn.split('/')[1].split('.')[0]
         g = OMeta(grammar)
-        try:
-            tree = g.parseGrammar(grammarname)
-        except ParseError, e:
-            print e.formatErrorTwine(g.input.data)
-            raise
+        tree = g.parseGrammar(grammarname)
         source = writePython(tree)
         pyfn = "stage/%s/_generated/%s.py" % (pkg, grammarname)
         print "%s => %s" % (fn, pyfn)

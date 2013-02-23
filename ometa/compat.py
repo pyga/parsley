@@ -1,6 +1,6 @@
 import ometa
 from ometa.runtime import OMetaGrammarBase
-from ometa.boot import BootOMetaGrammar
+from ometa.grammar import OMeta
 from ometa.grammar import loadGrammar
 from terml.nodes import termMaker as t
 

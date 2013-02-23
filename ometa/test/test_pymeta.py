@@ -1,10 +1,13 @@
 import operator
 from textwrap import dedent
 from twisted.trial import unittest
+from ometa.grammar import OMeta, TermOMeta, TreeTransformerGrammar
+from ometa.compat import OMeta1
 from ometa.runtime import (ParseError, OMetaBase, OMetaGrammarBase, EOFError,
-                           expected)
-from ometa.boot import BootOMetaGrammar
+                           expected, TreeTransformerBase)
 from ometa.interp import GrammarInterpreter, TrampolinedGrammarInterpreter
+from terml.parser import parseTerm as term
+
 
 class HandyWrapper(object):
     """
@@ -47,12 +50,7 @@ class OMeta1TestCase(unittest.TestCase):
     Tests of OMeta grammar compilation, with v1 syntax.
     """
 
-    classTested = None
-
-    def setUp(self):
-        if self.classTested is None:
-            from ometa.compat import OMeta1
-            self.classTested = OMeta1
+    classTested = OMeta1
 
     def compile(self, grammar):
         """
@@ -417,7 +415,7 @@ class OMetaTestCase(unittest.TestCase):
     Tests of OMeta grammar compilation.
     """
 
-    classTested = BootOMetaGrammar
+    classTested = OMeta
 
 
     def compile(self, grammar, globals=None):
@@ -841,16 +839,7 @@ class OMetaTestCase(unittest.TestCase):
 
 class TermActionGrammarTests(OMetaTestCase):
 
-    def setUp(self):
-        """
-        Run the OMeta tests with the self-hosted grammar instead of the boot
-        one.
-        """
-        #imported here to prevent OMetaGrammar from being constructed before
-        #tests are run
-        from ometa.grammar import TermOMeta
-        self.classTested = TermOMeta
-
+    classTested = TermOMeta
 
     def test_binding(self):
         """
@@ -1076,9 +1065,6 @@ class MakeGrammarTest(unittest.TestCase):
 
 
     def test_makeGrammar(self):
-        #imported here to prevent OMetaGrammar from being constructed before
-        #tests are run
-        from ometa.grammar import OMeta
         results = []
         grammar = """
         digit = :x ?('0' <= x <= '9') -> int(x)
@@ -1092,11 +1078,10 @@ class MakeGrammarTest(unittest.TestCase):
 
 
     def test_brokenGrammar(self):
-        from ometa.grammar import BootOMetaGrammar
         grammar = """
         andHandler = handler:h1 'and handler:h2 -> And(h1, h2)
         """
-        e = self.assertRaises(ParseError, BootOMetaGrammar.makeGrammar, grammar,
+        e = self.assertRaises(ParseError, OMeta.makeGrammar, grammar,
                               "Foo")
         self.assertEquals(e.position, 56)
         self.assertEquals(e.error, [("expected", "token", "'"), ("message", "end of input")])
@@ -1107,8 +1092,6 @@ class MakeGrammarTest(unittest.TestCase):
         A subclass of an OMeta subclass should be able to call rules on its
         parent, and access variables in its scope.
         """
-        from ometa.grammar import OMeta
-
         grammar1 = """
         dig = :x ?(a <= x <= b) -> int(x)
         """
@@ -1135,7 +1118,6 @@ class MakeGrammarTest(unittest.TestCase):
         """
         Rules can call the implementation in a superclass.
         """
-        from ometa.grammar import OMeta
         grammar1 = "expr = letter"
         TestGrammar1 = OMeta.makeGrammar(grammar1, "G").createParserClass(OMetaBase, {})
         grammar2 = "expr = super | digit"
@@ -1147,7 +1129,6 @@ class MakeGrammarTest(unittest.TestCase):
         """
         Rules can call the implementation in a superclass.
         """
-        from ometa.grammar import OMeta
         grammar_letter = "expr = letter"
         GrammarLetter = OMeta.makeGrammar(grammar_letter, "G").createParserClass(OMetaBase, {})
 
@@ -1165,23 +1146,6 @@ class MakeGrammarTest(unittest.TestCase):
         self.assertEqual(TestGrammar("x").apply("expr")[0], "x")
         self.assertEqual(TestGrammar("3").apply("expr")[0], "3")
 
-class SelfHostingTest(OMetaTestCase):
-    """
-    Tests for the OMeta grammar parser defined with OMeta.
-    """
-    classTested = None
-
-
-    def setUp(self):
-        """
-        Run the OMeta tests with the self-hosted grammar instead of the boot
-        one.
-        """
-        #imported here to prevent OMetaGrammar from being constructed before
-        #tests are run
-        if self.classTested is None:
-            from ometa.grammar import OMeta
-            self.classTested = OMeta
 
 class HandyInterpWrapper(object):
     """
@@ -1225,7 +1189,7 @@ class InterpTestCase(OMetaTestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = BootOMetaGrammar(grammar)
+        g = OMeta(grammar)
         tree = g.parseGrammar('TestGrammar')
         g = GrammarInterpreter(tree, OMetaBase, globals)
         return HandyInterpWrapper(g)
@@ -1276,13 +1240,13 @@ class TrampolinedInterpWrapper(object):
 class TrampolinedInterpreterTestCase(OMetaTestCase):
 
     def compile(self, grammar, globals=None):
-        g = BootOMetaGrammar(grammar)
+        g = OMeta(grammar)
         tree = g.parseGrammar('TestGrammar')
         return TrampolinedInterpWrapper(tree, globals)
 
 
     def test_failure(self):
-        g = BootOMetaGrammar("""
+        g = OMeta("""
            foo = 'a':one baz:two 'd'+ 'e' -> (one, two)
            baz = 'b' | 'c'
            """, {})
@@ -1298,7 +1262,7 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
     def test_stringConsumedBy(self):
         called = []
         grammarSource = "rule = <'x'+>:y -> y"
-        grammar = BootOMetaGrammar(grammarSource).parseGrammar("Parser")
+        grammar = OMeta(grammarSource).parseGrammar("Parser")
         def interp(result, error):
             called.append(result)
         trampoline = TrampolinedGrammarInterpreter(grammar, "rule", interp)
@@ -1316,8 +1280,6 @@ class TreeTransformerTestCase(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        from ometa.grammar import TreeTransformerGrammar
-        from ometa.runtime import TreeTransformerBase
         if namespace is None:
             namespace = globals()
         g = TreeTransformerGrammar.makeGrammar(
@@ -1326,22 +1288,18 @@ class TreeTransformerTestCase(unittest.TestCase):
         return g
 
     def test_termForm(self):
-        from terml.parser import parseTerm as term
         g = self.compile("Foo(:left :right) -> left.data + right.data")
         self.assertEqual(g.transform(term("Foo(1, 2)"))[0], 3)
 
     def test_termFormNest(self):
-        from terml.parser import parseTerm as term
         g = self.compile("Foo(:left Baz(:right)) -> left.data + right.data")
         self.assertEqual(g.transform(term("Foo(1, Baz(2))"))[0], 3)
 
     def test_listForm(self):
-        from terml.parser import parseTerm as term
         g = self.compile("Foo(:left [:first :second]) -> left.data + first.data + second.data")
         self.assertEqual(g.transform(term("Foo(1, [2, 3])"))[0], 6)
 
     def test_subTransform(self):
-        from terml.parser import parseTerm as term
         g = self.compile("""
                          Foo(:left @right) -> left.data + right
                          Baz(:front :back) -> front.data * back.data
@@ -1349,7 +1307,6 @@ class TreeTransformerTestCase(unittest.TestCase):
         self.assertEqual(g.transform(term("Foo(1, Baz(2, 3))"))[0], 7)
 
     def test_defaultExpand(self):
-        from terml.parser import parseTerm as term
         g = self.compile("""
                          Foo(:left @right) -> left.data + right
                          Baz(:front :back) -> front.data * back.data
@@ -1358,7 +1315,6 @@ class TreeTransformerTestCase(unittest.TestCase):
                          term("Blee(3, 6)"))
 
     def test_wide_template(self):
-        from terml.parser import parseTerm as term
         g = self.compile(
             """
             Pair(@left @right) --> $left, $right
@@ -1369,7 +1325,6 @@ class TreeTransformerTestCase(unittest.TestCase):
                          "foo, baz")
 
     def test_tall_template(self):
-        from terml.parser import parseTerm as term
         g = self.compile(
             """
             Name(@n) = ?(n == "a") --> foo
@@ -1383,7 +1338,6 @@ class TreeTransformerTestCase(unittest.TestCase):
                          "foo\nalso, baz")
 
     def test_tall_template_suite(self):
-        from terml.parser import parseTerm as term
         g = self.compile(
             """
             Name(@n) -> n
@@ -1426,7 +1380,7 @@ class ErrorReportingTests(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = BootOMetaGrammar.makeGrammar(grammar, 'TestGrammar').createParserClass(OMetaBase, {})
+        g = OMeta.makeGrammar(grammar, 'TestGrammar').createParserClass(OMetaBase, {})
         return HandyWrapper(g)
 
 

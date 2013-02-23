@@ -1,5 +1,5 @@
-from ometa.boot import BootOMetaGrammar
-from ometa.runtime import ParseError, EOFError
+from ometa.grammar import OMeta
+from ometa.runtime import ParseError, EOFError, OMetaBase
 from terml.parser import parseTerm as term
 from terml.quasiterm import quasiterm
 
@@ -17,7 +17,7 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False, extends=None):
                    subclassing. If False, return a wrapper with the
                    friendly API.
     """
-    g = BootOMetaGrammar.makeGrammar(source, bindings, name=name, superclass=None)
+    g = OMeta.makeGrammar(source, name).createParserClass(OMetaBase, bindings)
     if unwrap:
         return g
     else:

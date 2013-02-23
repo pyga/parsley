@@ -1,5 +1,4 @@
 import string
-from ometa.boot import BootOMetaGrammar
 from ometa.grammar import loadGrammar
 from ometa.runtime import character, EOFError
 import terml

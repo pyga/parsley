@@ -9,22 +9,23 @@ from StringIO import StringIO
 
 from terml.nodes import termMaker as t
 import ometa
-from ometa.boot import BootOMetaGrammar
+from ometa._generated.parsley import createParserClass as makeBootGrammar
 from ometa.builder import TermActionPythonWriter, moduleFromGrammar, TextWriter
 from ometa.runtime import OMetaBase, OMetaGrammarBase
 
-def loadGrammar(pkg, name, globals, superclass=BootOMetaGrammar):
+OMeta = makeBootGrammar(OMetaGrammarBase, globals())
+
+
+def loadGrammar(pkg, name, globals, superclass=OMetaBase):
     try:
         m = __import__('.'.join([pkg.__name__, '_generated', name]),
                        fromlist=[name], level=0)
     except ImportError:
         base = os.path.dirname(os.path.abspath(pkg.__file__))
         src = open(os.path.join(base, name + ".parsley")).read()
-        m = BootOMetaGrammar.makeGrammar(src, name)
+        m = OMeta.makeGrammar(src, name)
+
     return m.createParserClass(superclass, globals)
-
-
-OMeta = loadGrammar(ometa, "parsley", globals(), superclass=OMetaGrammarBase)
 
 class TermOMeta(loadGrammar(
         ometa, "parsley_termactions",

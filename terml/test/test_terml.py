@@ -31,40 +31,40 @@ class ParserTest(unittest.TestCase):
         """
         parse = self.getParser("literal")
         self.assertEqual(parse('"foo bar"'),
-                         Term(Tag('.String.'), "foo bar", None, None))
+                         Term(Tag('.String.'), "foo bar", None))
         self.assertEqual(parse("'x'"),
-                         Term(Tag('.char.'), 'x', None, None))
+                         Term(Tag('.char.'), 'x', None))
         self.assertEqual(parse("0xDECAFC0FFEEBAD"),
-                         Term(Tag('.int.'), 0xDECAFC0FFEEBAD, None, None))
+                         Term(Tag('.int.'), 0xDECAFC0FFEEBAD, None))
         self.assertEqual(parse("0755"),
-                         Term(Tag('.int.'), 0755, None, None))
+                         Term(Tag('.int.'), 0755, None))
         self.assertEqual(parse("3.14159E17"),
-                         Term(Tag('.float64.'), 3.14159E17, None, None))
+                         Term(Tag('.float64.'), 3.14159E17, None))
         self.assertEqual(parse("1e9"),
-                         Term(Tag('.float64.'), 1e9, None, None))
-        self.assertEqual(parse("0"), Term(Tag(".int."), 0, None, None))
-        self.assertEqual(parse("7"), Term(Tag(".int."), 7, None, None))
-        self.assertEqual(parse("-1"), Term(Tag(".int."), -1, None, None))
+                         Term(Tag('.float64.'), 1e9, None))
+        self.assertEqual(parse("0"), Term(Tag(".int."), 0, None))
+        self.assertEqual(parse("7"), Term(Tag(".int."), 7, None))
+        self.assertEqual(parse("-1"), Term(Tag(".int."), -1, None))
         self.assertEqual(parse("-3.14"),
-                         Term(Tag('.float64.'), -3.14, None, None))
+                         Term(Tag('.float64.'), -3.14, None))
         self.assertEqual(parse("3_000"),
-                         Term(Tag('.int.'), 3000, None, None))
+                         Term(Tag('.int.'), 3000, None))
         self.assertEqual(parse("0.91"),
-                         Term(Tag('.float64.'), 0.91, None, None))
+                         Term(Tag('.float64.'), 0.91, None))
         self.assertEqual(parse("3e-2"),
-                         Term(Tag('.float64.'), 3e-2, None, None))
+                         Term(Tag('.float64.'), 3e-2, None))
         self.assertEqual(parse("'\\n'"),
-                         Term(Tag('.char.'), character("\n"), None, None))
+                         Term(Tag('.char.'), character("\n"), None))
         self.assertEqual(parse('"foo\\nbar"'),
-                         Term(Tag('.String.'), "foo\nbar", None, None))
+                         Term(Tag('.String.'), "foo\nbar", None))
         self.assertEqual(parse("'\\u0061'"),
-                         Term(Tag('.char.'), character("a"), None, None))
+                         Term(Tag('.char.'), character("a"), None))
         self.assertEqual(parse('"z\141p"'),
-                         Term(Tag('.String.'), "zap", None, None))
+                         Term(Tag('.String.'), "zap", None))
         self.assertEqual(parse('"x\41"'),
-                         Term(Tag('.String.'), "x!", None, None))
+                         Term(Tag('.String.'), "x!", None))
         self.assertEqual(parse('"foo\\\nbar"'),
-                         Term(Tag('.String.'), "foobar", None, None))
+                         Term(Tag('.String.'), "foobar", None))
 
 
     def test_simpleTag(self):
@@ -90,19 +90,17 @@ class ParserTest(unittest.TestCase):
         """
 
         parse = self.getParser("baseTerm")
-        self.assertEqual(parse("x"), Term(Tag("x"), None, None, None))
-        self.assertEqual(parse("x()"), Term(Tag("x"), None, [], None))
+        self.assertEqual(parse("x"), Term(Tag("x"), None, None))
+        self.assertEqual(parse("x()"), Term(Tag("x"), None, []))
         self.assertEqual(parse("x(1)"), Term(Tag("x"), None,
-                                             (Term(Tag(".int."), 1, None, None),),
-                                             None))
+                                             (Term(Tag(".int."), 1, None),)))
         self.assertEqual(parse("x(1, 2)"), Term(Tag("x"), None,
                                                 (Term(Tag(".int."), 1,
-                                                      None, None),
+                                                      None),
                                                  Term(Tag(".int."), 2,
-                                                      None, None)),
-                                                None))
-        self.assertEqual(parse("1"), Term(Tag(".int."), 1, None, None))
-        self.assertEqual(parse('"1"'), Term(Tag(".String."), "1", None, None))
+                                                      None))))
+        self.assertEqual(parse("1"), Term(Tag(".int."), 1, None))
+        self.assertEqual(parse('"1"'), Term(Tag(".String."), "1", None))
         self.assertRaises(ValueError, parse, "'x'(x)")
         self.assertRaises(ValueError, parse, '3.14(1)')
         self.assertRaises(ValueError, parse, '"foo"(x)')

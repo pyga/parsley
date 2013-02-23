@@ -1,8 +1,8 @@
 from collections import namedtuple
 
-_Term = namedtuple("Term", "tag data args span")
+_Term = namedtuple("Term", "tag data args")
 class Term(_Term):
-    def __new__(cls, tag, data, args, span):
+    def __new__(cls, tag, data, args):
         #XXX AstroTag tracks (name, tag_code) and source span
         if data and not isinstance(data, (str, unicode, int, long, float)):
             raise ValueError("Term data can't be of type %r" % (type(data),))
@@ -10,7 +10,7 @@ class Term(_Term):
             raise ValueError("Term %s can't have both data and children" % (tag,))
         if args is None:
             args = ()
-        return _Term.__new__(cls, tag, data, args, span)
+        return _Term.__new__(cls, tag, data, args)
 
     def __iter__(self):
         #and now I feel a bit silly subclassing namedtuple
@@ -49,15 +49,12 @@ class Term(_Term):
                 return self.tag._unparse(indentLevel)
             return "%s(%s)" % (self.tag._unparse(indentLevel), args)
 
-    def withSpan(self, span):
-        return Term(self.tag, self.data, self.args, span)
-
 
     def build(self, builder):
         if self.data is None:
-            f = builder.leafTag(self.tag, self.span)
+            f = builder.leafTag(self.tag)
         else:
-            f = builder.leafData(self.data, self.span)
+            f = builder.leafData(self.data)
 
         return builder.term(f, [arg.build(builder) for arg in self.args])
 
@@ -78,7 +75,7 @@ class Term(_Term):
         return float(self.data)
 
     def withoutArgs(self):
-        return Term(self.tag, self.data, (), self.span)
+        return Term(self.tag, self.data, ())
 
     def asFunctor(self):
         if self.args:
@@ -110,36 +107,34 @@ def coerceToTerm(val):
     if isinstance(val, Term):
         return val
     if val is None:
-        return Term(Tag("null"), None, None, None)
+        return Term(Tag("null"), None, None)
     if val is True:
-        return Term(Tag("true"), None, None, None)
+        return Term(Tag("true"), None, None)
     if val is False:
-        return Term(Tag("false"), None, None, None)
+        return Term(Tag("false"), None, None)
     if isinstance(val, (int, long)):
-        return Term(Tag(".int."), val, None, None)
+        return Term(Tag(".int."), val, None)
     if isinstance(val, float):
-        return Term(Tag(".float64."), val, None, None)
+        return Term(Tag(".float64."), val, None)
     if isinstance(val, (character, unicodeCharacter)):
-        return Term(Tag(".char."), val, None, None)
+        return Term(Tag(".char."), val, None)
     if isinstance(val, basestring):
-        return Term(Tag(".String."), val, None, None)
+        return Term(Tag(".String."), val, None)
     if isinstance(val, (list, tuple)):
-        return Term(Tag(".tuple."), None, tuple(coerceToTerm(item) for item in val), None)
+        return Term(Tag(".tuple."), None, tuple(coerceToTerm(item) for item in val))
     if isinstance(val, set):
-        return Term(Tag('.bag.'), None, tuple(coerceToTerm(item) for item in val), None)
+        return Term(Tag('.bag.'), None, tuple(coerceToTerm(item) for item in val))
     if isinstance(val, dict):
         return Term(Tag('.bag.'), None, tuple(Term(Tag('.attr.'), None,
-                                                   (coerceToTerm(k), coerceToTerm(v)), None)
-                                         for (k, v) in val.iteritems()),
-                    None)
+                                                   (coerceToTerm(k), coerceToTerm(v)))
+                                              for (k, v) in val.iteritems()))
     raise ValueError("Could not coerce %r to Term" % (val,))
 
 class TermMaker(object):
     def __getattr__(self, name):
         def mkterm(*args, **kwargs):
             return Term(Tag(name), None,
-                        tuple([coerceToTerm(a) for a in args]),
-                        kwargs.get('span', None))
+                        tuple([coerceToTerm(a) for a in args]))
         return mkterm
 
 termMaker = TermMaker()

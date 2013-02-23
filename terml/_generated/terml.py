@@ -955,7 +955,7 @@ def createParserClass(GrammarBase, ruleGlobals):
                 _G_apply_381, lastError = self._apply(self.rule_tag, "tag", [])
                 self.considerError(lastError, None)
                 _locals['t'] = _G_apply_381
-                _G_python_382, lastError = eval('leafInternal(t, None, None)', self.globals, _locals), None
+                _G_python_382, lastError = eval('leafInternal(t, None)', self.globals, _locals), None
                 self.considerError(lastError, None)
                 return (_G_python_382, self.currentError)
             _G_or_383, lastError = self._or([_G_or_378, _G_or_380])

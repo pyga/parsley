@@ -67,7 +67,7 @@ special = '.':a ident:b -> concat(a, b)
 
 uri = '<' uriBody*:uriChars '>' -> concat(b, uriChars, e)
 
-functor = spaces (literal | tag:t -> leafInternal(t, None, None))
+functor = spaces (literal | tag:t -> leafInternal(t, None))
 baseTerm = functor:f ('(' argList:a spaces ')' -> makeTerm(f, a)
                      | -> makeTerm(f, None))
 

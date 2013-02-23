@@ -844,7 +844,7 @@ class OMetaGrammarBase(OMetaBase):
         else:
             raise self.input.nullError()
 
-    def ruleValueExpr(self, singleLine, span=None):
+    def ruleValueExpr(self, singleLine):
         """
         Find and generate code for a Python expression terminated by a close
         paren/brace or end of line.
@@ -852,26 +852,26 @@ class OMetaGrammarBase(OMetaBase):
         (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
         # if str(endchar) in ")]" or (singleLine and endchar):
         #     self.input = self.input.prev()
-        return t.Action(expr, span=span)
+        return t.Action(expr)
 
-    def semanticActionExpr(self, span=None):
+    def semanticActionExpr(self):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value is ignored.
         """
-        val = t.Action(self.pythonExpr(')')[0][0], span=span)
+        val = t.Action(self.pythonExpr(')')[0][0])
         self.exactly(')')
         return val
 
-    def semanticPredicateExpr(self, span=None):
+    def semanticPredicateExpr(self):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value determines the success of the pattern
         it's in.
         """
-        expr = t.Action(self.pythonExpr(')')[0][0], span=span)
+        expr = t.Action(self.pythonExpr(')')[0][0])
         self.exactly(')')
-        return t.Predicate(expr, span=span)
+        return t.Predicate(expr)
 
 
     def eatWhitespace(self):
@@ -943,15 +943,6 @@ class OMetaGrammarBase(OMetaBase):
                              expected("Python expression"))
         return (''.join(expr).strip(), endchar), e
 
-
-    def startSpan(self):
-        return self.input.position
-
-    def span(self, start):
-        return None
-        end = self.input.position
-        return self.input.data[start:end].span
-
     def isTree(self):
         self.tree = True
 
@@ -1015,8 +1006,7 @@ class TreeTransformerBase(OMetaBase):
         newargs, e = self.many(self.rule_transform)
         self.end()
         self.input = oldInput
-        return Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs),
-                    tt.span), e
+        return Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs)), e
 
     def rule_null(self):
         tt, e = self.rule_anything()

@@ -333,10 +333,10 @@ class PythonWriter(object):
 
 
 class _Term2PythonAction(object):
-    def leafData(bldr, data, span):
+    def leafData(bldr, data):
         return repr(data)
 
-    def leafTag(bldr, tag, span):
+    def leafTag(bldr, tag):
         return tag.name
 
     def term(bldr, tag, args):
@@ -364,7 +364,7 @@ class TermActionPythonWriter(PythonWriter):
         """
 
         fname = self._newThunkFor(out, "pred", Term(Tag("Action"), None,
-                                                    [term], None))
+                                                    [term]))
         return self._expr(out, "pred", "self.pred(%s)" %(fname,), debugname)
 
     def generate_Action(self, out, term, debugname=None):

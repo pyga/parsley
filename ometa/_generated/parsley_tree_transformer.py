@@ -345,99 +345,21 @@ def createParserClass(GrammarBase, ruleGlobals):
             return (_G_or_137, self.currentError)
 
 
-        def rule_rule(self):
-            _locals = {'self': self}
-            self.locals['rule'] = _locals
-            _G_apply_138, lastError = self._apply(self.rule_noindentation, "noindentation", [])
-            self.considerError(lastError, 'rule')
-            def _G_lookahead_139():
-                _G_apply_140, lastError = self._apply(self.rule_name, "name", [])
-                self.considerError(lastError, None)
-                _locals['n'] = _G_apply_140
-                return (_locals['n'], self.currentError)
-            _G_lookahead_141, lastError = self.lookahead(_G_lookahead_139)
-            self.considerError(lastError, 'rule')
-            def _G_or_142():
-                def _G_many1_143():
-                    _G_python_144, lastError = eval('n', self.globals, _locals), None
-                    self.considerError(lastError, None)
-                    _G_apply_145, lastError = self._apply(self.rule_termRulePart, "termRulePart", [_G_python_144])
-                    self.considerError(lastError, None)
-                    return (_G_apply_145, self.currentError)
-                _G_many1_146, lastError = self.many(_G_many1_143, _G_many1_143())
-                self.considerError(lastError, None)
-                _locals['rs'] = _G_many1_146
-                return (_locals['rs'], self.currentError)
-            def _G_or_147():
-                def _G_many1_148():
-                    _G_python_149, lastError = eval('n', self.globals, _locals), None
-                    self.considerError(lastError, None)
-                    _G_apply_150, lastError = self._apply(self.rule_rulePart, "rulePart", [_G_python_149])
-                    self.considerError(lastError, None)
-                    return (_G_apply_150, self.currentError)
-                _G_many1_151, lastError = self.many(_G_many1_148, _G_many1_148())
-                self.considerError(lastError, None)
-                _locals['rs'] = _G_many1_151
-                return (_locals['rs'], self.currentError)
-            _G_or_152, lastError = self._or([_G_or_142, _G_or_147])
-            self.considerError(lastError, 'rule')
-            _G_python_153, lastError = eval('t.Rule(n, t.Or(rs))', self.globals, _locals), None
-            self.considerError(lastError, 'rule')
-            return (_G_python_153, self.currentError)
-
-
-        def rule_termRulePart(self):
-            _locals = {'self': self}
-            self.locals['termRulePart'] = _locals
-            _G_apply_154, lastError = self._apply(self.rule_anything, "anything", [])
-            self.considerError(lastError, 'termRulePart')
-            _locals['requiredName'] = _G_apply_154
-            _G_apply_155, lastError = self._apply(self.rule_noindentation, "noindentation", [])
-            self.considerError(lastError, 'termRulePart')
-            _G_python_156, lastError = eval('setattr(self, "rulename", requiredName)', self.globals, _locals), None
-            self.considerError(lastError, 'termRulePart')
-            _G_apply_157, lastError = self._apply(self.rule_termPattern, "termPattern", [])
-            self.considerError(lastError, 'termRulePart')
-            _locals['t'] = _G_apply_157
-            def _G_pred_158():
-                _G_python_159, lastError = eval('t.tag.name == requiredName', self.globals, _locals), None
-                self.considerError(lastError, None)
-                return (_G_python_159, self.currentError)
-            _G_pred_160, lastError = self.pred(_G_pred_158)
-            self.considerError(lastError, 'termRulePart')
-            def _G_optional_161():
-                _G_python_162, lastError = "=", None
-                self.considerError(lastError, None)
-                _G_apply_163, lastError = self._apply(self.rule_token, "token", [_G_python_162])
-                self.considerError(lastError, None)
-                return (_G_apply_163, self.currentError)
-            def _G_optional_164():
-                return (None, self.input.nullError())
-            _G_or_165, lastError = self._or([_G_optional_161, _G_optional_164])
-            self.considerError(lastError, 'termRulePart')
-            _G_apply_166, lastError = self._apply(self.rule_expr4, "expr4", [])
-            self.considerError(lastError, 'termRulePart')
-            _locals['tail'] = _G_apply_166
-            _G_python_167, lastError = eval('t.And([t, tail])', self.globals, _locals), None
-            self.considerError(lastError, 'termRulePart')
-            return (_G_python_167, self.currentError)
-
-
         def rule_grammar(self):
             _locals = {'self': self}
             self.locals['grammar'] = _locals
-            def _G_many_168():
-                _G_apply_169, lastError = self._apply(self.rule_rule, "rule", [])
+            def _G_many_138():
+                _G_apply_139, lastError = self._apply(self.rule_rule, "rule", [])
                 self.considerError(lastError, None)
-                return (_G_apply_169, self.currentError)
-            _G_many_170, lastError = self.many(_G_many_168)
+                return (_G_apply_139, self.currentError)
+            _G_many_140, lastError = self.many(_G_many_138)
             self.considerError(lastError, 'grammar')
-            _locals['rs'] = _G_many_170
-            _G_apply_171, lastError = self._apply(self.rule_spaces, "spaces", [])
+            _locals['rs'] = _G_many_140
+            _G_apply_141, lastError = self._apply(self.rule_spaces, "spaces", [])
             self.considerError(lastError, 'grammar')
-            _G_python_172, lastError = eval('t.Grammar(self.name, True, rs)', self.globals, _locals), None
+            _G_python_142, lastError = eval('t.Grammar(self.name, True, rs)', self.globals, _locals), None
             self.considerError(lastError, 'grammar')
-            return (_G_python_172, self.currentError)
+            return (_G_python_142, self.currentError)
 
 
     if parsley_tree_transformer.globals is not None:

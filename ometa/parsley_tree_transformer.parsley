@@ -29,9 +29,4 @@ expr1 = foreignApply
        |token('(') expr:e token(')') -> e
        |token('[') expr:e token(']') -> t.TermPattern(".tuple.", e)
 
-
-rule = noindentation ~~(name:n) (termRulePart(n)+:rs | rulePart(n)+:rs)  -> t.Rule(n, t.Or(rs))
-
-termRulePart :requiredName =  noindentation !(setattr(self, "rulename", requiredName))
-                             termPattern:t ?(t.tag.name == requiredName) token("=")? expr4:tail -> t.And([t, tail])
 grammar = rule*:rs spaces -> t.Grammar(self.name, True, rs)

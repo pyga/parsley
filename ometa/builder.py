@@ -309,7 +309,7 @@ class PythonWriter(object):
     def generate_Grammar(self, out, name, takesTreeInput, rules,
                          debugname=None):
         self.takesTreeInput = takesTreeInput.tag.name == 'true'
-        out.writeln("def make_%s(GrammarBase, ruleGlobals):" % (name.data,))
+        out.writeln("def createParserClass(GrammarBase, ruleGlobals):")
         funcOut = out.indent()
         funcOut.writeln("if ruleGlobals is None:")
         funcOut.indent().writeln("ruleGlobals = {}")
@@ -404,8 +404,7 @@ class GeneratedCodeLoader(object):
 
 
 
-def moduleFromGrammar(source, className, superclass, globalsDict,
-                      modname, filename):
+def moduleFromGrammar(source, className, modname, filename):
     mod = module(modname)
     mod.__name__ = modname
     mod.__loader__ = GeneratedCodeLoader(source)
@@ -413,4 +412,4 @@ def moduleFromGrammar(source, className, superclass, globalsDict,
     eval(code, mod.__dict__)
     sys.modules[modname] = mod
     linecache.getlines(filename, mod.__dict__)
-    return getattr(mod, 'make_' + className)(superclass, globalsDict)
+    return mod

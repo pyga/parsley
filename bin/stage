@@ -14,15 +14,15 @@ def stage_pkg(pkg):
                     ignore=lambda src, names: [n for n in names if n.endswith('pyc')])
     for fn in glob.glob(pkg + "/*.parsley"):
         grammar = open(fn).read()
+        grammarname = fn.split('/')[1].split('.')[0]
         g = OMeta(grammar)
         try:
-            tree = g.parseGrammar("Parser")
+            tree = g.parseGrammar(grammarname)
         except ParseError, e:
             print e.formatErrorTwine(g.input.data)
             raise
         source = writePython(tree)
-        pyfn_base = fn.split('/')[1].split('.')[0] + ".py"
-        pyfn = "stage/%s/_generated/%s" % (pkg, pyfn_base)
+        pyfn = "stage/%s/_generated/%s.py" % (pkg, grammarname)
         print "%s => %s" % (fn, pyfn)
         pythonFile = open(pyfn, 'w')
         pythonFile.write(source)

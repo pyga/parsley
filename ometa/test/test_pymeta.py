@@ -60,7 +60,8 @@ class OMeta1TestCase(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = self.classTested.makeGrammar(dedent(grammar), globals(), 'TestGrammar')
+        m = self.classTested.makeGrammar(dedent(grammar), 'TestGrammar')
+        g = m.createParserClass(OMetaBase, globals())
         return HandyWrapper(g)
 
 
@@ -224,7 +225,7 @@ class OMeta1TestCase(unittest.TestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         G = self.classTested.makeGrammar(
-            "stuff ::= '1':a ('2':b | '3':c)", {}, 'TestGrammar')
+            "stuff ::= '1':a ('2':b | '3':c)", 'TestGrammar').createParserClass(OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -425,8 +426,7 @@ class OMetaTestCase(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = self.classTested.makeGrammar(grammar, globals or {},
-                                         name='TestGrammar')
+        g = self.classTested.makeGrammar(grammar, 'TestGrammar').createParserClass(OMetaBase, globals or {})
         return HandyWrapper(g)
 
 
@@ -653,7 +653,7 @@ class OMetaTestCase(unittest.TestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         G = self.classTested.makeGrammar(
-            "stuff = '1':a ('2':b | '3':c)", {}, 'TestGrammar', OMetaBase)
+            "stuff = '1':a ('2':b | '3':c)", 'TestGrammar').createParserClass(OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -866,7 +866,7 @@ class TermActionGrammarTests(OMetaTestCase):
         Bound names in a rule can be accessed on the grammar's "locals" dict.
         """
         G = self.classTested.makeGrammar(
-            "stuff = '1':a ('2':b | '3':c)", {}, 'TestGrammar')
+            "stuff = '1':a ('2':b | '3':c)", 'TestGrammar').createParserClass(OMetaBase, {})
         g = G("12")
         self.assertEqual(g.apply("stuff")[0], '2')
         self.assertEqual(g.locals['stuff']['a'], '1')
@@ -1085,7 +1085,7 @@ class MakeGrammarTest(unittest.TestCase):
         num = (num:n digit:d !(results.append(True)) -> n * 10 + d
                | digit)
         """
-        TestGrammar = OMeta.makeGrammar(grammar, {'results':results})
+        TestGrammar = OMeta.makeGrammar(grammar, "G").createParserClass(OMetaBase, {'results':results})
         g = TestGrammar("314159")
         self.assertEqual(g.apply("num")[0], 314159)
         self.assertNotEqual(len(results), 0)
@@ -1097,7 +1097,7 @@ class MakeGrammarTest(unittest.TestCase):
         andHandler = handler:h1 'and handler:h2 -> And(h1, h2)
         """
         e = self.assertRaises(ParseError, BootOMetaGrammar.makeGrammar, grammar,
-                              {})
+                              "Foo")
         self.assertEquals(e.position, 56)
         self.assertEquals(e.error, [("expected", "token", "'"), ("message", "end of input")])
 
@@ -1112,22 +1112,21 @@ class MakeGrammarTest(unittest.TestCase):
         grammar1 = """
         dig = :x ?(a <= x <= b) -> int(x)
         """
-        TestGrammar1 = OMeta.makeGrammar(grammar1, {'a':'0', 'b':'9'})
+        TestGrammar1 = OMeta.makeGrammar(grammar1, "G").createParserClass(OMetaBase, {'a':'0', 'b':'9'})
 
         grammar2 = """
         num = (num:n dig:d -> n * base + d
                 | dig)
         """
-        TestGrammar2 = OMeta.makeGrammar(grammar2, {'base':10},
-                                         superclass=TestGrammar1)
+        TestGrammar2 = OMeta.makeGrammar(grammar2, "G2").createParserClass(TestGrammar1, {'base':10})
         g = TestGrammar2("314159")
         self.assertEqual(g.apply("num")[0], 314159)
 
         grammar3 = """
         dig = :x ?(a <= x <= b or c <= x <= d) -> int(x, base)
         """
-        TestGrammar3 = OMeta.makeGrammar(grammar3, {'c':'a', 'd':'f', 'base':16},
-                                         superclass=TestGrammar2)
+        TestGrammar3 = OMeta.makeGrammar(grammar3, "G3").createParserClass(
+            TestGrammar2, {'c':'a', 'd':'f', 'base':16})
         g = TestGrammar3("abc123")
         self.assertEqual(g.apply("num")[0], 11256099)
 
@@ -1138,9 +1137,9 @@ class MakeGrammarTest(unittest.TestCase):
         """
         from ometa.grammar import OMeta
         grammar1 = "expr = letter"
-        TestGrammar1 = OMeta.makeGrammar(grammar1, {})
+        TestGrammar1 = OMeta.makeGrammar(grammar1, "G").createParserClass(OMetaBase, {})
         grammar2 = "expr = super | digit"
-        TestGrammar2 = OMeta.makeGrammar(grammar2, {}, superclass=TestGrammar1)
+        TestGrammar2 = OMeta.makeGrammar(grammar2, "G2").createParserClass(TestGrammar1, {})
         self.assertEqual(TestGrammar2("x").apply("expr")[0], "x")
         self.assertEqual(TestGrammar2("3").apply("expr")[0], "3")
 
@@ -1150,17 +1149,18 @@ class MakeGrammarTest(unittest.TestCase):
         """
         from ometa.grammar import OMeta
         grammar_letter = "expr = letter"
-        GrammarLetter = OMeta.makeGrammar(grammar_letter, {})
+        GrammarLetter = OMeta.makeGrammar(grammar_letter, "G").createParserClass(OMetaBase, {})
 
         grammar_digit = "expr '5' = digit"
-        GrammarDigit = OMeta.makeGrammar(grammar_digit, {})
+        GrammarDigit = OMeta.makeGrammar(grammar_digit, "H").createParserClass(OMetaBase, {})
 
         grammar = ("expr = !(grammar_digit_global):grammar_digit "
                         "grammar_letter.expr | grammar_digit.expr('5')")
-        TestGrammar = OMeta.makeGrammar(grammar, {
-            "grammar_letter": GrammarLetter,
-            "grammar_digit_global": GrammarDigit
-        })
+        TestGrammar = OMeta.makeGrammar(grammar, "I").createParserClass(
+            OMetaBase,
+            {"grammar_letter": GrammarLetter,
+             "grammar_digit_global": GrammarDigit
+         })
 
         self.assertEqual(TestGrammar("x").apply("expr")[0], "x")
         self.assertEqual(TestGrammar("3").apply("expr")[0], "3")
@@ -1321,8 +1321,8 @@ class TreeTransformerTestCase(unittest.TestCase):
         if namespace is None:
             namespace = globals()
         g = TreeTransformerGrammar.makeGrammar(
-            dedent(grammar), namespace,
-            'TestGrammar', superclass=TreeTransformerBase)
+            dedent(grammar), 'TestGrammar').createParserClass(
+                TreeTransformerBase, namespace)
         return g
 
     def test_termForm(self):
@@ -1426,7 +1426,7 @@ class ErrorReportingTests(unittest.TestCase):
 
         @param grammar: A string containing an OMeta grammar.
         """
-        g = BootOMetaGrammar.makeGrammar(grammar, {}, 'TestGrammar', OMetaBase)
+        g = BootOMetaGrammar.makeGrammar(grammar, 'TestGrammar').createParserClass(OMetaBase, {})
         return HandyWrapper(g)
 
 

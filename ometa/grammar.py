@@ -7,29 +7,33 @@ import os.path
 import string
 from StringIO import StringIO
 
-from terml.parser import TermLParser
 from terml.nodes import termMaker as t
+import ometa
 from ometa.boot import BootOMetaGrammar
 from ometa.builder import TermActionPythonWriter, moduleFromGrammar, TextWriter
 from ometa.runtime import OMetaBase, OMetaGrammarBase
 
-def loadGrammar(name):
-    return open(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), name)).read()
+def loadGrammar(pkg, name, globals, superclass=BootOMetaGrammar):
+    try:
+        m = __import__('.'.join([pkg.__name__, '_generated', name]),
+                       fromlist=[name], level=0)
+    except ImportError:
+        base = os.path.dirname(os.path.abspath(pkg.__file__))
+        src = open(os.path.join(base, name + ".parsley")).read()
+        m = BootOMetaGrammar.makeGrammar(src, name)
+    return m.createParserClass(superclass, globals)
 
 
-OMeta = BootOMetaGrammar.makeGrammar(loadGrammar("parsley.parsley"),
-                                                 globals(), name='OMeta',
-                                                 superclass=OMetaGrammarBase)
+OMeta = loadGrammar(ometa, "parsley", globals(), superclass=OMetaGrammarBase)
 
-class TermOMeta(BootOMetaGrammar.makeGrammar(
-        loadGrammar("parsley_termactions.parsley"),
-        globals(), name='TermOMeta2', superclass=OMeta)):
+class TermOMeta(loadGrammar(
+        ometa, "parsley_termactions",
+        globals(), superclass=OMeta)):
 
     _writer = TermActionPythonWriter
 
     @classmethod
-    def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
+    def makeGrammar(cls, grammar, name):
         """
         Define a new parser class with the rules in the given grammar.
 
@@ -44,8 +48,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
         source = g.writeTerm(tree)
-        return moduleFromGrammar(source, name, superclass or OMetaBase, globals,
-                                 modname, filename)
+        return moduleFromGrammar(source, name, modname, filename)
 
 
 
@@ -58,6 +61,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
 
 
     def rule_term(self):
+        from terml.parser import TermLParser
         tp = TermLParser('')
         tp.input = self.input
         self.input.setMemo('term', None)
@@ -66,6 +70,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         return val, err
 
     def rule_term_arglist(self):
+        from terml.parser import TermLParser
         tp = TermLParser('')
         tp.input = self.input
         val, err = tp.apply('argList')
@@ -73,7 +78,6 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         return val, err
 
 
-TreeTransformerGrammar = OMeta.makeGrammar(
-    loadGrammar("parsley_tree_transformer.parsley"),
-    globals(), name='TreeTransformer',
-    superclass=OMeta)
+TreeTransformerGrammar = loadGrammar(
+    ometa, "parsley_tree_transformer",
+    globals(), superclass=OMeta)

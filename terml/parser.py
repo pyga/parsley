@@ -1,7 +1,8 @@
-import os.path
 import string
 from ometa.boot import BootOMetaGrammar
+from ometa.grammar import loadGrammar
 from ometa.runtime import character, EOFError
+import terml
 from terml.nodes import Tag, Term, termMaker
 
 ## Functions called from grammar actions
@@ -85,11 +86,7 @@ def LabelledBag(f, arg, span=None):
 def Attr(k, v, span=None):
     return Term(Tag(".attr."), None, (k, v), span)
 
-termLGrammar = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 "terml.parsley")).read()
-TermLParser = BootOMetaGrammar.makeGrammar(termLGrammar, globals(),
-                                           "TermLParser")
-
+TermLParser = loadGrammar(terml, "terml", globals())
 
 
 def parseTerm(termString):

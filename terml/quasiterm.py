@@ -1,12 +1,10 @@
-import os.path
 from ometa.boot import BootOMetaGrammar
+from ometa.grammar import loadGrammar
 from ometa.runtime import EOFError
+import terml
 from terml.parser import TermLParser
 from terml.qnodes import ValueHole, PatternHole, QTerm, QSome, QFunctor
 
-quasitermGrammar = open(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "quasiterm.parsley")).read()
 
 def interleave(l, *r):
     if r:
@@ -50,12 +48,8 @@ def makeTerm(t, args=None, span=None):
     return QTerm(t.asFunctor(), None, args and tuple(args), span)
 
 
-QTermParser = BootOMetaGrammar.makeGrammar(quasitermGrammar,
-                                           TermLParser.globals,
-                                           "QTermParser", TermLParser)
+QTermParser = loadGrammar(terml, "quasiterm", TermLParser.globals, TermLParser)
 QTermParser.globals.update(globals())
-
-
 
 
 def quasiterm(termString):

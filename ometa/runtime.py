@@ -770,13 +770,11 @@ class OMetaGrammarBase(OMetaBase):
     tree = False
 
     @classmethod
-    def makeGrammar(cls, grammar, globals, name='Grammar', superclass=None):
+    def makeGrammar(cls, grammar, name='Grammar'):
         """
         Define a new parser class with the rules in the given grammar.
 
         @param grammar: A string containing a PyMeta grammar.
-        @param globals: A dict of names that should be accessible by this
-        grammar.
         @param name: The name of the class to be generated.
         @param superclass: The class the generated class is a child of.
         """
@@ -796,8 +794,7 @@ class OMetaGrammarBase(OMetaBase):
         source = writePython(tree)
         if TIMING:
             print "Grammar %r generated in %g secs" % (name, time.time() - start)
-        return moduleFromGrammar(source, name, superclass or OMetaBase, globals,
-                                 modname, filename)
+        return moduleFromGrammar(source, name, modname, filename)
 
 
     def __init__(self, grammar, *a, **kw):

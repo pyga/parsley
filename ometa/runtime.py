@@ -973,40 +973,60 @@ class TreeTransformerBase(OMetaBase):
         g = cls([term])
         return g.apply("transform")
 
+    def _transform_data(self, tt):
+        if tt.data is not None:
+            return tt.data
+        name = tt.tag.name
+        if name == 'null':
+            return None
+        if name == 'true':
+            return True
+        if name == 'false':
+            return False
+        raise ValueError()
+
     def rule_transform(self):
         tt, e = self.rule_anything()
         if isinstance(tt, Term):
-            if tt.data is not None:
-                return tt.data, e
-            name = tt.tag.name
-            if name == 'null':
-                return None, e
-            if name == 'true':
-                return True, e
-            if name == 'false':
-                return False, e
-            contents = tt.args
-            isIterable = name == '.tuple.'
+            try:
+                return self._transform_data(tt), e
+            except ValueError:
+                name = tt.tag.name
+                if name == '.tuple.':
+                    return self._transform_iterable(tt.args)
+                else:
+                    if getattr(self, 'rule_' + name, None):
+                        return self._transform_term(name, tt.args)
+                    else:
+                        return self.apply("unknown_term", tt)
         else:
-            contents = tt
-            isIterable = True
+            return self._transform_iterable(tt)
 
+    def _transform_term(self, name, contents):
         oldInput = self.input
-        try:
-            self.input = InputStream.fromIterable(contents)
-        except AttributeError:
-            raise e.withMessage(expected("a Term"))
-        if isIterable:
-            v = self.many(self.rule_transform)
-        elif not getattr(self, 'rule_' + name, None):
-            newargs, e = self.many(self.rule_transform)
-            v = Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs),
-                     tt.span), e
-        else:
-            v = self.apply(name)
+        self.input = InputStream.fromIterable(contents)
+        v = self.apply(name)
         self.end()
         self.input = oldInput
         return v
+
+    def _transform_iterable(self, contents):
+        oldInput = self.input
+        self.input = InputStream.fromIterable(contents)
+        v = self.many(self.rule_transform)
+        self.end()
+        self.input = oldInput
+        return v
+
+    def rule_unknown_term(self):
+        tt, _ = self.rule_anything()
+        oldInput = self.input
+        self.input = InputStream.fromIterable(tt.args)
+        newargs, e = self.many(self.rule_transform)
+        self.end()
+        self.input = oldInput
+        return Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs),
+                    tt.span), e
 
     def rule_null(self):
         tt, e = self.rule_anything()

@@ -304,9 +304,9 @@ happen before addition and subtraction are considered::
                 result += value
             elif op == '-':
                 result -= value
-           elif op == '*':
+            elif op == '*':
                 result *= value
-          elif op == '/':
+            elif op == '/':
                 result /= value
         return result
     x = parsley.makeGrammar("""
@@ -350,9 +350,9 @@ parentheses, and replace existing calls to ``number`` with calls to
                 result += value
             elif op == '-':
                 result -= value
-           elif op == '*':
+            elif op == '*':
                 result *= value
-          elif op == '/':
+            elif op == '/':
                 result /= value
         return result
     x = parsley.makeGrammar("""

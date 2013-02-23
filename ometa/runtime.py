@@ -6,7 +6,6 @@ import string
 import time
 import operator
 from textwrap import dedent
-from terml.twine import asTwineFrom
 from terml.nodes import coerceToTerm, Term, termMaker as t
 from ometa.builder import moduleFromGrammar, writePython
 
@@ -193,24 +192,18 @@ class InputStream(object):
     fromIterable = classmethod(fromIterable)
 
 
-    def fromFile(cls, f, encoding='utf-8', twine=False):
+    def fromFile(cls, f, encoding='utf-8'):
         if getattr(f, 'seek', None) and getattr(f, 'tell', None):
             position = f.tell()
         else:
             position = 0
-        if twine:
-            txt = asTwineFrom(f.read(), getattr(f, 'name', repr(f)))
-        else:
-            txt = f.read()
+        txt = f.read()
         return cls(txt, position)
     fromFile = classmethod(fromFile)
 
 
-    def fromText(cls, t, name="<string>", twine=False):
-        if twine and not getattr(t, 'span', None):
-             return cls(asTwineFrom(t, name), 0)
-        else:
-            return cls(t, 0)
+    def fromText(cls, t, name="<string>"):
+        return cls(t, 0)
 
     fromText = classmethod(fromText)
 

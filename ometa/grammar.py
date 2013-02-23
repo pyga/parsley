@@ -3,6 +3,7 @@
 Public interface to OMeta, as well as the grammars used to compile grammar
 definitions.
 """
+import os.path
 import string
 from StringIO import StringIO
 
@@ -12,135 +13,17 @@ from ometa.boot import BootOMetaGrammar
 from ometa.builder import TermActionPythonWriter, moduleFromGrammar, TextWriter
 from ometa.runtime import OMetaBase, OMetaGrammarBase
 
-v2Grammar = r"""
-comment = '#' (~'\n' anything)*
-hspace = ' ' | '\t' | comment
-vspace = token("\r\n") | '\r' | '\n'
-emptyline = hspace* vspace
-indentation = emptyline* hspace+
-noindentation = emptyline* ~~~hspace
-
-number = spaces
-               ('-' barenumber:x  -> t.Exactly(-x)
-                    |barenumber:x -> t.Exactly(x))
-barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
-                    |<octaldigit+>:ds -> int(ds, 8))
-               |<digit+>:ds -> int(ds)
-octaldigit = :x ?(x in '01234567' ) -> x
-hexdigit = :x ?(x in '0123456789ABCDEFabcdef') -> x
-
-escapedChar = '\\' ('n' -> "\n"
-                     |'r' -> "\r"
-                     |'t' -> "\t"
-                     |'b' -> "\b"
-                     |'f' -> "\f"
-                     |'"' -> '"'
-                     |'\'' -> "'"
-                     |'x' <hexdigit hexdigit>:d -> chr(int(d, 16))
-                     |'\\' -> "\\")
-
-character = token("'") (~'\'' (escapedChar | anything))+:c
-            token("'") -> t.Exactly(''.join(c))
-
-string = token('"') (escapedChar | ~('"') anything)*:c
-         token('"') -> t.Token(''.join(c))
-
-name = <letter letterOrDigit*>
-
-args = ('(' !(self.applicationArgs(finalChar=')')):args ')'
-            -> args
-          | -> [])
-
-application = indentation? name:name args:args
-                -> t.Apply(name, self.rulename, args)
-
-foreignApply = indentation? name:grammar_name '.' name:rule_name args:args
-                -> t.ForeignApply(grammar_name, rule_name, self.rulename, args)
-
-expr1 = foreignApply
-          |application
-          |ruleValue
-          |semanticPredicate
-          |semanticAction
-          |number:n !(self.isTree()) -> n
-          |character
-          |string
-          |token('(') expr:e token(')') -> e
-          |token('<') expr:e token('>')
-             -> t.ConsumedBy(e)
-          |token('[') expr:e token(']') !(self.isTree())
-             -> t.List(e)
-
-expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
-                    |           expr2:e -> t.Not(e)
-                    )
-        |expr1)
-
-repeatTimes = (barenumber:x -> int(x)) | name
-
-expr3 = (expr2:e
-                      ('*' -> t.Many(e)
-                      |'+' -> t.Many1(e)
-                      |'?' -> t.Optional(e)
-                      |'{' spaces repeatTimes:start spaces (
-                      (',' spaces repeatTimes:end spaces '}'
-                           -> t.Repeat(start, end, e))
-                         | spaces '}'
-                           -> t.Repeat(start, start, e))
-                      | -> e
-)):r
-           (':' name:n -> t.Bind(n, r)
-           | -> r)
-          |token(':') name:n
-          -> t.Bind(n, t.Apply("anything", self.rulename, []))
-
-expr4 = expr3*:es -> t.And(es)
-
-expr = expr4:e (token('|') expr4)*:es
-          -> t.Or([e] + es)
-
-ruleValue = token("->") -> self.ruleValueExpr(True)
-
-semanticPredicate = token("?(") -> self.semanticPredicateExpr()
-
-semanticAction = token("!(") -> self.semanticActionExpr()
-
-ruleEnd = (hspace* vspace+) | end
-
-rulePart :requiredName = noindentation name:n ?(n == requiredName)
-                            !(setattr(self, "rulename", n))
-                            expr4:args
-                            (token("=") expr:e ruleEnd
-                               -> t.And([args, e])
-                            | ruleEnd -> args)
-
-rule = noindentation ~~(name:n) rulePart(n)+:rs -> t.Rule(n, t.Or(rs))
+def loadGrammar(name):
+    return open(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), name)).read()
 
 
-grammar = rule*:rs spaces -> t.Grammar(self.name, self.tree, rs)
-"""
-
-OMeta = BootOMetaGrammar.makeGrammar(v2Grammar, globals(), name='OMeta',
-                                      superclass=OMetaGrammarBase)
-
-termOMeta2Grammar = """
-ruleValue = !(self.startSpan()):s token("->") term:tt
-            -> t.Action(tt, span=self.span(s))
-
-semanticPredicate = !(self.startSpan()):s token("?(") term:tt token(")")
-                    -> t.Predicate(tt, span=self.span(s))
-
-semanticAction = !(self.startSpan()):s token("!(") term:tt token(")")
-                    -> t.Action(tt, span=self.span(s))
-
-application = indentation? !(self.startSpan()):s name:name
-                  ('(' term_arglist:args ')'
-                    -> t.Apply(name, self.rulename, args, span=self.span(s))
-                  | -> t.Apply(name, self.rulename, [], span=self.span(s)))
-"""
+OMeta = BootOMetaGrammar.makeGrammar(loadGrammar("parsley.parsley"),
+                                                 globals(), name='OMeta',
+                                                 superclass=OMetaGrammarBase)
 
 class TermOMeta(BootOMetaGrammar.makeGrammar(
-        termOMeta2Grammar,
+        loadGrammar("parsley_termactions.parsley"),
         globals(), name='TermOMeta2', superclass=OMeta)):
 
     _writer = TermActionPythonWriter
@@ -190,46 +73,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
         return val, err
 
 
-treeTransformerGrammar = r"""
-termPattern = indentation? name:name ?(name[0].isupper())
-              '(' expr:patts ')' -> t.TermPattern(name, patts)
-
-subtransform = "@" name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
-
-wide_templatedValue = token("-->") ' '* wideTemplateBits:contents -> t.StringTemplate(contents)
-tall_templatedValue = hspace? '{{{' spaces tallTemplateBits:contents '}}}' -> t.StringTemplate(contents)
-
-tallTemplateBits = (exprHole | tallTemplateText)*
-tallTemplateText = <(~('}}}' | '$' | '\r' | '\n') anything | '$' '$')+ vspace?> | vspace
-
-wideTemplateBits = (exprHole | wideTemplateText)*
-wideTemplateText = <(~(vspace | end |'$') anything | '$' '$')+>
-
-exprHole = '$' name:n -> t.QuasiExprHole(n)
-
-expr1 = foreignApply
-       |termPattern
-       |subtransform
-       |application
-       |ruleValue
-       |wide_templatedValue
-       |tall_templatedValue
-       |semanticPredicate
-       |semanticAction
-       |number:n !(self.isTree()) -> n
-       |character
-       |string
-       |token('(') expr:e token(')') -> e
-       |token('[') expr:e token(']') -> t.TermPattern(".tuple.", e)
-
- 
-rule = noindentation ~~(name:n) (termRulePart(n)+:rs | rulePart(n)+:rs)  -> t.Rule(n, t.Or(rs))
-
-termRulePart :requiredName =  noindentation !(setattr(self, "rulename", requiredName))
-                             termPattern:t ?(t.tag.name == requiredName) token("=")? expr4:tail -> t.And([t, tail])
-grammar = rule*:rs spaces -> t.Grammar(self.name, True, rs)
-"""
-
 TreeTransformerGrammar = OMeta.makeGrammar(
-    treeTransformerGrammar, globals(), name='TreeTransformer',
+    loadGrammar("parsley_tree_transformer.parsley"),
+    globals(), name='TreeTransformer',
     superclass=OMeta)

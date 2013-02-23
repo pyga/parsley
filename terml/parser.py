@@ -1,58 +1,45 @@
-from ometa.runtime import character, ParseError, EOFError
-from terml.common import CommonParser
-from terml.nodes import Tag, Term
-from terml.twine import spanCover
-
-termLGrammar = r"""
-spaces = ('\r' '\n'|'\r' | '\n' | horizontal_space)*
-literal =  !(self.startSpan()):s (
-              string:x -> leafInternal(Tag(".String."), x, self.span(s))
-            | character:x -> leafInternal(Tag(".char."), x.args[0].data, self.span(s))
-            | number:x -> leafInternal(Tag(numberType(x)), x, self.span(s)))
-
-tag =  (
-          segment:seg1 (':' ':' sos)*:segs -> makeTag(cons(seg1, segs))
-        | (':' ':' sos)+:segs -> prefixedTag(segs))
-
-sos = segment | (string:s -> tagString(s))
-
-segment = ident | special | uri
-
-ident = segStart:i1 segPart*:ibits -> join(cons(i1, ibits))
-
-segStart = letter | '_' | '$'
-
-segPart = letterOrDigit | '_' | '.' | '-' | '$'
-
-special = '.':a ident:b -> concat(a, b)
-
-uri = '<' uriBody*:uriChars '>' -> concat(b, uriChars, e)
-
-functor = spaces (literal | tag:t -> leafInternal(t, None, None))
-baseTerm = !(self.startSpan()):s functor:f (
-                             '(' argList:a spaces ')' -> makeTerm(f, a, self.span(s))
-                           | -> makeTerm(f, None, self.span(s)))
-
-arg = term
-
-argList = ((arg:t (token(',') arg)*:ts token(',')?) -> cons(t, ts)
-            | -> [])
-
-tupleTerm = !(self.startSpan()):s token('[') argList:a token(']') -> Tuple(a, self.span(s))
-
-bagTerm = !(self.startSpan()):s token('{') argList:a token('}') -> Bag(a, self.span(s))
-
-labelledBagTerm = !(self.startSpan()):s functor:f bagTerm:b -> LabelledBag(f, b, self.span(s))
-
-extraTerm = tupleTerm | labelledBagTerm  | bagTerm | baseTerm
-
-attrTerm = !(self.startSpan()):s extraTerm:k token(':') extraTerm:v -> Attr(k, v, self.span(s))
-
-term =  spaces (attrTerm | extraTerm)
-
-"""
+import os.path
+import string
+from ometa.boot import BootOMetaGrammar
+from ometa.runtime import character, EOFError
+from terml.nodes import Tag, Term, termMaker
 
 ## Functions called from grammar actions
+
+def concat(*bits):
+    return ''.join(map(str, bits))
+
+Character = termMaker.Character
+
+def makeFloat(sign, ds, tail):
+        return float((sign or '') + ds + tail)
+
+def signedInt(sign, x, base=10):
+    return int(str((sign or '')+x), base)
+
+def join(x):
+    return ''.join(x)
+
+def makeHex(sign, hs):
+    return int((sign or '') + ''.join(hs), 16)
+
+def makeOctal(sign, ds):
+    return int((sign or '') + '0'+''.join(ds), 8)
+
+def isDigit(x):
+    return x in string.digits
+
+def isOctDigit(x):
+    return x in string.octdigits
+
+def isHexDigit(x):
+    return x in string.hexdigits
+
+def contains(container, value):
+    return value in container
+
+def cons(first, rest):
+    return [first] + rest
 
 def Character(char):
     return character(char)
@@ -73,8 +60,8 @@ def numberType(n):
         return ".int."
     raise ValueError("wtf")
 
-def leafInternal(tag, data, span):
-    return Term(tag, data, None, span)
+def leafInternal(tag, data, span=None):
+    return Term(tag, data, None, None)
 
 def makeTerm(t, args=None, span=None):
     if isinstance(t, Term):
@@ -86,42 +73,24 @@ def makeTerm(t, args=None, span=None):
     return Term(t.asFunctor(), None, args and tuple(args), span)
 
 
-def Tuple(args, span):
+def Tuple(args, span=None):
     return Term(Tag(".tuple."), None, tuple(args), span)
 
-def Bag(args, span):
+def Bag(args, span=None):
     return Term(Tag(".bag."), None, tuple(args), span)
 
-def LabelledBag(f, arg, span):
+def LabelledBag(f, arg, span=None):
     return Term(f.asFunctor(), None, (arg,), span)
 
-def Attr(k, v, span):
+def Attr(k, v, span=None):
     return Term(Tag(".attr."), None, (k, v), span)
 
+termLGrammar = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "terml.parsley")).read()
+TermLParser = BootOMetaGrammar.makeGrammar(termLGrammar, globals(),
+                                           "TermLParser")
 
 
-try:
-    from terml.terml_generated import Parser as BaseTermLParser
-    BaseTermLParser.globals = globals()
-except ImportError:
-    from ometa.boot import BootOMetaGrammar
-    BaseTermLParser = BootOMetaGrammar.makeGrammar(termLGrammar, globals(),
-                                                   "TermLParser")
-
-class TermLParser(BaseTermLParser, CommonParser):
-
-    def startSpan(self):
-        return self.input.position
-
-    def span(self, start):
-        if not getattr(self.input.data, 'span', None):
-            return None
-        end = self.input.position
-        return self.input.data[start:end].span
-
-
-
-TermLParser.globals.update(CommonParser.globals)
 
 def parseTerm(termString):
     """

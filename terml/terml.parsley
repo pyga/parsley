@@ -1,7 +1,3 @@
-import string
-from terml.nodes import termMaker
-
-baseGrammar = r"""
 horizontal_space = (' '|'\t'|'\f'|('#' (~eol anything)*))
 spaces = horizontal_space*
 
@@ -9,7 +5,7 @@ number = spaces barenumber
 barenumber = '-'?:sign (('0' ((('x'|'X') hexdigit*:hs -> makeHex(sign, hs))
                     |floatPart(sign '0')
                     |octaldigit*:ds -> makeOctal(sign, ds)))
-               |decdigits:ds floatPart(sign, ds)
+               |decdigits:ds floatPart(sign ds)
                |decdigits:ds -> signedInt(sign, ds))
 
 
@@ -48,53 +44,46 @@ eol = horizontal_space* ('\r' '\n'|'\r' | '\n')
 
 uriBody = <(letterOrDigit |';'|'/'|'?'|':'|'@'|'&'|'='|'+'|'$'|','|'-'|'.'|'!'|'~'|'*'|'\''|'('|')'|'%'|'\\'|'|'|'#')+>
 
-"""
+spaces = ('\r' '\n'|'\r' | '\n' | horizontal_space)*
+literal = string:x -> leafInternal(Tag(".String."), x)
+        | character:x -> leafInternal(Tag(".char."), x)
+        | number:x -> leafInternal(Tag(numberType(x)), x)
 
+tag =  (
+          segment:seg1 (':' ':' sos)*:segs -> makeTag(cons(seg1, segs))
+        | (':' ':' sos)+:segs -> prefixedTag(segs))
 
-def concat(*bits):
-    return ''.join(map(str, bits))
+sos = segment | (string:s -> tagString(s))
 
-Character = termMaker.Character
+segment = ident | special | uri
 
-def makeFloat(sign, ds, tail):
-        return float((sign or '') + ds + tail)
+ident = segStart:i1 segPart*:ibits -> join(cons(i1, ibits))
 
-def signedInt(sign, x, base=10):
-    return int(str((sign or '')+x), base)
+segStart = letter | '_' | '$'
 
-def join(x):
-    return ''.join(x)
+segPart = letterOrDigit | '_' | '.' | '-' | '$'
 
-def makeHex(sign, hs):
-    return int((sign or '') + ''.join(hs), 16)
+special = '.':a ident:b -> concat(a, b)
 
-def makeOctal(sign, ds):
-    return int((sign or '') + '0'+''.join(ds), 8)
+uri = '<' uriBody*:uriChars '>' -> concat(b, uriChars, e)
 
-def isDigit(x):
-    return x in string.digits
+functor = spaces (literal | tag:t -> leafInternal(t, None, None))
+baseTerm = functor:f ('(' argList:a spaces ')' -> makeTerm(f, a)
+                     | -> makeTerm(f, None))
 
-def isOctDigit(x):
-    return x in string.octdigits
+arg = term
 
-def isHexDigit(x):
-    return x in string.hexdigits
+argList = ((arg:t (token(',') arg)*:ts token(',')?) -> cons(t, ts)
+            | -> [])
 
-def contains(container, value):
-    return value in container
+tupleTerm = token('[') argList:a token(']') -> Tuple(a)
 
-def cons(first, rest):
-    return [first] + rest
+bagTerm = token('{') argList:a token('}') -> Bag(a)
 
+labelledBagTerm = functor:f bagTerm:b -> LabelledBag(f, b)
 
-def brk(x):
-    import pdb; pdb.set_trace()
-    return x
+extraTerm = tupleTerm | labelledBagTerm  | bagTerm | baseTerm
 
-try:
-    from terml.common_generated import Parser as CommonParser
-    CommonParser.globals = globals()
-except ImportError:
-    from ometa.boot import BootOMetaGrammar
-    CommonParser = BootOMetaGrammar.makeGrammar(baseGrammar, globals(),
-                                                "CommonParser")
+attrTerm = extraTerm:k token(':') extraTerm:v -> Attr(k, v)
+
+term =  spaces (attrTerm | extraTerm)

@@ -107,7 +107,6 @@ class Tag(object):
 
 def coerceToTerm(val):
     from ometa.runtime import character, unicodeCharacter
-    from terml.twine import TwineText, TwineBytes
     if isinstance(val, Term):
         return val
     if val is None:
@@ -122,8 +121,6 @@ def coerceToTerm(val):
         return Term(Tag(".float64."), val, None, None)
     if isinstance(val, (character, unicodeCharacter)):
         return Term(Tag(".char."), val, None, None)
-    if isinstance(val, (TwineText, TwineBytes)):
-        return Term(Tag(".String."), val, None, val.span)
     if isinstance(val, basestring):
         return Term(Tag(".String."), val, None, None)
     if isinstance(val, (list, tuple)):

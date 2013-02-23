@@ -124,7 +124,6 @@ def matchArgs(quasiArglist, specimenArglist, args, bindings, index, max):
 
 
 def coerceToQuasiMatch(val, isFunctorHole, tag):
-    from terml.twine import TwineText, TwineBytes
     if isFunctorHole:
         if val is None:
             result = Term(Tag("null"), None, None, None)
@@ -133,8 +132,6 @@ def coerceToQuasiMatch(val, isFunctorHole, tag):
                 return None
             else:
                 result = val
-        elif isinstance(val, (TwineText, TwineBytes)):
-            result = Term(Tag(val), val, None, val.span)
         elif isinstance(val, basestring):
             result = Term(Tag(val), None, None, None)
         elif isinstance(val, bool):

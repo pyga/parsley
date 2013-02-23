@@ -1310,7 +1310,7 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
 
 class TreeTransformerTestCase(unittest.TestCase):
 
-    def compile(self, grammar):
+    def compile(self, grammar, namespace=None):
         """
         Produce an object capable of parsing via this grammar.
 
@@ -1318,7 +1318,11 @@ class TreeTransformerTestCase(unittest.TestCase):
         """
         from ometa.grammar import TreeTransformerGrammar
         from ometa.runtime import TreeTransformerBase
-        g = TreeTransformerGrammar.makeGrammar(dedent(grammar), globals(), 'TestGrammar', superclass=TreeTransformerBase)
+        if namespace is None:
+            namespace = globals()
+        g = TreeTransformerGrammar.makeGrammar(
+            dedent(grammar), namespace,
+            'TestGrammar', superclass=TreeTransformerBase)
         return g
 
     def test_termForm(self):
@@ -1343,7 +1347,6 @@ class TreeTransformerTestCase(unittest.TestCase):
                          Baz(:front :back) -> front.data * back.data
                          """)
         self.assertEqual(g.transform(term("Foo(1, Baz(2, 3))"))[0], 7)
-
 
     def test_defaultExpand(self):
         from terml.parser import parseTerm as term
@@ -1391,6 +1394,27 @@ class TreeTransformerTestCase(unittest.TestCase):
             """)
         self.assertEqual(g.transform(term('If(Name("a"), [Name("foo"), Name("baz")])'))[0],
                          "if a:\n  foo\n  baz")
+
+    def test_foreign(self):
+        """
+        Rules can call the implementation in a superclass.
+        """
+        grammar_letter = "expr = letter"
+        GrammarLetter = self.compile(grammar_letter, {})
+
+        grammar_digit = "expr '5' = digit"
+        GrammarDigit = self.compile(grammar_digit, {})
+
+        grammar = ("expr = !(grammar_digit_global):grammar_digit "
+                   "GrammarLetter.expr | grammar_digit.expr('5')")
+        TestGrammar = self.compile(grammar, {
+            "GrammarLetter": GrammarLetter,
+            "grammar_digit_global": GrammarDigit
+        })
+
+        self.assertEqual(TestGrammar("x").apply("expr")[0], "x")
+        self.assertEqual(TestGrammar("3").apply("expr")[0], "3")
+
 
 
 class ErrorReportingTests(unittest.TestCase):

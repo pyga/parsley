@@ -191,7 +191,7 @@ class TermOMeta(BootOMetaGrammar.makeGrammar(
 
 
 treeTransformerGrammar = r"""
-termPattern = indentation? name:name ?(name[0] in string.uppercase)
+termPattern = indentation? name:name ?(name[0].isupper())
               '(' expr:patts ')' -> t.TermPattern(name, patts)
 
 subtransform = "@" name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
@@ -207,7 +207,8 @@ wideTemplateText = <(~(vspace | end |'$') anything | '$' '$')+>
 
 exprHole = '$' name:n -> t.QuasiExprHole(n)
 
-expr1 = termPattern
+expr1 = foreignApply
+       |termPattern
        |subtransform
        |application
        |ruleValue
@@ -221,14 +222,14 @@ expr1 = termPattern
        |token('(') expr:e token(')') -> e
        |token('[') expr:e token(']') -> t.TermPattern(".tuple.", e)
 
-
+ 
 rule = noindentation ~~(name:n) (termRulePart(n)+:rs | rulePart(n)+:rs)  -> t.Rule(n, t.Or(rs))
 
-termRulePart :requiredName = noindentation !(setattr(self, "rulename", requiredName))
-                             termPattern:t ?(t.tag.name == requiredName) expr4:tail -> t.And([t, tail])
+termRulePart :requiredName =  noindentation !(setattr(self, "rulename", requiredName))
+                             termPattern:t ?(t.tag.name == requiredName) token("=")? expr4:tail -> t.And([t, tail])
 grammar = rule*:rs spaces -> t.Grammar(self.name, True, rs)
 """
 
-TreeTransformerGrammar = BootOMetaGrammar.makeGrammar(
+TreeTransformerGrammar = OMeta.makeGrammar(
     treeTransformerGrammar, globals(), name='TreeTransformer',
     superclass=OMeta)

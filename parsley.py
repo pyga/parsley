@@ -5,24 +5,6 @@ from terml.quasiterm import quasiterm
 
 __version__ = '1.1'
 
-def makeGrammar(source, bindings, name='Grammar', unwrap=False, extends=None):
-    """
-    Create a class from a Parsley grammar.
-
-    :param source: A grammar, as a string.
-    :param bindings: A mapping of variable names to objects.
-    :param name: Name used for the generated class.
-
-    :param unwrap: If True, return a parser class suitable for
-                   subclassing. If False, return a wrapper with the
-                   friendly API.
-    """
-    g = OMeta.makeGrammar(source, name).createParserClass(OMetaBase, bindings)
-    if unwrap:
-        return g
-    else:
-        return wrapGrammar(g)
-
 
 def wrapGrammar(g):
     def makeParser(input):
@@ -35,6 +17,28 @@ def wrapGrammar(g):
         return _GrammarWrapper(g(input), input)
     makeParser._grammarClass = g
     return makeParser
+
+
+def makeGrammar(source, bindings, name='Grammar', unwrap=False,
+                extends=wrapGrammar(OMetaBase)):
+    """
+    Create a class from a Parsley grammar.
+
+    :param source: A grammar, as a string.
+    :param bindings: A mapping of variable names to objects.
+    :param name: Name used for the generated class.
+
+    :param unwrap: If True, return a parser class suitable for
+                   subclassing. If False, return a wrapper with the
+                   friendly API.
+    :param extends: The superclass for the generated parser class.
+    """
+    g = OMeta.makeGrammar(source, name).createParserClass(
+        unwrapGrammar(extends), bindings)
+    if unwrap:
+        return g
+    else:
+        return wrapGrammar(g)
 
 def unwrapGrammar(w):
     """

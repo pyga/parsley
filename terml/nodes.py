@@ -29,7 +29,7 @@ class Term(_Term):
         newlineAndIndent = '\n' + (' ' * indentLevel)
         if self.data is not None:
             if self.tag.name == '.String.':
-                return '"%s"' % repr(self.data)[1:-1].replace("\\'", "'").replace('"', '\\"')
+                return '"%s"' % repr(self.data)[1:-1].replace("\\'", "'").replace('"', '\\\\"')
             elif self.tag.name == '.char.':
                 return "'%s'" % repr(self.data)[1:-1].replace("'", "\\'").replace('\\"', '"')
             else:

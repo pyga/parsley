@@ -673,7 +673,7 @@ class OMetaBase(object):
                 output.append(v)
             else:
                 raise TypeError("didn't expect %r in string template" % chunk)
-        return ''.join(output).rstrip('\n')
+        return ''.join(output).rstrip('\n'), None
 
     def end(self):
         """
@@ -1016,11 +1016,15 @@ class TreeTransformerBase(OMetaBase):
 
     def termpattern(self, name, expr):
         v, e = self.rule_anything()
-        if name != v.tag.name:
+        if name == ".tuple." and getattr(v, 'tag', None) is None:
+            newInput = v
+        elif name != v.tag.name:
             raise e.withMessage(expected("a Term named " + name))
+        else:
+            newInput = v.args
         oldInput = self.input
         try:
-            self.input = InputStream.fromIterable(v.args)
+            self.input = InputStream.fromIterable(newInput)
         except TypeError:
             raise e.withMessage(expected("a Term"))
 
@@ -1029,7 +1033,24 @@ class TreeTransformerBase(OMetaBase):
         self.input = oldInput
         return v, e
 
+    def exactly(self, wanted):
+        """
+        Match a single item from the input equal to the given
+        specimen, or a sequence of characters if the input is string.
+        @param wanted: What to match.
+        """
+        i = self.input
+        if not self.tree and len(wanted) > 1:
+            val, p, self.input = self.input.slice(len(wanted))
+        else:
+            val, p = self.input.head()
+            self.input = self.input.tail()
+        if getattr(val, 'data', None) is not None:
+            val = val.data
+        if wanted == val:
+            return val, p
+        else:
+            self.input = i
+            raise p.withMessage(expected(None, wanted))
 
-
-
-
+    rule_exactly = exactly

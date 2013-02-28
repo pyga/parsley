@@ -288,7 +288,7 @@ class PythonWriter(object):
 
     def generate_StringTemplate(self, out, template, debugname=None):
         out.writeln("from terml.parser import parseTerm as term")
-        return self._expr(out, 'stringtemplate', 'self.stringtemplate(%s, _locals), None' % (template,))
+        return self._expr(out, 'stringtemplate', 'self.stringtemplate(%s, _locals)' % (template,))
 
     def generate_ConsumedBy(self, out, expr, debugname=None):
         """

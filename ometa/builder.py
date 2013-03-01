@@ -413,3 +413,4 @@ def moduleFromGrammar(source, className, modname, filename):
     sys.modules[modname] = mod
     linecache.getlines(filename, mod.__dict__)
     return mod
+

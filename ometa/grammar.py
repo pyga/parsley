@@ -51,15 +51,12 @@ class TermOMeta(loadGrammar(
         source = g.writeTerm(tree)
         return moduleFromGrammar(source, name, modname, filename)
 
-
-
     def writeTerm(self, term):
         f = StringIO()
         pw = self._writer(term)
         out = TextWriter(f)
         pw.output(out)
         return f.getvalue().strip()
-
 
     def rule_term(self):
         from terml.parser import TermLParser
@@ -77,7 +74,6 @@ class TermOMeta(loadGrammar(
         val, err = tp.apply('argList')
         self.input = tp.input
         return val, err
-
 
 TreeTransformerGrammar = loadGrammar(
     ometa, "parsley_tree_transformer",

@@ -53,8 +53,8 @@ expr1 = foreignApply
           |token('(') expr:e token(')') -> e
           |token('<') expr:e token('>')
              -> t.ConsumedBy(e)
-          |token('[') expr:e token(']') !(self.isTree())
-             -> t.List(e)
+          |token('[') expr?:e token(']') !(self.isTree())
+             -> t.List(e) if e else t.List()
 
 expr2 = (token('~') (token('~') expr2:e -> t.Lookahead(e)
                     |           expr2:e -> t.Not(e)

@@ -669,7 +669,13 @@ class OMetaBase(object):
                     lines = []
                     for x in vs:
                         lines.extend(x.split('\n'))
-                    v = ("\n" + currentIndent).join(lines)
+                    compacted_lines = []
+                    for line in lines:
+                        if line:
+                            compacted_lines.append(line)
+                        elif compacted_lines:
+                            compacted_lines[-1] = compacted_lines[-1] + '\n'
+                    v = ("\n" + currentIndent).join(compacted_lines)
                 output.append(v)
             else:
                 raise TypeError("didn't expect %r in string template" % chunk)

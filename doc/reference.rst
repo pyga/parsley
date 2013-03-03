@@ -62,5 +62,33 @@ Basic syntax
 Comments like Python comments are supported as well, starting with #
 and extending to the end of the line.
 
+
+Python API
+~~~~~~~~~~
 .. automodule:: parsley
    :members:
+
+
+Built-in Parsley Rules
+~~~~~~~~~~~~~~~~~~~~~~
+
+``anything``:
+    Matches a single character from the input.
+
+``letter``:
+    Matches a single ASCII letter.
+
+``digit``:
+    Matches a decimal digit.
+
+``letterOrDigit``:
+    Combines the above.
+
+``end``:
+    Matches the end of input.
+
+``ws``:
+    Matches zero or more spaces, tabs, or newlines.
+
+``exactly(char)``:
+   Matches the character `char`.

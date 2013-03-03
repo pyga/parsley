@@ -1,6 +1,7 @@
 from ometa.grammar import OMeta
 from ometa.runtime import ParseError, EOFError, OMetaBase
 from terml.parser import parseTerm as term
+from terml.nodes import termMaker
 from terml.quasiterm import quasiterm
 
 __version__ = '1.1'
@@ -44,7 +45,7 @@ def unwrapGrammar(w):
     """
     Access the internal parser class for a Parsley grammar object.
     """
-    return w._grammarClass
+    return getattr(w, '_grammarClass', None) or w
 
 class _GrammarWrapper(object):
     """

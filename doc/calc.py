@@ -1,6 +1,5 @@
 import math
-from parsley import makeGrammar, unwrapGrammar
-from ometa.grammar import OMeta
+from parsley import makeGrammar
 
 def calculate(start, pairs):
         result = start
@@ -36,8 +35,8 @@ Calc = makeGrammar(calcGrammar, {"calculate": calculate}, name="Calc")
 
 calcGrammarEx = """
 value = super | constant
-constant = 'p' 'i' -> math.pi
+constant = 'pi' -> math.pi
          | 'e' -> math.e
 """
-CalcEx = OMeta.makeGrammar(calcGrammarEx, {"math": math}, name="CalcEx",
-                           superclass=unwrapGrammar(Calc))
+CalcEx = makeGrammar(calcGrammarEx, {"math": math}, name="CalcEx",
+                     extends=Calc)

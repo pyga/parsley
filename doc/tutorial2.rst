@@ -20,6 +20,7 @@ Since JSON objects are represented in Python as dicts, and ``dict``
 takes a list of pairs, we need a rule to collect name/value pairs
 inside an object expression.
 ::
+
     members = (pair:first (ws ',' pair)*:rest -> [first] + rest)
               | -> []
 
@@ -32,11 +33,13 @@ builtin rule ``spaces`` to consume any whitespace after the colon::
 Arrays, similarly, are sequences of array elements, and are
 represented as Python lists.
 ::
+
     array = '[' elements:xs ws ']' -> xs
     elements = (value:first (ws ',' value)*:rest -> [first] + rest) | -> []
 
 Values can be any JSON expression.
 ::
+
     value = ws (string | number | object | array
                | 'true'  -> True
                | 'false' -> False
@@ -50,6 +53,7 @@ lookahead; if the expression following it succeeds, its parse will
 fail. If the expression fails, the rest of the parse continues. Either
 way, no input will be consumed.
 ::
+
     string = '"' (escapedChar | ~'"' anything)*:c '"' -> ''.join(c)
 
 This is a common pattern, so let's examine it step by step. This will
@@ -73,17 +77,19 @@ The ``escapedChar`` rule should not be too surprising: we match a
 backslash then whatever escape code is given.
 
 ::
-escapedChar = '\\' (('"' -> '"')    |('\\' -> '\\')
-                   |('/' -> '/')    |('b' -> '\b')
-                   |('f' -> '\f')   |('n' -> '\n')
-                   |('r' -> '\r')   |('t' -> '\t')
-                   |('\'' -> '\'')  | escapedUnicode)
+
+    escapedChar = '\\' (('"' -> '"')    |('\\' -> '\\')
+                       |('/' -> '/')    |('b' -> '\b')
+                       |('f' -> '\f')   |('n' -> '\n')
+                       |('r' -> '\r')   |('t' -> '\t')
+                       |('\'' -> '\'')  | escapedUnicode)
 
 Unicode escapes (of the form ``\u2603``) require matching four hex
 digits, so we use the repetition operator ``{}``, which works like +
 or * except taking either a ``{min, max}`` pair or simply a
 ``{number}`` indicating the exact number of repetitions.
 ::
+
     hexdigit = :x ?(x in '0123456789abcdefABCDEF') -> x
     escapedUnicode = 'u' <hexdigit{4}>:hs -> unichr(int(hs, 16))
 
@@ -91,6 +97,7 @@ With strings out of the way, we advance to numbers, both integer and
 floating-point.
 
 ::
+
     number = spaces ('-' | -> ''):sign (intPart:ds (floatPart(sign ds)
                                                    | -> int(sign + ds)))
 
@@ -98,6 +105,7 @@ Here we vary from the json.org description a little and move sign
 handling up into the ``number`` rule. We match either an ``intPart``
 followed by a ``floatPart`` or just an ``intPart`` by itself.
 ::
+
     digit = :x ?(x in '0123456789') -> x
     digits = <digit*>
     digit1_9 = :x ?(x in '123456789') -> x

@@ -23,8 +23,10 @@ expression. In particular, alternatives are evaluated in order, unlike
 table-driven parsers such as yacc, bison or PLY.
 
 Parsley is an implementation of OMeta, an object-oriented
-pattern-matching language developed by Alessandro Warth
-(http://tinlizzie.org/ometa/).
+pattern-matching language developed by Alessandro Warth at
+http://tinlizzie.org/ometa/ . For further reading, see Warth's PhD
+thesis, which provides a detailed description of OMeta:
+http://www.vpri.org/pdf/tr2008003_experimenting.pdf
 
 How It Works
 ------------

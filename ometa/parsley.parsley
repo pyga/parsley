@@ -32,7 +32,7 @@ character = ws '\'' (~'\'' (escapedChar | anything))+:c
 string = ws '"' (escapedChar | ~('"') anything)*:c
          ws '"' -> t.Token(''.join(c))
 
-name = <letter letterOrDigit*>
+name = <letter ('_' |letterOrDigit)*>
 
 args = ('(' !(self.applicationArgs(finalChar=')')):args ')'
             -> args

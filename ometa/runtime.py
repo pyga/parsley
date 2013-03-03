@@ -734,7 +734,7 @@ class OMetaBase(object):
         Match a single alphanumeric character.
         """
         x, e = self.rule_anything()
-        if x.isalnum() or x == '_':
+        if x.isalnum():
             return x, e
         else:
             raise e.withMessage(expected("letter or digit"))

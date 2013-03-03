@@ -24,7 +24,7 @@ character = ws '\'' (escapedChar | anything):c ws '\'' -> t.Exactly(c)
 
 string = ws '"' (escapedChar | ~('"') anything)*:c '"' -> t.Exactly(''.join(c))
 
-name = <letter letterOrDigit*>
+name = <letter (letterOrDigit | '_')*>
 application = (ws '<' ws name:name
                   (' ' !(self.applicationArgs(finalChar='>')):args '>'
                      -> t.Apply(name, self.rulename, args)

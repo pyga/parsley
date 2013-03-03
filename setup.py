@@ -14,6 +14,7 @@ setup(
     author_email="washort42@gmail.com",
     license="MIT License",
     long_description=open("README").read(),
-    packages=["ometa", "terml"],
+    packages=["ometa", "terml", "ometa._generated", "terml._generated",
+              "ometa.test", "terml.test"],
     py_modules=["parsley"]
 )

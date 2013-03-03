@@ -15,11 +15,11 @@ def stage_pkg(pkg):
     for fn in glob.glob(pkg + "/*.parsley"):
         grammar = open(fn).read()
         grammarname = fn.split('/')[1].split('.')[0]
+        pyfn = "stage/%s/_generated/%s.py" % (pkg, grammarname)
+        print "%s => %s" % (fn, pyfn)
         g = OMeta(grammar)
         tree = g.parseGrammar(grammarname)
         source = writePython(tree)
-        pyfn = "stage/%s/_generated/%s.py" % (pkg, grammarname)
-        print "%s => %s" % (fn, pyfn)
         pythonFile = open(pyfn, 'w')
         pythonFile.write(source)
 

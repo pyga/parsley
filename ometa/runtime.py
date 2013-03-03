@@ -753,10 +753,13 @@ class OMetaBase(object):
 
     rule_letterOrDigit = letterOrDigit
     rule_letter = letter
-    rule_token = token
     rule_end = end
-    rule_spaces = eatWhitespace
+    rule_ws = eatWhitespace
     rule_exactly = exactly
+
+    #Deprecated.
+    rule_spaces = eatWhitespace
+    rule_token = token
 
 
     def rule_anything(self):
@@ -773,7 +776,7 @@ class OMetaGrammarBase(OMetaBase):
     """
     Common methods for the OMeta grammar parser itself, and its variants.
     """
-    tree = False
+    tree_target = False
 
     @classmethod
     def makeGrammar(cls, grammar, name='Grammar'):
@@ -950,7 +953,7 @@ class OMetaGrammarBase(OMetaBase):
         return (''.join(expr).strip(), endchar), e
 
     def isTree(self):
-        self.tree = True
+        self.tree_target = True
 
 
 class TreeTransformerBase(OMetaBase):

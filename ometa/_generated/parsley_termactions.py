@@ -5,9 +5,9 @@ def createParserClass(GrammarBase, ruleGlobals):
         def rule_ruleValue(self):
             _locals = {'self': self}
             self.locals['ruleValue'] = _locals
-            _G_python_1, lastError = "->", None
+            _G_apply_1, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'ruleValue')
-            _G_apply_2, lastError = self._apply(self.rule_token, "token", [_G_python_1])
+            _G_exactly_2, lastError = self.exactly('->')
             self.considerError(lastError, 'ruleValue')
             _G_apply_3, lastError = self._apply(self.rule_term, "term", [])
             self.considerError(lastError, 'ruleValue')
@@ -20,16 +20,16 @@ def createParserClass(GrammarBase, ruleGlobals):
         def rule_semanticPredicate(self):
             _locals = {'self': self}
             self.locals['semanticPredicate'] = _locals
-            _G_python_5, lastError = "?(", None
+            _G_apply_5, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'semanticPredicate')
-            _G_apply_6, lastError = self._apply(self.rule_token, "token", [_G_python_5])
+            _G_exactly_6, lastError = self.exactly('?(')
             self.considerError(lastError, 'semanticPredicate')
             _G_apply_7, lastError = self._apply(self.rule_term, "term", [])
             self.considerError(lastError, 'semanticPredicate')
             _locals['tt'] = _G_apply_7
-            _G_python_8, lastError = ")", None
+            _G_apply_8, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'semanticPredicate')
-            _G_apply_9, lastError = self._apply(self.rule_token, "token", [_G_python_8])
+            _G_exactly_9, lastError = self.exactly(')')
             self.considerError(lastError, 'semanticPredicate')
             _G_python_10, lastError = eval('t.Predicate(tt)', self.globals, _locals), None
             self.considerError(lastError, 'semanticPredicate')
@@ -39,16 +39,16 @@ def createParserClass(GrammarBase, ruleGlobals):
         def rule_semanticAction(self):
             _locals = {'self': self}
             self.locals['semanticAction'] = _locals
-            _G_python_11, lastError = "!(", None
+            _G_apply_11, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'semanticAction')
-            _G_apply_12, lastError = self._apply(self.rule_token, "token", [_G_python_11])
+            _G_exactly_12, lastError = self.exactly('!(')
             self.considerError(lastError, 'semanticAction')
             _G_apply_13, lastError = self._apply(self.rule_term, "term", [])
             self.considerError(lastError, 'semanticAction')
             _locals['tt'] = _G_apply_13
-            _G_python_14, lastError = ")", None
+            _G_apply_14, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'semanticAction')
-            _G_apply_15, lastError = self._apply(self.rule_token, "token", [_G_python_14])
+            _G_exactly_15, lastError = self.exactly(')')
             self.considerError(lastError, 'semanticAction')
             _G_python_16, lastError = eval('t.Action(tt)', self.globals, _locals), None
             self.considerError(lastError, 'semanticAction')

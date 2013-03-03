@@ -1,7 +1,9 @@
 comment = '#' (~'\n' anything)*
 hspace = ' ' | '\t' | comment
-vspace = token("\r\n") | '\r' | '\n'
-number = spaces ('-' barenumber:x -> t.Exactly(-x)
+vspace =  '\r\n' | '\r' | '\n'
+ws = (hspace | vspace | comment)*
+
+number = ws ('-' barenumber:x -> t.Exactly(-x)
                 |barenumber:x -> t.Exactly(x))
 barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
@@ -18,15 +20,15 @@ escapedChar = '\\' ('n' -> "\n"
                      |'\'' -> "'"
                      |'\\' -> "\\")
 
-character = token("'") (escapedChar | anything):c token("'") -> t.Exactly(c)
+character = ws '\'' (escapedChar | anything):c ws '\'' -> t.Exactly(c)
 
-string = token('"') (escapedChar | ~('"') anything)*:c token('"') -> t.Exactly(''.join(c))
+string = ws '"' (escapedChar | ~('"') anything)*:c '"' -> t.Exactly(''.join(c))
 
 name = <letter letterOrDigit*>
-application = (token('<') spaces name:name
+application = (ws '<' ws name:name
                   (' ' !(self.applicationArgs(finalChar='>')):args '>'
                      -> t.Apply(name, self.rulename, args)
-                  |token('>')
+                  |ws '>'
                      -> t.Apply(name, self.rulename, [])))
 
 expr1 = (application
@@ -36,11 +38,11 @@ expr1 = (application
           |number:n !(self.isTree()) -> n
           |character
           |string
-          |token('(') expr:e token(')') -> e
-          |(token('[') expr:e token(']') !(self.isTree())
+          |ws '(' expr:e ws ')' -> e
+          |(ws '[' expr:e ws ']' !(self.isTree())
               -> t.List(e)))
 
-expr2 = (token('~') (token('~') expr2:e
+expr2 = (ws '~' ('~' expr2:e
                         -> t.Lookahead(e)
                     |expr2:e -> t.Not(e))
         |expr1)
@@ -52,28 +54,28 @@ expr3 = expr2:e
               | -> e):r
            (':' name:n -> t.Bind(n, r)
            | -> r)
-          | (token(':') name:n -> t.Bind(n, t.Apply("anything", self.rulename, [])))
+          | (ws ':' name:n -> t.Bind(n, t.Apply("anything", self.rulename, [])))
 
 expr4 = expr3*:es -> t.And(es)
 
-expr =  expr4:e (token('|') expr4)*:es
+expr =  expr4:e (ws '|' expr4)*:es
           -> t.Or([e] + es)
 
-ruleValue = token("=>") -> self.ruleValueExpr(False)
+ruleValue = ws '=>' -> self.ruleValueExpr(False)
 
-semanticPredicate =  token("?(") -> self.semanticPredicateExpr()
+semanticPredicate =  ws '?(' -> self.semanticPredicateExpr()
 
-semanticAction = token("!(") -> self.semanticActionExpr()
+semanticAction = ws '!(' -> self.semanticActionExpr()
 
 ruleEnd = (hspace* vspace+) | end
-rulePart :requiredName = (spaces name:n ?(n == requiredName)
+rulePart :requiredName = ws name:n ?(n == requiredName)
                             !(setattr(self, "rulename", n))
                             expr4:args
-                            (token("::=") expr:e ruleEnd
+                            (ws '::=' expr:e ruleEnd
                                -> t.And([args, e])
-                            | ruleEnd -> args))
-rule = (spaces ~~(name:n) rulePart(n):r
+                            | ruleEnd -> args)
+rule = (ws ~~(name:n) rulePart(n):r
           (rulePart(n)+:rs -> t.Rule(n, t.Or([r] + rs))
           |                     -> t.Rule(n, r)))
 
-grammar = rule*:rs spaces -> t.Grammar(self.name, self.tree, rs)
+grammar = rule*:rs ws -> t.Grammar(self.name, self.tree_target, rs)

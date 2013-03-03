@@ -1,7 +1,7 @@
-horizontal_space = (' '|'\t'|'\f'|('#' (~eol anything)*))
-spaces = horizontal_space*
+hspace = (' '|'\t'|'\f'|('#' (~eol anything)*))
+ws = ('\r' '\n'|'\r' | '\n' | hspace)*
 
-number = spaces barenumber
+number = ws barenumber
 barenumber = '-'?:sign (('0' ((('x'|'X') hexdigit*:hs -> makeHex(sign, hs))
                     |floatPart(sign '0')
                     |octaldigit*:ds -> makeOctal(sign, ds)))
@@ -18,8 +18,8 @@ decdigits = digit:d ((:x ?(isDigit(x)) -> x) | '_' -> "")*:ds -> concat(d, join(
 octaldigit = :x ?(isOctDigit(x)) -> x
 hexdigit = :x ?(isHexDigit(x)) -> x
 
-string = token('"') (escapedChar | ~('"') anything)*:c '"' -> join(c)
-character = token("'") (escapedChar | ~('\''|'\n'|'\r'|'\\') anything):c '\'' -> Character(c)
+string = ws '"' (escapedChar | ~('"') anything)*:c '"' -> join(c)
+character = ws '\'' (escapedChar | ~('\''|'\n'|'\r'|'\\') anything):c '\'' -> Character(c)
 escapedUnicode = ('u' <hexdigit hexdigit hexdigit hexdigit>:hs -> unichr(int(hs, 16))
                    |'U' <hexdigit hexdigit hexdigit hexdigit
                          hexdigit hexdigit hexdigit hexdigit>:hs -> unichr(int(hs, 16)))
@@ -40,11 +40,11 @@ escapedChar = '\\' ('n' -> '\n'
                      | escapedOctal
                      | eol -> "")
 
-eol = horizontal_space* ('\r' '\n'|'\r' | '\n')
+eol = hspace* ('\r' '\n'|'\r' | '\n')
 
 uriBody = <(letterOrDigit |';'|'/'|'?'|':'|'@'|'&'|'='|'+'|'$'|','|'-'|'.'|'!'|'~'|'*'|'\''|'('|')'|'%'|'\\'|'|'|'#')+>
 
-spaces = ('\r' '\n'|'\r' | '\n' | horizontal_space)*
+
 literal = string:x -> leafInternal(Tag(".String."), x)
         | character:x -> leafInternal(Tag(".char."), x)
         | number:x -> leafInternal(Tag(numberType(x)), x)
@@ -67,23 +67,23 @@ special = '.':a ident:b -> concat(a, b)
 
 uri = '<' uriBody*:uriChars '>' -> concat(b, uriChars, e)
 
-functor = spaces (literal | tag:t -> leafInternal(t, None))
-baseTerm = functor:f ('(' argList:a spaces ')' -> makeTerm(f, a)
+functor = ws (literal | tag:t -> leafInternal(t, None))
+baseTerm = functor:f ('(' argList:a ws ')' -> makeTerm(f, a)
                      | -> makeTerm(f, None))
 
 arg = term
 
-argList = ((arg:t (token(',') arg)*:ts token(',')?) -> cons(t, ts)
+argList = ((arg:t (ws ',' arg)*:ts ws ','?) -> cons(t, ts)
             | -> [])
 
-tupleTerm = token('[') argList:a token(']') -> Tuple(a)
+tupleTerm = ws '[' argList:a ws ']' -> Tuple(a)
 
-bagTerm = token('{') argList:a token('}') -> Bag(a)
+bagTerm = ws '{' argList:a ws '}' -> Bag(a)
 
 labelledBagTerm = functor:f bagTerm:b -> LabelledBag(f, b)
 
 extraTerm = tupleTerm | labelledBagTerm  | bagTerm | baseTerm
 
-attrTerm = extraTerm:k token(':') extraTerm:v -> Attr(k, v)
+attrTerm = extraTerm:k ws ':' extraTerm:v -> Attr(k, v)
 
-term =  spaces (attrTerm | extraTerm)
+term = ws (attrTerm | extraTerm)

@@ -1,8 +1,8 @@
-ruleValue = token("->") term:tt -> t.Action(tt)
+ruleValue = ws '->' term:tt -> t.Action(tt)
 
-semanticPredicate = token("?(") term:tt token(")") -> t.Predicate(tt)
+semanticPredicate = ws '?(' term:tt ws ')' -> t.Predicate(tt)
 
-semanticAction = token("!(") term:tt token(")") -> t.Action(tt)
+semanticAction = ws '!(' term:tt ws ')' -> t.Action(tt)
 
 application = indentation? name:name
                   ('(' term_arglist:args ')'

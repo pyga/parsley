@@ -1,9 +1,9 @@
 termPattern = indentation? name:name ?(name[0].isupper())
               '(' expr:patts ')' -> t.TermPattern(name, patts)
 
-subtransform = "@" name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
+subtransform = ws '@' name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
 
-wide_templatedValue = token("-->") ' '* wideTemplateBits:contents -> t.StringTemplate(contents)
+wide_templatedValue = ws '-->' ' '* wideTemplateBits:contents -> t.StringTemplate(contents)
 tall_templatedValue = hspace? '{{{' (' ' | '\t')* vspace? tallTemplateBits:contents '}}}' -> t.StringTemplate(contents)
 
 tallTemplateBits = (exprHole | tallTemplateText)*
@@ -26,7 +26,7 @@ expr1 = foreignApply
        |number:n !(self.isTree()) -> n
        |character
        |string
-       |token('(') expr:e token(')') -> e
-       |token('[') expr?:e token(']') -> t.TermPattern(".tuple.", e or t.And([]))
+       |ws '(' expr:e ws ')' -> e
+       |ws '[' expr?:e ws ']' -> t.TermPattern(".tuple.", e or t.And([]))
 
-grammar = rule*:rs spaces -> t.Grammar(self.name, True, rs)
+grammar = rule*:rs ws -> t.Grammar(self.name, True, rs)

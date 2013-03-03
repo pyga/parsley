@@ -16,4 +16,4 @@ setup(
     long_description=open("README").read(),
     packages=["ometa", "terml"],
     py_modules=["parsley"]
-    )
+)

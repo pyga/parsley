@@ -1084,7 +1084,7 @@ class MakeGrammarTest(unittest.TestCase):
         e = self.assertRaises(ParseError, OMeta.makeGrammar, grammar,
                               "Foo")
         self.assertEquals(e.position, 56)
-        self.assertEquals(e.error, [("expected", "token", "'"), ("message", "end of input")])
+        self.assertEquals(e.error, [("expected", None, "\r\n"), ("message", "end of input")])
 
 
     def test_subclassing(self):

@@ -1,7 +1,6 @@
-
-================
-Parsley Tutorial
-================
+==========================================
+Parsley Tutorial Part I: Basics and Syntax
+==========================================
 
 *************************************
 From Regular Expressions To Grammars
@@ -377,8 +376,6 @@ parentheses, and replace existing calls to ``number`` with calls to
 ::
 
     45
-
-
 
 And there you have it: a four-function calculator with precedence and
 parentheses.

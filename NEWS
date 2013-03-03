@@ -1,16 +1,27 @@
-1.1.0 (2012-11-04):
+1.1.0 (2013-03-03):
+ - The 'spaces' rule has been provided under the alias 'ws'; 'spaces'
+   is now the deprecated name.
  - Single quotes can now be used around multiple characters to match
    them consecutively. For example, 'abc' is equivalent 'a' 'b' 'c'.
- - Double quotes now invoke the 'token' rule for string inputs, and
-   continue to match literal strings for tree grammars.
+ - The 'token' rule is thus deprecated as well, since "token('foo')"
+   is more typing than "ws 'foo'".
  - Hex escapes can now be used in literals for matching bytes.
  - 'makeGrammar' now takes an 'unwrap' argument, to get a grammar
    class suitable for subclassing.
+ - 'makeGrammar' also takes an 'extends' argument that can be either a
+   regular python class or a wrapped Parsley grammar, for simple
+   subclassing.
  - 'repeat' expressions now work for 0 repetitions properly.
- - ometa.runtime.TIMING flag added for enabling debug output of grammar load times.
+ - ometa.runtime.TIMING flag added for enabling debug output of
+   grammar load times.
  - OMeta version 1 parser moved to ometa.compat.
- - Twine no longer used by default for grammars or their inputs.
+ - Twine removed.
  - Various bugfixes around error reporting.
+ - Parsley no longer loads its internal grammars at import time. The
+   'stage' script in bin/ is used to regenerate the compiled versions
+   after modification.
+ - Experimental tree transformer grammars, with special syntax for
+   destructuring terms and creating string templates, have been added.
 
 1.0.0 (2012-10-01):
  - PyMeta is now Parsley.

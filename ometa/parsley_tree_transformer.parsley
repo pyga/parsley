@@ -30,3 +30,7 @@ expr1 = foreignApply
        |ws '[' expr?:e ws ']' -> t.TermPattern(".tuple.", e or t.And([]))
 
 grammar = rule*:rs ws -> t.Grammar(self.name, True, rs)
+rule = noindentation ~~(name:n) (termRulePart(n)+:rs | rulePart(n)+:rs)  -> t.Rule(n, t.Or(rs))
+
+termRulePart :requiredName =  noindentation !(setattr(self, "rulename", requiredName))
+                             termPattern:tt ?(tt.args[0].data == requiredName) token("=")? expr:tail -> t.And([tt, tail])

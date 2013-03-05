@@ -986,19 +986,11 @@ class TreeTransformerBase(OMetaBase):
                     return self._transform_iterable(tt.args)
                 else:
                     if getattr(self, 'rule_' + name, None):
-                        return self._transform_term(name, tt.args)
+                        return self.apply(name, tt)
                     else:
                         return self.apply("unknown_term", tt)
         else:
             return self._transform_iterable(tt)
-
-    def _transform_term(self, name, contents):
-        oldInput = self.input
-        self.input = InputStream.fromIterable(contents)
-        v = self.apply(name)
-        self.end()
-        self.input = oldInput
-        return v
 
     def _transform_iterable(self, contents):
         oldInput = self.input

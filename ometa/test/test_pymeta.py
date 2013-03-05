@@ -1307,6 +1307,13 @@ class TreeTransformerTestCase(unittest.TestCase):
         g = self.compile("Foo() -> 6")
         self.assertEqual(g.transform(term("Foo()"))[0], 6)
 
+    def test_emptyArgsMeansEmpty(self):
+        g = self.compile("""
+                         Foo() -> 6
+                         Foo(:x) -> x
+                         """)
+        self.assertEqual(g.transform(term("Foo(3)"))[0].data, 3)
+
     def test_subTransform(self):
         g = self.compile("""
                          Foo(:left @right) -> left.data + right

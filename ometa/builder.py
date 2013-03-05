@@ -47,6 +47,8 @@ class PythonWriter(object):
     def _generateNode(self, out, node, debugname=None):
         name = node.tag.name
         args = node.args
+        if name == 'null':
+            return 'None'
         return getattr(self, "generate_"+name)(out, *args, debugname=debugname)
 
 

@@ -1,5 +1,5 @@
 termPattern = indentation? name:name ?(name[0].isupper())
-              '(' expr:patts ')' -> t.TermPattern(name, patts)
+              '(' expr?:patts ')' -> t.TermPattern(name, patts)
 
 subtransform = ws '@' name:n -> t.Bind(n, t.Apply('transform', self.rulename, []))
 
@@ -26,7 +26,7 @@ expr1 = foreignApply
        |number:n !(self.isTree()) -> n
        |character
        |string
-       |ws '(' expr:e ws ')' -> e
+       |ws '(' expr?:e ws ')' -> e
        |ws '[' expr?:e ws ']' -> t.TermPattern(".tuple.", e or t.And([]))
 
 grammar = rule*:rs ws -> t.Grammar(self.name, True, rs)

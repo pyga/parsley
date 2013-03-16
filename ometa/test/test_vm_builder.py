@@ -1,0 +1,138 @@
+from twisted.trial.unittest import TestCase
+from terml.nodes import termMaker as t
+from ometa.vm_builder import writeBytecode, writeBytecodeRule, writeBytecodeGrammar
+
+
+class TestVMBuilder(TestCase):
+    def test_exactly(self):
+        x = t.Exactly("a")
+        self.assertEqual(writeBytecode(x),
+                         [t.Match("a")])
+
+    def test_apply(self):
+        one = t.Action("1")
+        x = t.Action("x")
+        a = t.Apply("foo", "main", [one, x])
+        self.assertEqual(writeBytecode(a),
+                         [t.Python('x'),
+                          t.Push(1),
+                          t.Call('foo')])
+
+    def test_foreignApply(self):
+        one = t.Action("1")
+        x = t.Action("x")
+        a = t.ForeignApply("thegrammar", "foo", "main", [one, x])
+        self.assertEqual(writeBytecode(a),
+                         [t.Python('x'),
+                          t.Push(1),
+                          t.ForeignCall('thegrammar', 'foo')])
+
+    def test_superApply(self):
+        one = t.Action("1")
+        x = t.Action("x")
+        a = t.Apply("super", "main", [one, x])
+        self.assertEqual(writeBytecode(a),
+                         [t.Python('x'),
+                          t.Push(1),
+                          t.SuperCall('main')])
+
+    def test_many(self):
+        xs = t.Many(t.Exactly("x"))
+        self.assertEqual(writeBytecode(xs),
+                         [t.Choice(3),
+                          t.Match("x"),
+                          t.PartialCommit(0)])
+
+    def test_many1(self):
+        xs = t.Many1(t.Exactly("x"))
+        self.assertEqual(writeBytecode(xs),
+                         [t.Match('x'),
+                          t.Choice(4),
+                          t.Match('x'),
+                          t.PartialCommit(1)])
+
+    def test_or(self):
+        xy = t.Or([t.Exactly("x"),
+                   t.Exactly("y")])
+        self.assertEqual(writeBytecode(xy),
+                         [t.Choice(3),
+                          t.Match('x'),
+                          t.Commit(4),
+                          t.Match('y')])
+
+    def test_singleOr(self):
+        x1 = t.Or([t.Exactly("x")])
+        x = t.Exactly("x")
+        self.assertEqual(writeBytecode(x1),
+                         writeBytecode(x))
+
+    def test_optional(self):
+        x = t.Optional(t.Exactly("x"))
+        self.assertEqual(writeBytecode(x),
+                         [t.Choice(3),
+                          t.Match('x'),
+                          t.Commit(4),
+                          t.Push(None)])
+
+    def test_not(self):
+        x = t.Not(t.Exactly("x"))
+        self.assertEqual(writeBytecode(x),
+                         [t.Choice(3),
+                          t.Match('x'),
+                          t.FailTwice()])
+
+    def test_lookahead(self):
+        x = t.lookahead(t.Exactly("x"))
+        self.assertEqual(writeBytecode(x),
+                         [t.Choice(3),
+                          t.Match('x'),
+                          t.Commit(4),
+                          t.Fail()])
+
+    def test_sequence(self):
+        x = t.Exactly("x")
+        y = t.Exactly("y")
+        z = t.And([x, y])
+        self.assertEqual(writeBytecode(z),
+                         [t.Match('x'),
+                          t.Match('y')])
+
+    def test_bind(self):
+        x = t.Exactly("x")
+        b = t.Bind("var", x)
+        self.assertEqual(writeBytecode(b),
+                         [t.Match('x'),
+                          t.Bind('var')])
+
+    def test_pred(self):
+        x = t.Predicate(t.Action("doStuff()"))
+        self.assertEqual(writeBytecode(x),
+                         [t.Eval('doStuff()'),
+                          t.FailIfFalse()])
+
+    def test_listpattern(self):
+        x = t.List(t.Exactly("x"))
+        self.assertEqual(writeBytecode(x),
+                         [t.Descend(2),
+                          t.Match('x')])
+
+    def test_rule(self):
+        x = t.Rule("foo", t.Exactly("x"))
+        k, v = writeBytecodeRule(x)
+        self.assertEqual(k, "foo")
+        self.assertEqual(v, [t.Match('x')])
+
+    def test_grammar(self):
+        r1 = t.Rule("foo", t.Exactly("x"))
+        r2 = t.Rule("baz", t.Exactly("y"))
+        x = t.Grammar("BuilderTest", False, [r1, r2])
+        g = writeBytecodeGrammar(x)
+        self.assertEqual(sorted(g.keys()), ['foo', 'baz'])
+        self.assertEqual(g['foo'], [t.Match('x')])
+        self.assertEqual(g['baz'], [t.Match('y')])
+
+    def test_repeat(self):
+        pass
+
+    def test_consumedby(self):
+        pass

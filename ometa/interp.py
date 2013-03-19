@@ -361,6 +361,22 @@ class TrampolinedGrammarInterpreter(object):
             self.error(*self.input.nullError())
 
 
+    def parse_Label(self, expr, label_term):
+        """
+        Execute an expression , if it fails apply the label to the exception.
+        """
+        label = label_term.data
+        try:
+            for x in self._eval(expr):
+                if x is _feed_me:
+                    yield x
+            self.currentError = x[1]
+            self.currentError.withMessage([("Custom Exception:", label, None)])
+            yield x
+        except ParseError, e:
+            raise e.withMessage([("Custom Exception:", label, None)])
+
+
     def parse_Lookahead(self, expr):
         """
         Execute an expression, then reset the input stream to the
@@ -515,6 +531,14 @@ class GrammarInterpreter(object):
 
         elif name == "Exactly":
             return run.exactly(args[0].data)
+
+        elif name == "Label":
+            label = args[1].data
+            try:
+                val, err = self._eval(run, args[0])
+                return val, err.withMessage([("Custom Exception:", label, None)])
+            except ParseError, e:
+                raise e.withMessage([("Custom Exception:", label, None)])
 
         elif name == "Token":
             if run.tree:

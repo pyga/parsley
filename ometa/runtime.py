@@ -722,7 +722,9 @@ class OMetaBase(object):
         Wrap a function and add label to expected message.
         """
         try:
-            return foo()
+            val, err = foo()
+            err2 = err.withMessage([("Custom Exception:", label, None)])
+            return val, err2
         except ParseError, e:
             raise e.withMessage([("Custom Exception:", label, None)])
 

@@ -803,6 +803,34 @@ class OMetaTestCase(unittest.TestCase):
         self.assertRaises(ParseError, g.ident, "1a")
 
 
+    def test_label(self):
+        """
+        Custom labels change the 'expected' in the raised exceptions.
+        """
+        label = 'Letter not starting with digit'
+        g = self.compile("ident = (<letter (letter | digit)*>) ^ (" + label + ")")
+        self.assertEqual(g.ident("a"), "a")
+        self.assertEqual(g.ident("abc"), "abc")
+        self.assertEqual(g.ident("a1z"), "a1z")
+
+        e = self.assertRaises(ParseError, g.ident, "1a")
+        self.assertEqual(e, ParseError(0, 0, expected(label)).withMessage([("Custom Exception:", label, None)]))
+
+
+    def test_carrot_position(self):
+        """
+        Custom labels change the 'expected' in the raised exceptions.
+        """
+        g = self.compile("xs = 'x'*")
+        self.assertEqual(g.xs(""), "")
+        self.assertEqual(g.xs("x"), "x")
+        self.assertEqual(g.xs("xxxx"), "xxxx")
+        g.xs('xy')
+        self.assertRaises(ParseError, g.xs, "xy")
+
+    test_carrot_position.todo = 'When ran as a trampolined test, the carrot is in the wrong spot'
+
+
     def test_listConsumedBy(self):
         """
         OMeta2's "consumed-by" operator works on lists.
@@ -1485,3 +1513,57 @@ class ErrorReportingTests(unittest.TestCase):
                             ^
                          Parse error at line 1, column 3: expected a digit. trail: []
                          """))
+
+    def test_customLabels(self):
+        """
+        Custom labels replace the 'expected' part of the exception.
+        """
+        g = self.compile("""
+        dig = ('1' | '2' | '3') ^ (1 2 or 3)
+        bits = <dig>+
+        """)
+
+        input = "123x321"
+        e = self.assertRaises(ParseError, g.bits, input)
+        self.assertEqual(e.formatError(),
+                         dedent("""
+                         123x321
+                            ^
+                         Parse error at line 1, column 3: expected a 1 2 or 3. trail: [dig]
+                         """))
+
+    def test_customLabelsFormatting(self):
+        """
+        Custom labels replace the 'expected' part of the exception.
+        """
+
+        input = "foo\nbaz\nboz\ncharlie\nbuz"
+        label = 'Fizz Buzz'
+        e = ParseError(input, 12, None).withMessage([("Custom Exception:", label, None)])
+        self.assertEqual(e.formatError(),
+                         dedent("""
+                         charlie
+                         ^
+                         Parse error at line 4, column 0: expected a Fizz Buzz. trail: []
+                         """))
+
+    def test_eof(self):
+        """
+        Custom labels replace the 'expected' part of the exception.
+        """
+        g = self.compile("""
+        dig = '1' | '2' | '3'
+        bits = <dig>+
+        """)
+
+        input = '123x321'
+
+        e = self.assertRaises(ParseError, g.dig, input)
+        self.assertEqual(e.formatError(),
+                         dedent("""
+                         123x321
+                          ^
+                         Parse error at line 1, column 0: expected EOF. trail: []
+                         """))
+
+    test_eof.todo = 'We need to catch EOF and raise a better exception'

@@ -10,9 +10,9 @@ noindentation = emptyline* ~~~hspace
 number = ws
                ('-' barenumber:x  -> t.Exactly(-x)
                     |barenumber:x -> t.Exactly(x))
-barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
+barenumber = ('0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
-               |<digit+>:ds -> int(ds)
+               |<digit+>:ds -> int(ds))
 octaldigit = :x ?(x in '01234567' ) -> x
 hexdigit = :x ?(x in '0123456789ABCDEFabcdef') -> x
 
@@ -69,6 +69,7 @@ expr3 = (expr2:e
                       ('*' -> t.Many(e)
                       |'+' -> t.Many1(e)
                       |'?' -> t.Optional(e)
+                      |customLabel:l -> t.Label(e, l)
                       |'{' ws repeatTimes:start ws (
                       (',' ws repeatTimes:end ws '}'
                            -> t.Repeat(start, end, e))
@@ -87,6 +88,8 @@ expr = expr4:e (ws '|' expr4)*:es
           -> t.Or([e] + es) if es else e
 
 ruleValue = ws '->' -> self.ruleValueExpr(True)
+
+customLabel = (ws '^' ws '(' <(~')' anything)+>:e ')' -> e) ^ (customLabelException)
 
 semanticPredicate = ws '?(' -> self.semanticPredicateExpr()
 

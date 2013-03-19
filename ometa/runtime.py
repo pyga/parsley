@@ -717,6 +717,11 @@ class OMetaBase(object):
             self.input = m
             raise e.withMessage(expected("token", tok))
 
+    def label(self, foo):
+        """
+        Wrap a function and raise label as exception.
+        """
+        pass
 
     def letter(self):
         """

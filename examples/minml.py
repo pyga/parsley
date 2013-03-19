@@ -1,10 +1,10 @@
 """
 A grammar for parsing a tiny HTML-like language, plus a transformer for it.
 """
-from parsley import makeGrammar, term, makeTerm as t
+from parsley import makeGrammar, term, termMaker as t
 from itertools import chain
 
-tinyHTMLGrammar = """
+tinyHTMLGrammar = r"""
 
 name = <letterOrDigit+>
 
@@ -19,7 +19,7 @@ text = <(~('<') anything)+>
 
 attribute = spaces name:k token('=') quotedString:v -> (k, v)
 
-quotedString = (('"' | '\''):q <(~exactly(q) anything)*>:xs exactly(q)
+quotedString = (('"' | '\''):q <(~exactly(q) anything)*>:xs exactly(q))
                      -> xs
 
 """

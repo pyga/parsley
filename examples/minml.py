@@ -26,3 +26,5 @@ quotedString = (('"' | '\''):q <(~exactly(q) anything)*>:xs exactly(q))
 TinyHTML = makeGrammar(tinyHTMLGrammar, globals(), name="TinyHTML")
 
 testSource = "<html><title>Yes</title><body><h1>Man, HTML is <i>great</i>.</h1><p>How could you even <b>think</b> otherwise?</p><img src='HIPPO.JPG'></img><a href='http://twistedmatrix.com'>A Good Website</a></body></html>"
+
+print TinyHTML(testSource).html()

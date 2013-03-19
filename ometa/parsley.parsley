@@ -95,7 +95,7 @@ semanticPredicate = ws '?(' -> self.semanticPredicateExpr()
 
 semanticAction = ws '!(' -> self.semanticActionExpr()
 
-ruleEnd = (hspace* vspace+) | end
+ruleEnd = ((hspace* vspace+) | end) ^ (rule end)
 
 rulePart :requiredName = noindentation name:n ?(n == requiredName)
                             !(setattr(self, "rulename", n))

@@ -286,7 +286,8 @@ class PythonWriter(object):
         """
         Generate code for expr, and create label.
         """
-        return self._generateNode(out, expr, debugname)
+        fname = self._newThunkFor(out, "label", expr)
+        return self._expr(out, 'label', 'self.label(%s, "%s")' % (fname, label.data, ), debugname)
 
     def generate_TermPattern(self, out, name, expr, debugname=None):
         fname = self._newThunkFor(out, "termpattern", expr)

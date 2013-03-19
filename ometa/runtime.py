@@ -717,11 +717,15 @@ class OMetaBase(object):
             self.input = m
             raise e.withMessage(expected("token", tok))
 
-    def label(self, foo):
+    def label(self, foo, label):
         """
-        Wrap a function and raise label as exception.
+        Wrap a function and add label to expected message.
         """
-        pass
+        try:
+            return foo()
+        except ParseError, e:
+            raise e.withMessage([("Custom Exception:", label, None)])
+
 
     def letter(self):
         """

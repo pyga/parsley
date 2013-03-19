@@ -8,10 +8,10 @@ tinyHTMLGrammar = r"""
 
 name = <letterOrDigit+>
 
-tag = (('<' spaces name:n spaces attribute*:attrs '>')
+tag = ((('<' spaces name:n spaces attribute*:attrs '>')
          html:c
          ('<' '/' token(n) spaces '>')
-             -> t.Element(n.lower(), dict(attrs), c))
+             -> t.Element(n.lower(), dict(attrs), c))) ^ (valid tag)
 
 html = (text | tag)*
 

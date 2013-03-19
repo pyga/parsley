@@ -15,7 +15,7 @@ class TestVMBuilder(TestCase):
         a = t.Apply("foo", "main", [one, x])
         self.assertEqual(writeBytecode(a),
                          [t.Python('x'),
-                          t.Push(1),
+                          t.Python('1'),
                           t.Call('foo')])
 
     def test_foreignApply(self):
@@ -24,7 +24,7 @@ class TestVMBuilder(TestCase):
         a = t.ForeignApply("thegrammar", "foo", "main", [one, x])
         self.assertEqual(writeBytecode(a),
                          [t.Python('x'),
-                          t.Push(1),
+                          t.Python("1"),
                           t.ForeignCall('thegrammar', 'foo')])
 
     def test_superApply(self):
@@ -33,7 +33,7 @@ class TestVMBuilder(TestCase):
         a = t.Apply("super", "main", [one, x])
         self.assertEqual(writeBytecode(a),
                          [t.Python('x'),
-                          t.Push(1),
+                          t.Python("1"),
                           t.SuperCall('main')])
 
     def test_many(self):
@@ -41,7 +41,11 @@ class TestVMBuilder(TestCase):
         self.assertEqual(writeBytecode(xs),
                          [t.Choice(3),
                           t.Match("x"),
-                          t.PartialCommit(0)])
+                          t.Commit(0)])
+        # self.assertEqual(writeBytecode(xs),
+        #                  [t.Choice(3),
+        #                   t.Match("x"),
+        #                   t.PartialCommit(0)])
 
     def test_many1(self):
         xs = t.Many1(t.Exactly("x"))
@@ -49,9 +53,28 @@ class TestVMBuilder(TestCase):
                          [t.Match('x'),
                           t.Choice(4),
                           t.Match('x'),
-                          t.PartialCommit(1)])
+                          t.Commit(1)])
 
-    def test_or(self):
+        # self.assertEqual(writeBytecode(xs),
+        #                  [t.Match('x'),
+        #                   t.Choice(4),
+        #                   t.Match('x'),
+        #                   t.PartialCommit(1)])
+
+    def test_tripleOr(self):
+        xy = t.Or([t.Exactly("x"),
+                   t.Exactly("y"),
+                   t.Exactly("z")])
+        self.assertEqual(writeBytecode(xy),
+                         [t.Choice(3),
+                          t.Match('x'),
+                          t.Commit(7),
+                          t.Choice(6),
+                          t.Match('y'),
+                          t.Commit(7),
+                          t.Match('z')])
+
+    def test_doubleOr(self):
         xy = t.Or([t.Exactly("x"),
                    t.Exactly("y")])
         self.assertEqual(writeBytecode(xy),
@@ -72,19 +95,26 @@ class TestVMBuilder(TestCase):
                          [t.Choice(3),
                           t.Match('x'),
                           t.Commit(4),
-                          t.Push(None)])
+                          t.Python("None")])
 
     def test_not(self):
         x = t.Not(t.Exactly("x"))
         self.assertEqual(writeBytecode(x),
                          [t.Choice(3),
                           t.Match('x'),
-                          t.FailTwice()])
+                          t.Commit(4),
+                          t.Fail()])
+
+        # self.assertEqual(writeBytecode(x),
+        #                  [t.Choice(3),
+        #                   t.Match('x'),
+        #                   t.FailTwice()])
 
     def test_lookahead(self):
-        x = t.lookahead(t.Exactly("x"))
+        x = t.Lookahead(t.Exactly("x"))
         self.assertEqual(writeBytecode(x),
-                         [t.Choice(3),
+                         [t.Choice(5),
+                          t.Choice(3),
                           t.Match('x'),
                           t.Commit(4),
                           t.Fail()])
@@ -107,14 +137,15 @@ class TestVMBuilder(TestCase):
     def test_pred(self):
         x = t.Predicate(t.Action("doStuff()"))
         self.assertEqual(writeBytecode(x),
-                         [t.Eval('doStuff()'),
-                          t.FailIfFalse()])
+                         [t.Python('doStuff()'),
+                          t.Predicate()])
 
     def test_listpattern(self):
         x = t.List(t.Exactly("x"))
         self.assertEqual(writeBytecode(x),
-                         [t.Descend(2),
-                          t.Match('x')])
+                         [t.Descend(),
+                          t.Match('x'),
+                          t.Ascend()])
 
     def test_rule(self):
         x = t.Rule("foo", t.Exactly("x"))
@@ -127,7 +158,7 @@ class TestVMBuilder(TestCase):
         r2 = t.Rule("baz", t.Exactly("y"))
         x = t.Grammar("BuilderTest", False, [r1, r2])
         g = writeBytecodeGrammar(x)
-        self.assertEqual(sorted(g.keys()), ['foo', 'baz'])
+        self.assertEqual(sorted(g.keys()), ['baz', 'foo'])
         self.assertEqual(g['foo'], [t.Match('x')])
         self.assertEqual(g['baz'], [t.Match('y')])
 

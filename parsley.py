@@ -41,11 +41,13 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False,
     else:
         return wrapGrammar(g)
 
+
 def unwrapGrammar(w):
     """
     Access the internal parser class for a Parsley grammar object.
     """
     return getattr(w, '_grammarClass', None) or w
+
 
 class _GrammarWrapper(object):
     """

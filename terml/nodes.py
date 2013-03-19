@@ -10,7 +10,7 @@ class Term(_Term):
             raise ValueError("Term %s can't have both data and children" % (tag,))
         if args is None:
             args = ()
-        return _Term.__new__(cls, tag, data, args)
+        return _Term.__new__(cls, tag, data, tuple(args))
 
     def __iter__(self):
         #and now I feel a bit silly subclassing namedtuple

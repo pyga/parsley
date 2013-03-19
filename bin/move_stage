@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+# -*- mode: python -*-
+import os
+import shutil
+
+
+def main():
+
+    bin_dir = os.path.dirname(os.path.realpath(__file__))
+    parsley_dir = os.path.split(bin_dir)[0]
+    stage_dir = os.path.join(parsley_dir, 'stage')
+    if not os.path.exists(stage_dir):
+        raise Exception('Stage dir does not exist')
+
+    move_pkg_gen(parsley_dir, stage_dir, 'ometa')
+    move_pkg_gen(parsley_dir, stage_dir, 'terml')
+
+
+def move_pkg_gen(parsley_dir, stage_dir, pkg):
+    print "\nMoving " + pkg
+    stage_gen_dir = os.path.join(stage_dir, pkg, '_generated')
+    gen_dir = os.path.join(parsley_dir, pkg, '_generated')
+
+    if os.path.exists(gen_dir):
+        print "Removing " + os.path.relpath(gen_dir, parsley_dir)
+        shutil.rmtree(gen_dir)
+
+    print 'Copying ' + os.path.relpath(stage_gen_dir, parsley_dir) + ' to ' + os.path.relpath(gen_dir, parsley_dir)
+    shutil.copytree(stage_gen_dir, gen_dir)
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+

@@ -816,6 +816,17 @@ class OMetaTestCase(unittest.TestCase):
         e = self.assertRaises(ParseError, g.ident, "1a")
         self.assertEqual(e, ParseError(0, 0, expected(label)).withMessage([("Custom Exception:", label, None)]))
 
+    def test_label2(self):
+        """
+        Custom labels change the 'expected' in the raised exceptions.
+        """
+        label = 'lots of xs'
+        g = self.compile("xs = ('x'*) ^ (" + label + ")")
+        self.assertEqual(g.xs(""), "")
+        self.assertEqual(g.xs("x"), "x")
+        self.assertEqual(g.xs("xxx"), "xxx")
+        e = self.assertRaises(ParseError, g.xs, "xy")
+        self.assertEqual(e, ParseError(0, 1, expected(label)).withMessage([("Custom Exception:", label, None)]))
 
     def test_carrot_position(self):
         """

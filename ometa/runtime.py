@@ -724,6 +724,8 @@ class OMetaBase(object):
         try:
             val, err = foo()
             err2 = err.withMessage([("Custom Exception:", label, None)])
+            if self.currentError == err:
+                self.currentError = err2
             return val, err2
         except ParseError, e:
             raise e.withMessage([("Custom Exception:", label, None)])

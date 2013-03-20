@@ -83,8 +83,9 @@ class PythonWriter(object):
         out.tree = takesTreeInput
 
     def generate_Apply(self, out, ruleName, codeName, rawArgs, debugname=None):
-        for arg in reversed(rawArgs.args):
+        for arg in rawArgs.args:
             self._generateNode(out, arg, debugname)
+            out.emit(t.Push())
         if ruleName.data == "super":
             out.emit(t.SuperCall(codeName))
         else:
@@ -92,8 +93,9 @@ class PythonWriter(object):
 
     def generate_ForeignApply(self, out, grammarName, ruleName, codeName,
                               rawArgs, debugname=None):
-        for arg in reversed(rawArgs.args):
+        for arg in rawArgs.args:
             self._generateNode(out, arg, debugname)
+            out.emit(t.Push())
         out.emit(t.ForeignCall(grammarName, ruleName))
 
     def generate_Exactly(self, out, literal, debugname=None):
@@ -114,7 +116,15 @@ class PythonWriter(object):
         self.generate_Many(out, expr, debugname)
 
     def generate_Repeat(self, out, min, max, expr, debugname=None):
-        raise NotImplementedError()
+        out.emit(t.Python(str(min.data)))
+        out.emit(t.Push())
+        out.emit(t.Python(str(max.data)))
+        out.emit(t.Push())
+        L = out.emit(t.RepeatChoice())
+        self._generateNode(out, expr, debugname)
+        L2 = out.emit(t.Commit())
+        out.patchNext(L)
+        out.backpatch(L2, L)
 
     def generate_Optional(self, out, expr, debugname=None):
         """
@@ -186,4 +196,6 @@ class PythonWriter(object):
         raise NotImplementedError()
 
     def generate_ConsumedBy(self, out, expr, debugname=None):
-        raise NotImplementedError()
+        out.emit(t.StartSlice())
+        self._generateNode(out, expr, debugname)
+        out.emit(t.EndSlice())

@@ -14,8 +14,10 @@ class TestVMBuilder(TestCase):
         x = t.Action("x")
         a = t.Apply("foo", "main", [one, x])
         self.assertEqual(writeBytecode(a),
-                         [t.Python('x'),
-                          t.Python('1'),
+                         [t.Python('1'),
+                          t.Push(),
+                          t.Python('x'),
+                          t.Push(),
                           t.Call('foo')])
 
     def test_foreignApply(self):
@@ -23,8 +25,10 @@ class TestVMBuilder(TestCase):
         x = t.Action("x")
         a = t.ForeignApply("thegrammar", "foo", "main", [one, x])
         self.assertEqual(writeBytecode(a),
-                         [t.Python('x'),
-                          t.Python("1"),
+                         [t.Python('1'),
+                          t.Push(),
+                          t.Python('x'),
+                          t.Push(),
                           t.ForeignCall('thegrammar', 'foo')])
 
     def test_superApply(self):
@@ -32,8 +36,10 @@ class TestVMBuilder(TestCase):
         x = t.Action("x")
         a = t.Apply("super", "main", [one, x])
         self.assertEqual(writeBytecode(a),
-                         [t.Python('x'),
-                          t.Python("1"),
+                         [t.Python('1'),
+                          t.Push(),
+                          t.Python('x'),
+                          t.Push(),
                           t.SuperCall('main')])
 
     def test_many(self):
@@ -163,7 +169,19 @@ class TestVMBuilder(TestCase):
         self.assertEqual(g['baz'], [t.Match('y')])
 
     def test_repeat(self):
-        pass
+        x = t.Repeat(3, 4, t.Exactly('x'))
+        self.assertEqual(writeBytecode(x),
+                         [t.Python("3"),
+                          t.Push(),
+                          t.Python("4"),
+                          t.Push(),
+                          t.RepeatChoice(7),
+                          t.Match('x'),
+                          t.Commit(4)])
 
     def test_consumedby(self):
-        pass
+        x = t.ConsumedBy(t.Exactly('x'))
+        self.assertEqual(writeBytecode(x),
+                         [t.StartSlice(),
+                          t.Match('x'),
+                          t.EndSlice()])

@@ -1,0 +1,30 @@
+Exactly(:x) -> [t.Match(x)]
+Token(:x) -> [t.Match(x)]
+Many(@x) -> [t.Choice(len(x) + 2)] + x + [t.Commit(-len(x) - 1)]
+Many1(@x) -> x + [t.Choice(len(x) + 2)] + x + [t.Commit(-len(x) - 1)]
+Repeat(@x)
+Optional(@x) -> [t.Choice(len(x) + 2)] + x + [t.Commit(2), t.Python("None")]
+Or(@xs) = !(len(xs) == 2) transform(t.Or(xs[0], xs[1]))
+        |                 transform(t.Or(xs[0], t.Or(xs[1:])))
+Or(@left @right)
+    -> [t.Choice(len(left) + 2)] + left + [t.Commit(len(right) + 1)] + right
+Not(@x) -> [t.Choice(len(x) + 3)] + x + [t.Commit(1), t.Fail()]
+Lookahead(:x) = transform(t.Not(t.Not(x)))
+And(@xs) -> sum(xs, [])
+Bind(:name @x) -> x + [t.Bind(name)]
+Predicate(@x) -> x + [t.Predicate()]
+Action(:x) -> [t.Python(x.data)]
+Python(:x) -> [t.Python(x.data)]
+List(@x) -> [t.Descend()] + x + [t.Ascend()]
+ConsumedBy(@x) -> [t.StartSlice()] + x + [t.EndSlice()]
+
+Apply("super" :code @args) -> (sum([[arg + t.Push()] for arg in args], []) +
+    [t.SuperCall(code)])
+Apply(:rule :code @args) -> (sum([[arg + t.Push()] for arg in args], []) +
+    [t.Call(rule)])
+ForeignApply(:grammar :rule :code @args)
+    -> (sum([[arg + t.Push()] for arg in args]) +
+        [t.ForeignCall(grammar, rule)])
+
+Rule(:name, @xs) -> t.Rule(name, xs)
+Grammar(:name :tree @rules) -> t.Grammar(name, tree, rules)

@@ -57,7 +57,7 @@ class TestVMBuilder(TestCase):
         xs = t.Many1(t.Exactly("x"))
         self.assertEqual(writeBytecode(xs),
                          [t.Match('x'),
-                          t.Choice(4),
+                          t.Choice(3),
                           t.Match('x'),
                           t.Commit(-2)])
 
@@ -106,9 +106,9 @@ class TestVMBuilder(TestCase):
     def test_not(self):
         x = t.Not(t.Exactly("x"))
         self.assertEqual(writeBytecode(x),
-                         [t.Choice(3),
+                         [t.Choice(4),
                           t.Match('x'),
-                          t.Commit(2),
+                          t.Commit(1),
                           t.Fail()])
 
         # self.assertEqual(writeBytecode(x),

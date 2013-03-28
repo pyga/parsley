@@ -119,11 +119,20 @@ class TestVMBuilder(TestCase):
     def test_lookahead(self):
         x = t.Lookahead(t.Exactly("x"))
         self.assertEqual(writeBytecode(x),
-                         [t.Choice(5),
-                          t.Choice(2),
+                         [t.Choice(7),
+                          t.Choice(4),
                           t.Match('x'),
                           t.Commit(1),
+                          t.Fail(),
+                          t.Commit(1),
                           t.Fail()])
+
+        # self.assertEqual(writeBytecode(x),
+        #                  [t.Choice(5),
+        #                   t.Choice(2),
+        #                   t.Match('x'),
+        #                   t.Commit(1),
+        #                   t.Fail()])
 
     def test_sequence(self):
         x = t.Exactly("x")

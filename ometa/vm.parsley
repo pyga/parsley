@@ -18,13 +18,13 @@ Python(:x) -> [t.Python(x.data)]
 List(@x) -> [t.Descend()] + x + [t.Ascend()]
 ConsumedBy(@x) -> [t.StartSlice()] + x + [t.EndSlice()]
 
-Apply("super" :code @args) -> (sum([[arg + t.Push()] for arg in args], []) +
+Apply("super" :code @args) -> (sum([[arg + [t.Push()]] for arg in args], []) +
     [t.SuperCall(code)])
-Apply(:rule :code @args) -> (sum([[arg + t.Push()] for arg in args], []) +
+Apply(:rule :code @args) -> (sum([[arg + [t.Push()]] for arg in args], []) +
     [t.Call(rule)])
 ForeignApply(:grammar :rule :code @args)
     -> (sum([[arg + t.Push()] for arg in args]) +
         [t.ForeignCall(grammar, rule)])
 
-Rule(:name, @xs) -> t.Rule(name, xs)
+Rule(:name @xs) -> t.Rule(name, xs)
 Grammar(:name :tree @rules) -> t.Grammar(name, tree, rules)

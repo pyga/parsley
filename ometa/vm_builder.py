@@ -7,6 +7,13 @@ def writeBytecode(expr):
     p.output(e)
     return e.instrs
 
+def writeBytecode(expr):
+    from ometa.grammar import TreeTransformerGrammar
+    from ometa.runtime import TreeTransformerBase
+    Compiler = TreeTransformerGrammar.makeGrammar(open("../ometa/vm.parsley").read(),
+            "Compiler").createParserClass(TreeTransformerBase, {"t": t})
+    return Compiler.transform(expr)[0]
+
 
 def writeBytecodeRule(expr):
     e = GrammarEmitter()

@@ -47,7 +47,7 @@ class TestVMBuilder(TestCase):
         self.assertEqual(writeBytecode(xs),
                          [t.Choice(3),
                           t.Match("x"),
-                          t.Commit(0)])
+                          t.Commit(-2)])
         # self.assertEqual(writeBytecode(xs),
         #                  [t.Choice(3),
         #                   t.Match("x"),
@@ -59,7 +59,7 @@ class TestVMBuilder(TestCase):
                          [t.Match('x'),
                           t.Choice(4),
                           t.Match('x'),
-                          t.Commit(1)])
+                          t.Commit(-2)])
 
         # self.assertEqual(writeBytecode(xs),
         #                  [t.Match('x'),
@@ -74,10 +74,10 @@ class TestVMBuilder(TestCase):
         self.assertEqual(writeBytecode(xy),
                          [t.Choice(3),
                           t.Match('x'),
-                          t.Commit(7),
-                          t.Choice(6),
+                          t.Commit(5),
+                          t.Choice(3),
                           t.Match('y'),
-                          t.Commit(7),
+                          t.Commit(2),
                           t.Match('z')])
 
     def test_doubleOr(self):
@@ -86,7 +86,7 @@ class TestVMBuilder(TestCase):
         self.assertEqual(writeBytecode(xy),
                          [t.Choice(3),
                           t.Match('x'),
-                          t.Commit(4),
+                          t.Commit(2),
                           t.Match('y')])
 
     def test_singleOr(self):
@@ -100,7 +100,7 @@ class TestVMBuilder(TestCase):
         self.assertEqual(writeBytecode(x),
                          [t.Choice(3),
                           t.Match('x'),
-                          t.Commit(4),
+                          t.Commit(2),
                           t.Python("None")])
 
     def test_not(self):
@@ -108,7 +108,7 @@ class TestVMBuilder(TestCase):
         self.assertEqual(writeBytecode(x),
                          [t.Choice(3),
                           t.Match('x'),
-                          t.Commit(4),
+                          t.Commit(2),
                           t.Fail()])
 
         # self.assertEqual(writeBytecode(x),
@@ -120,9 +120,9 @@ class TestVMBuilder(TestCase):
         x = t.Lookahead(t.Exactly("x"))
         self.assertEqual(writeBytecode(x),
                          [t.Choice(5),
-                          t.Choice(3),
+                          t.Choice(2),
                           t.Match('x'),
-                          t.Commit(4),
+                          t.Commit(1),
                           t.Fail()])
 
     def test_sequence(self):
@@ -175,9 +175,9 @@ class TestVMBuilder(TestCase):
                           t.Push(),
                           t.Python("4"),
                           t.Push(),
-                          t.RepeatChoice(7),
+                          t.RepeatChoice(3),
                           t.Match('x'),
-                          t.Commit(4)])
+                          t.Commit(-2)])
 
     def test_consumedby(self):
         x = t.ConsumedBy(t.Exactly('x'))

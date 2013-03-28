@@ -2,7 +2,9 @@ Exactly(:x) -> [t.Match(x)]
 Token(:x) -> [t.Match(x)]
 Many(@x) -> [t.Choice(len(x) + 2)] + x + [t.Commit(-len(x) - 1)]
 Many1(@x) -> x + [t.Choice(len(x) + 2)] + x + [t.Commit(-len(x) - 1)]
-Repeat(@x)
+Repeat(:min :max @x)
+    -> [t.Python(repr(int(min))), t.Push(), t.Python(repr(int(max))),
+        t.Push(), t.RepeatChoice(len(x) + 2)] + x + [t.Commit(-len(x) - 1)]
 Optional(@x) -> [t.Choice(len(x) + 2)] + x + [t.Commit(2), t.Python("None")]
 # Right-associate Or() as needed. Note that Or() can have a list of a single
 # element.

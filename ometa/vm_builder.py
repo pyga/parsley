@@ -66,7 +66,7 @@ class PythonWriter(object):
         name = node.tag.name
         args = node.args
         if node.data is not None:
-            out.emit(t.Literal(node.data))
+            out.emit(t.Python(repr(node.data)))
             return
         if name == 'null':
             out.emit(t.Python("None"))

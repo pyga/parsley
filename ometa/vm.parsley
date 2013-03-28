@@ -23,7 +23,7 @@ Python(:x) -> [t.Python(x.data)]
 List(@x) -> [t.Descend()] + x + [t.Ascend()]
 ConsumedBy(@x) -> [t.StartSlice()] + x + [t.EndSlice()]
 
-pushes :xs -> [inner for x in xs for inner in [x, t.Push()]]
+pushes :xs -> [inner for x in xs for inner in [x[0], t.Push()]]
 Apply("super" :code @args) pushes(args):xs -> xs + [t.SuperCall(code)]
 Apply(:rule :code @args) pushes(args):xs -> xs + [t.Call(rule)]
 ForeignApply(:grammar :rule :code @args) pushes(args):xs -> (xs +

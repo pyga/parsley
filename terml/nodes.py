@@ -17,8 +17,11 @@ class Term(_Term):
         raise NotImplementedError()
 
     def __eq__(self, other):
-        return (     self.tag, self.data, self.args
-               ) == (other.tag, other.data, other.args)
+        try:
+            return (     self.tag, self.data, self.args
+                   ) == (other.tag, other.data, other.args)
+        except AttributeError:
+            return False
 
 
     def __repr__(self):

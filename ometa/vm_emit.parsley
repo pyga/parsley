@@ -1,26 +1,28 @@
-Grammar(:name :tree @rules) {{{
+Grammar(str:name str:tree @rules) {{{
 class $name:
     tree = $tree
     $rules
 }}}
-Rule(:name @rules) {{{
+Rule(str:name @rules) {{{
 $name = [
     $rules
 ]
 }}}
 
 Ascend() --> t.Ascend(),
-Bind(:x) --> t.Bind($x),
-Call(:x) --> t.Call(),
-Choice(:x) --> t.Choice($x),
-Commit(:x) --> t.Commit($x),
+Bind(str:x) --> t.Bind($x),
+Call(str:x) --> t.Call($x),
+Choice(str:x) --> t.Choice($x),
+Commit(str:x) --> t.Commit($x),
 Descend() --> t.Descend(),
 EndSlice() --> t.EndSlice(),
 Fail() --> t.Fail(),
-ForeignCall(:x :y) --> t.ForeignCall($x, $y),
-Match(:x) --> t.Match($x),
+ForeignCall(str:x str:y) --> t.ForeignCall($x, $y),
+Match(str:x) --> t.Match($x),
 Predicate() --> t.Predicate(),
 Push() --> t.Push(),
-Python(:x) --> t.Python($x),
+Python(str:x) --> t.Python($x),
 StartSlice() --> t.StartSlice(),
-SuperCall(:x) --> t.SuperCall($x),
+SuperCall(str:x) --> t.SuperCall($x),
+
+str = anything:s -> str(s.data)

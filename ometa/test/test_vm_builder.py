@@ -149,6 +149,13 @@ class TestVMBuilder(TestCase):
                          [t.Match('x'),
                           t.Bind('var')])
 
+    def test_bind_apply(self):
+        x = t.Apply("members", "object", [])
+        b = t.Bind("m", x)
+        self.assertEqual(writeBytecode(b),
+                         [t.Call('members'),
+                          t.Bind('m')])
+
     def test_pred(self):
         x = t.Predicate(t.Action("doStuff()"))
         self.assertEqual(writeBytecode(x),

@@ -828,7 +828,7 @@ class OMetaTestCase(unittest.TestCase):
         e = self.assertRaises(ParseError, g.xs, "xy")
         self.assertEqual(e, ParseError(0, 1, expected(label)).withMessage([("Custom Exception:", label, None)]))
 
-    def test_carrot_position(self):
+    def test_caret_position(self):
         """
         Custom labels change the 'expected' in the raised exceptions.
         """
@@ -839,8 +839,7 @@ class OMetaTestCase(unittest.TestCase):
         g.xs('xy')
         self.assertRaises(ParseError, g.xs, "xy")
 
-    test_carrot_position.todo = 'When ran as a trampolined test, the carrot is in the wrong spot'
-
+    test_caret_position.todo = 'When ran as a trampolined test, the caret is in the wrong spot'
 
     def test_listConsumedBy(self):
         """

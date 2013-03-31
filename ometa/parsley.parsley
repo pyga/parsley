@@ -10,9 +10,9 @@ noindentation = emptyline* ~~~hspace
 number = ws
                ('-' barenumber:x  -> t.Exactly(-x)
                     |barenumber:x -> t.Exactly(x))
-barenumber = ('0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
+barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
-               |<digit+>:ds -> int(ds))
+               |<digit+>:ds -> int(ds)
 octaldigit = :x ?(x in '01234567' ) -> x
 hexdigit = :x ?(x in '0123456789ABCDEFabcdef') -> x
 

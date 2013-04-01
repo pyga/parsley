@@ -122,7 +122,7 @@ class PythonWriter(object):
         out.emit(t.Push())
         L = out.emit(t.RepeatChoice())
         self._generateNode(out, expr, debugname)
-        L2 = out.emit(t.Commit())
+        L2 = out.emit(t.RepeatCommit())
         out.patchNext(L)
         out.backpatch(L2, L)
 

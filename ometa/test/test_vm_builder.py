@@ -177,7 +177,7 @@ class TestVMBuilder(TestCase):
                           t.Push(),
                           t.RepeatChoice(7),
                           t.Match('x'),
-                          t.Commit(4)])
+                          t.RepeatCommit(4)])
 
     def test_consumedby(self):
         x = t.ConsumedBy(t.Exactly('x'))

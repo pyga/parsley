@@ -1,4 +1,4 @@
-from ometa.runtime import ArgInput
+from ometa.runtime import ArgInput, OMetaBase, EOFError
 fail = object()
 
 class Success(Exception):
@@ -10,6 +10,7 @@ class VM(object):
         self.code = None
         self.rulename = None
         self.choice_stack = []
+        self.input.stack = []
         self.current_value = None
         self.input = input
         self.pc = 0
@@ -17,6 +18,7 @@ class VM(object):
             self.globals = globals
         self.locals = {}
         self.parent = parent
+        self.builtin_rules = OMetaBase(self.input)
 
     def start(self, name):
         self.code = self.rules[name]
@@ -49,8 +51,12 @@ class VM(object):
             self.choice_stack.append((target, self.input))
         elif name == "Call":
             target = instr.args[0].data
-            newvm = VM(self.rules, self.input)
-            newvm.start(target)
+            bltn = getattr(self.builtin_rules, 'rule_' + target, None)
+            if bltn is not None:
+                self.current_value = bltn()
+            else:
+                newvm = VM(self.rules, self.input)
+                newvm.start(target)
         elif name == "SuperCall":
             target = instr.args[0].data
             newvm = VM(self.parent.rules, self.input)
@@ -79,24 +85,20 @@ class VM(object):
         elif name == "Bind":
             name = instr.args[0].data
             self.locals[name] = self.current_value
-        elif name == "RepeatChoice":
-            pass
-        elif name == "Predicate":
-            pass
         elif name == "Descend":
-            pass
+            self.input_stack.push(self.input)
+            self.input = self.input.head()
         elif name == "Ascend":
-            pass
+            self.builtin_rules.end()
+            self.input = self.input_stack.pop()
+        elif name == "Predicate":
+            if not self.current_value:
+                raise self.input.nullError()
+        elif name == "RepeatChoice":
+            raise NotImplementedError()
+        elif name == "RepeatCommit":
+            raise NotImplementedError()
         elif name == "StartSlice":
-            pass
+            raise NotImplementedError()
         elif name == "EndSlice":
-            pass
-
-
-
-
-
-
-
-
-
+            raise NotImplementedError()

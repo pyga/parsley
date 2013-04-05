@@ -8,9 +8,9 @@ Repeat(:min :max @x)
 Optional(@x) -> [t.Choice(len(x) + 2)] + x + [t.Commit(2), t.Python("None")]
 # Right-associate Or() as needed. Note that Or() can have a list of a single
 # element.
-Or(@xs) = ?(len(xs) == 1) transform(xs[0])
-        | ?(len(xs) == 2) transform(t.Or(xs[0], xs[1]))
-        |                 transform(t.Or(xs[0], t.Or(xs[1:])))
+Or([anything*:xs]) = ?(len(xs) == 1) transform(xs[0])
+                   | ?(len(xs) == 2) transform(t.Or(xs[0], xs[1]))
+                   |                 transform(t.Or(xs[0], t.Or(xs[1:])))
 Or(@left @right)
     -> [t.Choice(len(left) + 2)] + left + [t.Commit(len(right) + 1)] + right
 Not(@x) -> [t.Choice(len(x) + 3)] + x + [t.Commit(1), t.Fail()]

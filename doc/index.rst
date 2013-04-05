@@ -14,4 +14,5 @@ Contents:
    tutorial
    tutorial2
    extending
+   terml
    reference

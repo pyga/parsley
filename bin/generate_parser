@@ -3,8 +3,9 @@
 
 import sys
 from ometa.runtime import ParseError
-from ometa.boot import BootOMetaGrammar as OMeta
+from ometa.grammar import OMeta
 from ometa.builder import writePython
+from ometa.vm_builder import writeBytecode, bytecodeToPython
 
 if len(sys.argv) != 3:
  print "Usage: generate_grammar grammar-filename python-filename"
@@ -25,6 +26,8 @@ grammar = findObject(sys.argv[1])
 pythonFile =  open(sys.argv[2], 'w')
 g = OMeta(grammar)
 tree = g.parseGrammar("Parser")
-source = writePython(tree)
+# source = writePython(tree)
+bytecode = writeBytecode(tree)
+source = bytecodeToPython(bytecode)
 pythonFile.write("from ometa.runtime import OMetaBase as GrammarBase\n")
 pythonFile.write(source)

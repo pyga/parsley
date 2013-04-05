@@ -1,14 +1,15 @@
 from StringIO import StringIO
 
+import ometa
 from terml.nodes import Term, coerceToTerm, termMaker as t
-
 
 def writeBytecode(expr):
     print "Gonna compile", expr
-    from ometa.grammar import TreeTransformerGrammar
+    from ometa.grammar import TreeTransformerGrammar, loadGrammar
     from ometa.runtime import TreeTransformerBase
-    Compiler = TreeTransformerGrammar.makeGrammar(open("../ometa/vm.parsley").read(),
-            "Compiler").createParserClass(TreeTransformerBase, {"t": t})
+    Compiler = loadGrammar(ometa, 'vm', {'t': t},
+                           grammar=TreeTransformerGrammar,
+                           superclass=TreeTransformerBase)
     return Compiler.transform(expr)[0]
 
 
@@ -16,8 +17,9 @@ def bytecodeToPython(expr):
     print "Gonna emit", expr
     from ometa.grammar import TreeTransformerGrammar
     from ometa.runtime import TreeTransformerBase
-    Emitter = TreeTransformerGrammar.makeGrammar(open("ometa/vm_emit.parsley").read(),
-            "Emitter").createParserClass(TreeTransformerBase, {"t": t})
+    Emitter = loadGrammar(ometa, 'vm_emit', {'t': t},
+                          grammar=TreeTransformerGrammar,
+                          superclass=TreeTransformerBase)
     return Emitter.transform(expr)[0]
 
 

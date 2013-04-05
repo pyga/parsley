@@ -16,14 +16,14 @@ from ometa.runtime import OMetaBase, OMetaGrammarBase
 OMeta = makeBootGrammar(OMetaGrammarBase, globals())
 
 
-def loadGrammar(pkg, name, globals, superclass=OMetaBase):
+def loadGrammar(pkg, name, globals, superclass=OMetaBase, grammar=OMeta):
     try:
         m = __import__('.'.join([pkg.__name__, '_generated', name]),
                        fromlist=[name], level=0)
     except ImportError:
         base = os.path.dirname(os.path.abspath(pkg.__file__))
         src = open(os.path.join(base, name + ".parsley")).read()
-        m = OMeta.makeGrammar(src, name)
+        m = grammar.makeGrammar(src, name)
 
     return m.createParserClass(superclass, globals)
 

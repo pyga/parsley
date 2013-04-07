@@ -3,7 +3,7 @@
 import sys; sys.path.append(".")
 import os, glob, shutil, sys
 from ometa.runtime import ParseError
-from ometa.grammar import OMeta
+from ometa.grammar import OMeta, TreeTransformerGrammar
 from ometa.builder import writePython
 
 
@@ -17,7 +17,10 @@ def stage_pkg(pkg):
         grammarname = fn.split('/')[1].split('.')[0]
         pyfn = "stage/%s/_generated/%s.py" % (pkg, grammarname)
         print "%s => %s" % (fn, pyfn)
-        g = OMeta(grammar)
+        if grammar.startswith('#TreeTransformer'):
+            g = TreeTransformerGrammar(grammar)
+        else:
+            g = OMeta(grammar)
         tree = g.parseGrammar(grammarname)
         source = writePython(tree)
         pythonFile = open(pyfn, 'w')

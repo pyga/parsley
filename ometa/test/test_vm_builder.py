@@ -1,6 +1,7 @@
 from twisted.trial.unittest import TestCase
+from terml.parser import parseTerm as term
 from terml.nodes import termMaker as t
-from ometa.vm_builder import writeBytecode, writeBytecodeRule, writeBytecodeGrammar
+from ometa.vm_builder import writeBytecode
 
 
 class TestVMBuilder(TestCase):
@@ -45,9 +46,11 @@ class TestVMBuilder(TestCase):
     def test_many(self):
         xs = t.Many(t.Exactly("x"))
         self.assertEqual(writeBytecode(xs),
-                         [t.Choice(3),
+                         [t.Choice(4),
                           t.Match("x"),
-                          t.Commit(-2)])
+                          t.ListAppend(),
+                          t.Commit(-3),
+                          t.CollectList()])
         # self.assertEqual(writeBytecode(xs),
         #                  [t.Choice(3),
         #                   t.Match("x"),
@@ -57,9 +60,12 @@ class TestVMBuilder(TestCase):
         xs = t.Many1(t.Exactly("x"))
         self.assertEqual(writeBytecode(xs),
                          [t.Match('x'),
-                          t.Choice(3),
+                          t.ListAppend(),
+                          t.Choice(4),
                           t.Match('x'),
-                          t.Commit(-2)])
+                          t.ListAppend(),
+                          t.Commit(-3),
+                          t.CollectList()])
 
         # self.assertEqual(writeBytecode(xs),
         #                  [t.Match('x'),
@@ -169,20 +175,12 @@ class TestVMBuilder(TestCase):
                           t.Match('x'),
                           t.Ascend()])
 
-    def test_rule(self):
-        x = t.Rule("foo", t.Exactly("x"))
-        k, v = writeBytecodeRule(x)
-        self.assertEqual(k, "foo")
-        self.assertEqual(v, [t.Match('x')])
-
     def test_grammar(self):
         r1 = t.Rule("foo", t.Exactly("x"))
         r2 = t.Rule("baz", t.Exactly("y"))
         x = t.Grammar("BuilderTest", False, [r1, r2])
-        g = writeBytecodeGrammar(x)
-        self.assertEqual(sorted(g.keys()), ['baz', 'foo'])
-        self.assertEqual(g['foo'], [t.Match('x')])
-        self.assertEqual(g['baz'], [t.Match('y')])
+        g = writeBytecode(x)
+        self.assertEqual(g, term('Grammar("BuilderTest", false, [Rule("foo", [Match("x")]), Rule("baz", [Match("y")])])'))
 
     def test_repeat(self):
         x = t.Repeat(3, 4, t.Exactly('x'))

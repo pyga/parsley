@@ -124,7 +124,7 @@ def eof():
     """
     return [("message", "end of input")]
 
-_go = False
+
 def joinErrors(errors):
     """
     Return the error from the branch that matched the most of the input.
@@ -787,6 +787,7 @@ class OMetaGrammarBase(OMetaBase):
         @param name: The name of the class to be generated.
         @param superclass: The class the generated class is a child of.
         """
+        from ometa.vm_builder import bytecodeToPython, writeBytecode
         g = cls(grammar)
         if TIMING:
             start = time.time()
@@ -800,7 +801,7 @@ class OMetaGrammarBase(OMetaBase):
             start = time.time()
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
-        source = writePython(tree)
+        source = bytecodeToPython(writeBytecode(tree))
         if TIMING:
             print "Grammar %r generated in %g secs" % (name, time.time() - start)
         return moduleFromGrammar(source, name, modname, filename)

@@ -1,4 +1,4 @@
-from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError
+from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream
 fail = object()
 
 class Success(Exception):
@@ -6,29 +6,33 @@ class Success(Exception):
 
 class VM(object):
 
-    def __init__(self, rules, input, globals=None, parent=None):
+    def __init__(self, rules, input, GrammarBase=OMetaBase, globals=None,
+                 parent=None):
+        self.rules = rules
         self.code = None
         self.rulename = None
         self.choiceStack = []
         self.inputStack = []
         self.sliceStack = []
+        self.listStack = []
         self.input = input
         self.currentValue = None
         self.currentError = self.input.nullError()
         self.pc = 0
         if globals is not None:
             self.globals = globals
+        else:
+            self.globals = {}
         self.locals = {}
         self.parent = parent
-        self.runtime = OMetaBase(self.input)
+        self.runtime = GrammarBase(None)
+        self.runtime.input = self.input
+        self.runtime.globals = globals
 
-    def start(self, name):
+    def apply(self, name):
         self.code = self.rules[name]
         self.rulename = name
-
-    def execute(self, name):
-        self.start(name)
-        while self.pc < len(self.bytecode):
+        while self.pc < len(self.code):
             self.next()
 
         return self.currentValue, self.currentError
@@ -60,49 +64,58 @@ class VM(object):
             self.pc = newpc
 
     def next(self):
-        if self.pc >= len(self.code):
-            return self.currentValue, self.currentError
         instr = self.code[self.pc]
         name = instr.tag.name
 
         if name == "Match":
             target = instr.args[0].data
             for c in target:
-                v, e = self.input.head()
+                try:
+                    v, e = self.input.head()
+                except EOFError, e:
+                    return self.fail(e)
                 if v == c:
                     self.input = self.input.tail()
                 else:
-                    self.fail(e)
+                    return self.fail(e)
+            self.currentValue, currentError = target, e
         elif name == "Choice":
             target = instr.args[0].data
-            self.choiceStack.append((target, self.input, None))
+            self.choiceStack.append((self.pc + target, self.input, None))
         elif name == "Call":
             target = instr.args[0].data
-            bltn = getattr(self.runtime, 'rule_' + target, None)
-            if bltn is not None:
-                try:
-                    self.currentValue = bltn()
-                except ParseError, e:
-                    self.fail(e)
+            if target in self.rules:
+                newvm = VM(self.rules, self.input, globals=self.globals,
+                           parent=self.parent)
+                newvm.runtime = self.runtime
+                self.currentValue, self.currentError = newvm.apply(target)
+                self.input = newvm.input
             else:
-                newvm = VM(self.rules, self.input)
-                val, err = newvm.start(target)
+                bltn = getattr(self.runtime, 'rule_' + target, None)
+                self.runtime.input = self.input
+                try:
+                    self.currentValue, self.currentError = bltn()
+                except ParseError, e:
+                    return self.fail(e)
+                finally:
+                    self.input = self.runtime.input
         elif name == "SuperCall":
             target = instr.args[0].data
             newvm = VM(self.parent.rules, self.input)
-            newvm.start(target)
+            newvm.apply(target)
         elif name == "ForeignCall":
             foreignName = instr.args[0].data
             ruleName = instr.args[1].data
             newvm = self.globals.get(foreignName,
                                      self.local.get(foreignName, None))
-            newvm.start(ruleName)
+            newvm.apply(ruleName)
         elif name == "Commit":
             target = instr.args[0].data
-            self.pc = target
+            self.pc += target
             self.choiceStack.pop()
+            return
         elif name == "Fail":
-            self.fail(self.input.nullError())
+            return self.fail(self.input.nullError())
         elif name == "Python":
             target = instr.args[0].data
             self.currentValue = eval(target, self.globals, self.locals)
@@ -112,13 +125,14 @@ class VM(object):
             name = instr.args[0].data
             self.locals[name] = self.currentValue
         elif name == "Descend":
-            self.inputStack.push(self.input)
-            self.input = self.input.head()
+            self.inputStack.append(self.input)
+            inp, self.currentError = self.input.head()
+            self.input = InputStream.fromIterable(inp)
         elif name == "Ascend":
             try:
                 self.runtime.end()
             except ParseError, e:
-                self.fail(e)
+                return self.fail(e)
             self.input = self.inputStack.pop()
         elif name == "Predicate":
             if not self.currentValue:
@@ -132,16 +146,39 @@ class VM(object):
             self.choiceStack.append((target, self.input, minval, maxval, 0))
         elif name == "RepeatCommit":
             target = instr.args[0].data
-            choiceTarget, inp, minval, maxval, current = self.choicestack.pop()
+            choiceTarget, inp, minval, maxval, current = self.choiceStack.pop()
             current += 1
             if current >= maxval:
                 self.pc += 1
             else:
-                self.pc = target + 1
+                self.pc += target + 1
                 self.choiceStack.append((target, inp, minval, maxval, current))
+            return
         elif name == "StartSlice":
             self.sliceStack.append(self.input)
         elif name == "EndSlice":
             oldInput = self.sliceStack.pop()
             self.currentValue = oldInput.data[
                 oldInput.position:self.input.position]
+        elif name == "CollectList":
+            self.currentValue = self.listStack
+            self.listStack = []
+        elif name == "ListAppend":
+            self.listStack.append(self.currentValue)
+        self.pc += 1
+
+def VMWrapper(v):
+    return v
+
+
+
+
+
+
+
+
+
+
+
+
+

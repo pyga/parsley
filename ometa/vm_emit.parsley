@@ -1,13 +1,25 @@
 #TreeTransformer
 Grammar(@name repr:tree @rules) {{{
-class $name:
-    tree = $tree
-    $rules
+from terml.nodes import termMaker as t
+from ometa.runtime import InputStream
+from ometa.vm_runtime import VM, VMWrapper
+def createParserClass(GrammarBase, ruleGlobals):
+    rules = {
+        $rules
+    }
+    if $tree:
+        mkInput = InputStream.fromIterable
+    else:
+        mkInput = InputStream.fromText
+    def makeParser(data):
+        vm = VM(rules, mkInput(data), GrammarBase, ruleGlobals)
+        return VMWrapper(vm)
+    return makeParser
 }}}
-Rule(@name @rules) {{{
-$name = [
-    $rules
-]
+Rule(@name @instrs) {{{
+'$name': [
+    $instrs
+],
 }}}
 
 Ascend() --> t.Ascend(),
@@ -27,6 +39,8 @@ Push() --> t.Push(),
 Python(repr:x) --> t.Python($x),
 StartSlice() --> t.StartSlice(),
 SuperCall(repr:x) --> t.SuperCall($x),
+ListAppend() --> t.ListAppend(),
+CollectList() --> t.CollectList(),
 
 repr :s -> repr(s.data)
 

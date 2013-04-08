@@ -1,8 +1,8 @@
 #TreeTransformer
 Exactly(:x) -> [t.Match(x)]
-Token(:x) -> [t.Match(x)]
-Many(@x) -> [t.Choice(len(x) + 2)] + x + [t.Commit(-len(x) - 1)]
-Many1(@x) -> x + [t.Choice(len(x) + 2)] + x + [t.Commit(-len(x) - 1)]
+Token(:x) -> [t.Call('ws'), t.Match(x)]
+Many(@x) -> [t.Choice(len(x) + 3)] + x + [t.ListAppend(), t.Commit(-len(x) - 2), t.CollectList()]
+Many1(@x) -> x + [t.ListAppend(), t.Choice(len(x) + 3)] + x + [t.ListAppend(), t.Commit(-len(x) - 2), t.CollectList()]
 Repeat(:min :max @x)
     -> [t.Python(repr(int(min))), t.Push(), t.Python(repr(int(max))),
         t.Push(), t.RepeatChoice(len(x) + 2)] + x + [t.RepeatCommit(-len(x) - 1)]

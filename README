@@ -119,7 +119,7 @@ Example Usage
     """
     Example = makeGrammar(exampleGrammar, {})
     g = Example("11221111")
-    result, error = g.stuff()
+    result = g.stuff()
     print result
 
 →  ``[1, 2, 1, 1]``

@@ -646,22 +646,6 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.foo("1"), 2)
 
 
-    def test_bindingAccess(self):
-        """
-        Bound names in a rule can be accessed on the grammar's "locals" dict.
-        """
-        G = self.classTested.makeGrammar(
-            "stuff = '1':a ('2':b | '3':c)", 'TestGrammar').createParserClass(OMetaBase, {})
-        g = G("12")
-        self.assertEqual(g.apply("stuff")[0], '2')
-        self.assertEqual(g.locals['stuff']['a'], '1')
-        self.assertEqual(g.locals['stuff']['b'], '2')
-        g = G("13")
-        self.assertEqual(g.apply("stuff")[0], '3')
-        self.assertEqual(g.locals['stuff']['a'], '1')
-        self.assertEqual(g.locals['stuff']['c'], '3')
-
-
     def test_predicate(self):
         """
         Python expressions can be used to determine the success or

@@ -19,7 +19,7 @@ def createParserClass(GrammarBase, ruleGlobals):
             _G_termpattern_5, lastError = self.termpattern('Grammar', _G_termpattern_1)
             self.considerError(lastError, 'Grammar')
             from terml.parser import parseTerm as term
-            _G_stringtemplate_6, lastError = self.stringtemplate(term('["from terml.nodes import termMaker as t\n", "from ometa.runtime import InputStream\n", "from ometa.vm_runtime import VM, VMWrapper\n", "def createParserClass(GrammarBase, ruleGlobals):\n", "    rules = {\n", "        ", QuasiExprHole("rules"), "\n", "    }\n", "    if ", QuasiExprHole("tree"), ":\n", "        mkInput = InputStream.fromIterable\n", "    else:\n", "        mkInput = InputStream.fromText\n", "    def makeParser(data):\n", "        vm = VM(rules, mkInput(data), GrammarBase, ruleGlobals)\n", "        return VMWrapper(vm)\n", "    return makeParser\n"]'), _locals)
+            _G_stringtemplate_6, lastError = self.stringtemplate(term('["from terml.nodes import termMaker as t\n", "from ometa.runtime import InputStream\n", "from ometa.vm_runtime import VM, VMWrapper\n", "def createParserClass(GrammarBase, ruleGlobals):\n", "    rules = {\n", "        ", QuasiExprHole("rules"), "\n", "    }\n", "    if ", QuasiExprHole("tree"), ":\n", "        mkInput = InputStream.fromIterable\n", "    else:\n", "        mkInput = InputStream.fromText\n", "    def makeParser(data):\n", "        vm = VM(rules, mkInput(data), ", QuasiExprHole("tree"), ", GrammarBase, ruleGlobals)\n", "        return VMWrapper(vm)\n", "    return makeParser\n"]'), _locals)
             self.considerError(lastError, None)
             return (_G_stringtemplate_6, self.currentError)
 
@@ -326,12 +326,61 @@ def createParserClass(GrammarBase, ruleGlobals):
         def rule_repr(self):
             _locals = {'self': self}
             self.locals['repr'] = _locals
-            _G_apply_80, lastError = self._apply(self.rule_anything, "anything", [])
+            def _G_or_80():
+                _G_apply_81, lastError = self._apply(self.rule_anything, "anything", [])
+                self.considerError(lastError, None)
+                _locals['s'] = _G_apply_81
+                def _G_pred_82():
+                    _G_python_83, lastError = eval("s.tag.name == 'true'", self.globals, _locals), None
+                    self.considerError(lastError, None)
+                    return (_G_python_83, self.currentError)
+                _G_pred_84, lastError = self.pred(_G_pred_82)
+                self.considerError(lastError, None)
+                _G_python_85, lastError = 'True', None
+                self.considerError(lastError, None)
+                return (_G_python_85, self.currentError)
+            def _G_or_86():
+                _G_apply_87, lastError = self._apply(self.rule_anything, "anything", [])
+                self.considerError(lastError, None)
+                _locals['s'] = _G_apply_87
+                def _G_pred_88():
+                    _G_python_89, lastError = eval("s.tag.name == 'false'", self.globals, _locals), None
+                    self.considerError(lastError, None)
+                    return (_G_python_89, self.currentError)
+                _G_pred_90, lastError = self.pred(_G_pred_88)
+                self.considerError(lastError, None)
+                _G_python_91, lastError = 'False', None
+                self.considerError(lastError, None)
+                return (_G_python_91, self.currentError)
+            def _G_or_92():
+                _G_apply_93, lastError = self._apply(self.rule_anything, "anything", [])
+                self.considerError(lastError, None)
+                _locals['s'] = _G_apply_93
+                def _G_pred_94():
+                    _G_python_95, lastError = eval("s.tag.name == 'null'", self.globals, _locals), None
+                    self.considerError(lastError, None)
+                    return (_G_python_95, self.currentError)
+                _G_pred_96, lastError = self.pred(_G_pred_94)
+                self.considerError(lastError, None)
+                _G_python_97, lastError = 'None', None
+                self.considerError(lastError, None)
+                return (_G_python_97, self.currentError)
+            def _G_or_98():
+                _G_apply_99, lastError = self._apply(self.rule_anything, "anything", [])
+                self.considerError(lastError, None)
+                _locals['s'] = _G_apply_99
+                def _G_pred_100():
+                    _G_python_101, lastError = eval('s.data is not None', self.globals, _locals), None
+                    self.considerError(lastError, None)
+                    return (_G_python_101, self.currentError)
+                _G_pred_102, lastError = self.pred(_G_pred_100)
+                self.considerError(lastError, None)
+                _G_python_103, lastError = eval('repr(s.data)', self.globals, _locals), None
+                self.considerError(lastError, None)
+                return (_G_python_103, self.currentError)
+            _G_or_104, lastError = self._or([_G_or_80, _G_or_86, _G_or_92, _G_or_98])
             self.considerError(lastError, 'repr')
-            _locals['s'] = _G_apply_80
-            _G_python_81, lastError = eval('repr(s.data)', self.globals, _locals), None
-            self.considerError(lastError, 'repr')
-            return (_G_python_81, self.currentError)
+            return (_G_or_104, self.currentError)
 
 
         tree = True

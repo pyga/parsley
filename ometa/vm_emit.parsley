@@ -12,7 +12,7 @@ def createParserClass(GrammarBase, ruleGlobals):
     else:
         mkInput = InputStream.fromText
     def makeParser(data):
-        vm = VM(rules, mkInput(data), GrammarBase, ruleGlobals)
+        vm = VM(rules, mkInput(data), $tree, GrammarBase, ruleGlobals)
         return VMWrapper(vm)
     return makeParser
 }}}
@@ -42,5 +42,8 @@ SuperCall(repr:x) --> t.SuperCall($x),
 ListAppend() --> t.ListAppend(),
 CollectList() --> t.CollectList(),
 
-repr :s -> repr(s.data)
+repr :s = ?(s.tag.name == 'true') -> 'True'
+repr :s = ?(s.tag.name == 'false') -> 'False'
+repr :s = ?(s.tag.name == 'null') -> 'None'
+repr :s ?(s.data is not None) -> repr(s.data)
 

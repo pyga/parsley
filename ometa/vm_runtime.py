@@ -1,4 +1,4 @@
-from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream
+from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream, expected
 fail = object()
 
 class Success(Exception):
@@ -6,16 +6,17 @@ class Success(Exception):
 
 class VM(object):
 
-    def __init__(self, rules, input, GrammarBase=OMetaBase, globals=None,
-                 parent=None):
+    def __init__(self, rules, input, isTree, GrammarBase=OMetaBase,
+                 globals=None, parent=None):
         self.rules = rules
+        self.input = input
+        self.isTree = isTree
         self.code = None
         self.rulename = None
         self.choiceStack = []
         self.inputStack = []
         self.sliceStack = []
         self.listStack = []
-        self.input = input
         self.currentValue = None
         self.currentError = self.input.nullError()
         self.pc = 0
@@ -31,17 +32,15 @@ class VM(object):
 
     def apply(self, name):
         self.code = self.rules[name]
+        #print "->", name, self.code, getattr(self.input, 'position', None)
         self.rulename = name
         while self.pc < len(self.code):
             self.next()
-
+        #print "<-", name, self.currentValue
         return self.currentValue, self.currentError
 
     def read(self):
-        try:
-            bc = self.bytecode[self.pc]
-        except IndexError:
-            raise Success()
+        bc = self.bytecode[self.pc]
         self.pc += 1
         return bc
 
@@ -51,6 +50,7 @@ class VM(object):
         if not self.choiceStack:
             raise self.currentError
         choice = self.choiceStack.pop()
+        #print "Fail", choice[1].position, "<-", getattr(self.input, 'position', None)
         newpc = choice[0]
         self.input = choice[1]
         minval = choice[2]
@@ -65,40 +65,46 @@ class VM(object):
 
     def next(self):
         instr = self.code[self.pc]
+        #print "Exec", instr
         name = instr.tag.name
 
         if name == "Match":
-            target = instr.args[0].data
-            for c in target:
-                try:
-                    v, e = self.input.head()
-                except EOFError, e:
-                    return self.fail(e)
-                if v == c:
-                    self.input = self.input.tail()
+            wanted = instr.args[0].data
+            i = self.input
+            try:
+                if not self.isTree and len(wanted) > 1:
+                        val, p, self.input = self.input.slice(len(wanted))
                 else:
-                    return self.fail(e)
-            self.currentValue, currentError = target, e
+                    val, p = self.input.head()
+                    self.input = self.input.tail()
+            except EOFError, e:
+                return self.fail(e)
+            if wanted == val:
+                self.currentValue, currentError = val, p
+            else:
+                self.input = i
+                return self.fail(p.withMessage(expected(None, wanted)))
+
         elif name == "Choice":
             target = instr.args[0].data
             self.choiceStack.append((self.pc + target, self.input, None))
         elif name == "Call":
             target = instr.args[0].data
-            if target in self.rules:
-                newvm = VM(self.rules, self.input, globals=self.globals,
-                           parent=self.parent)
-                newvm.runtime = self.runtime
-                self.currentValue, self.currentError = newvm.apply(target)
-                self.input = newvm.input
-            else:
-                bltn = getattr(self.runtime, 'rule_' + target, None)
-                self.runtime.input = self.input
-                try:
+            try:
+                if target in self.rules:
+                    newvm = VM(self.rules, self.input, self.isTree,
+                               globals=self.globals, parent=self.parent)
+                    newvm.runtime = self.runtime
+                    self.currentValue, self.currentError = newvm.apply(target)
+                    self.input = newvm.input
+                else:
+                    bltn = getattr(self.runtime, 'rule_' + target, None)
+                    self.runtime.input = self.input
                     self.currentValue, self.currentError = bltn()
-                except ParseError, e:
-                    return self.fail(e)
-                finally:
                     self.input = self.runtime.input
+            except ParseError, e:
+                #print "Raise ->", self.rulename
+                return self.fail(e)
         elif name == "SuperCall":
             target = instr.args[0].data
             newvm = VM(self.parent.rules, self.input)
@@ -125,9 +131,12 @@ class VM(object):
             name = instr.args[0].data
             self.locals[name] = self.currentValue
         elif name == "Descend":
-            self.inputStack.append(self.input)
             inp, self.currentError = self.input.head()
-            self.input = InputStream.fromIterable(inp)
+            self.inputStack.append(self.input.tail())
+            try:
+                self.input = InputStream.fromIterable(inp)
+            except TypeError:
+                return self.fail(self.currentError)
         elif name == "Ascend":
             try:
                 self.runtime.end()
@@ -136,7 +145,7 @@ class VM(object):
             self.input = self.inputStack.pop()
         elif name == "Predicate":
             if not self.currentValue:
-                raise self.input.nullError()
+                return self.fail(self.input.nullError())
         elif name == "RepeatChoice":
             maxval = self.input.head()
             self.input = self.input.tail()

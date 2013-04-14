@@ -1,18 +1,29 @@
-from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream, expected
-fail = object()
+from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream, expected, LeftRecursion
 
-class Success(Exception):
-    pass
+DEBUG = False
 
 class VM(object):
+
+    FRAME_VARS = ['choiceStack', 'inputStack', 'sliceStack', 'listStack',
+                  'currentValue', 'currentError', 'pc', 'locals', 'code']
 
     def __init__(self, rules, input, isTree, GrammarBase=OMetaBase,
                  globals=None, parent=None):
         self.rules = rules
         self.input = input
         self.isTree = isTree
-        self.code = None
-        self.rulename = None
+        if globals is not None:
+            self.globals = globals
+        else:
+            self.globals = {}
+        self.parent = parent
+        self.runtime = GrammarBase(None)
+        self.runtime.input = self.input
+        self.runtime.globals = globals
+        self.callStack = []
+        self.cleanState()
+
+    def cleanState(self):
         self.choiceStack = []
         self.inputStack = []
         self.sliceStack = []
@@ -20,52 +31,98 @@ class VM(object):
         self.currentValue = None
         self.currentError = self.input.nullError()
         self.pc = 0
-        if globals is not None:
-            self.globals = globals
-        else:
-            self.globals = {}
         self.locals = {}
-        self.parent = parent
-        self.runtime = GrammarBase(None)
-        self.runtime.input = self.input
-        self.runtime.globals = globals
+        self.code = None
+        self.rulename = None
+
+    def pushState(self):
+        frame = {}
+        for n in self.FRAME_VARS:
+            frame[n] = getattr(self, n)
+        self.callStack.append(frame)
+        self.cleanState()
+
+    def popState(self):
+        frame = self.callStack.pop()
+        for (k, v) in frame.iteritems():
+            setattr(self, k, v)
 
     def apply(self, name):
+        if name in self.rules:
+            return self._apply(name)
+        else:
+            return self._native(name)
+
+
+    def _native(self, name):
+        bltn = getattr(self.runtime, 'rule_' + name, None)
+        self.runtime.input = self.input
+        retval = bltn()
+        self.input = self.runtime.input
+        return retval
+
+
+    def _apply(self, name):
+        memoRec = self.input.getMemo(name)
+        if memoRec is None:
+            oldPosition = self.input
+            lr = LeftRecursion()
+            self.input.setMemo(name, lr)
+            try:
+                memoRec = oldPosition.setMemo(name, [self._subInvoke(name), self.input])
+            except ParseError, e:
+                e.trail.append(name)
+                if DEBUG:
+                    print "Raise ->", self.rulename
+                raise
+            if lr.detected:
+                if DEBUG:
+                    print "Left recursion in", self.rulename
+                sentinel = self.input
+                while True:
+                    try:
+                        self.input = oldPosition
+                        ans = self._subInvoke(name)
+                        if self.input == sentinel:
+                            break
+                        memoRec = oldPosition.setMemo(name,
+                                                     [ans, self.input])
+                        if DEBUG:
+                            print "Recursion in", self.rulename, "collected", memoRec[0][0]
+                    except ParseError:
+                        break
+                if DEBUG:
+                    print "Exited recursion"
+            self.input = oldPosition
+        elif isinstance(memoRec, LeftRecursion):
+            memoRec.detected = True
+            raise self.input.nullError()
+        self.input = memoRec[1]
+        return memoRec[0]
+
+
+    def _subeval(self, name):
         self.code = self.rules[name]
-        #print "->", name, self.code, getattr(self.input, 'position', None)
-        self.rulename = name
+        if DEBUG:
+            print "->", name, self.code, getattr(self.input, 'position', None)
+            self.rulename = name
         while self.pc < len(self.code):
             self.next()
-        #print "<-", name, self.currentValue
+        if DEBUG:
+            print "<-", name, self.currentValue
         return self.currentValue, self.currentError
 
-    def read(self):
-        bc = self.bytecode[self.pc]
-        self.pc += 1
-        return bc
-
-    def fail(self, err):
-        self.runtime.considerError(err)
-        self.currentError = self.runtime.currentError
-        if not self.choiceStack:
-            raise self.currentError
-        choice = self.choiceStack.pop()
-        #print "Fail", choice[1].position, "<-", getattr(self.input, 'position', None)
-        newpc = choice[0]
-        self.input = choice[1]
-        minval = choice[2]
-        if minval is not None and choice[4] < minval:
-            # we're in a repeat and we didn't match enough to meet the
-            # minimum. Invoke the failure handler outside the repeat.
-            self.fail(err)
-        else:
-            # either not in a repeat, or made it to the minimum. Jump
-            # to the target in the last Choice/RepeatChoice.
-            self.pc = newpc
+    def _subInvoke(self, ruleName):
+        self.pushState()
+        try:
+            return self._subeval(ruleName)
+        finally:
+            self.popState()
 
     def next(self):
         instr = self.code[self.pc]
-        #print "Exec", instr
+        if DEBUG:
+            print "Exec", instr
         name = instr.tag.name
 
         if name == "Match":
@@ -89,32 +146,27 @@ class VM(object):
             target = instr.args[0].data
             self.choiceStack.append((self.pc + target, self.input, None))
         elif name == "Call":
-            target = instr.args[0].data
+            ruleName = instr.args[0].data
             try:
-                if target in self.rules:
-                    newvm = VM(self.rules, self.input, self.isTree,
-                               globals=self.globals, parent=self.parent)
-                    newvm.runtime = self.runtime
-                    self.currentValue, self.currentError = newvm.apply(target)
-                    self.input = newvm.input
-                else:
-                    bltn = getattr(self.runtime, 'rule_' + target, None)
-                    self.runtime.input = self.input
-                    self.currentValue, self.currentError = bltn()
-                    self.input = self.runtime.input
+                self.currentValue, self.currentError = self.apply(ruleName)
             except ParseError, e:
-                #print "Raise ->", self.rulename
                 return self.fail(e)
         elif name == "SuperCall":
             target = instr.args[0].data
             newvm = VM(self.parent.rules, self.input)
-            newvm.apply(target)
+            try:
+                newvm.apply(target)
+            except ParseError, e:
+                return self.fail(e)
         elif name == "ForeignCall":
             foreignName = instr.args[0].data
             ruleName = instr.args[1].data
             newvm = self.globals.get(foreignName,
                                      self.local.get(foreignName, None))
-            newvm.apply(ruleName)
+            try:
+                newvm.apply(ruleName)
+            except ParseError, e:
+                return self.fail(e)
         elif name == "Commit":
             target = instr.args[0].data
             self.pc += target
@@ -139,10 +191,12 @@ class VM(object):
                 return self.fail(self.currentError)
         elif name == "Ascend":
             try:
-                self.runtime.end()
-            except ParseError, e:
+                self.input.head()
+            except EOFError, e:
+                self.currentValue = self.input.data
+                self.input = self.inputStack.pop()
+            else:
                 return self.fail(e)
-            self.input = self.inputStack.pop()
         elif name == "Predicate":
             if not self.currentValue:
                 return self.fail(self.input.nullError())
@@ -176,18 +230,25 @@ class VM(object):
             self.listStack.append(self.currentValue)
         self.pc += 1
 
+    def fail(self, err):
+        self.runtime.considerError(err)
+        self.currentError = self.runtime.currentError
+        if not self.choiceStack:
+            raise self.currentError
+        choice = self.choiceStack.pop()
+        if DEBUG:
+            print "Fail", choice[1].position, "<-", getattr(self.input, 'position', None)
+        newpc = choice[0]
+        self.input = choice[1]
+        minval = choice[2]
+        if minval is not None and choice[4] < minval:
+            # we're in a repeat and we didn't match enough to meet the
+            # minimum. Invoke the failure handler outside the repeat.
+            self.fail(err)
+        else:
+            # either not in a repeat, or made it to the minimum. Jump
+            # to the target in the last Choice/RepeatChoice.
+            self.pc = newpc
+
 def VMWrapper(v):
     return v
-
-
-
-
-
-
-
-
-
-
-
-
-

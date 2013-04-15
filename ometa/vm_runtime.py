@@ -201,12 +201,20 @@ class VM(object):
             if not self.currentValue:
                 return self.fail(self.input.nullError())
         elif name == "RepeatChoice":
-            maxval = self.input.head()
+            maxval, _ = self.input.head()
             self.input = self.input.tail()
-            minval = self.input.head()
+            minval, _ = self.input.head()
             self.input = self.input.tail()
             target = instr.args[0].data
-            self.choiceStack.append((target, self.input, minval, maxval, 0))
+            if isinstance(minval, basestring):
+                minval = self.locals[minval]
+            if isinstance(maxval, basestring):
+                minval = self.locals[maxvall]
+            if maxval == 0:
+                self.currentValue = self.input.data[0:0] # empty container of same type as input
+                self.pc += target
+            else:
+                self.choiceStack.append((self.pc + target, self.input, minval, maxval, 0))
         elif name == "RepeatCommit":
             target = instr.args[0].data
             choiceTarget, inp, minval, maxval, current = self.choiceStack.pop()
@@ -215,7 +223,7 @@ class VM(object):
                 self.pc += 1
             else:
                 self.pc += target + 1
-                self.choiceStack.append((target, inp, minval, maxval, current))
+                self.choiceStack.append((choiceTarget, inp, minval, maxval, current))
             return
         elif name == "StartSlice":
             self.sliceStack.append(self.input)
@@ -237,7 +245,7 @@ class VM(object):
             raise self.currentError
         choice = self.choiceStack.pop()
         if DEBUG:
-            print "Fail", choice[1].position, "<-", getattr(self.input, 'position', None)
+            print "Fail", getattr(choice[1], 'position', None), "<-", getattr(self.input, 'position', None)
         newpc = choice[0]
         self.input = choice[1]
         minval = choice[2]

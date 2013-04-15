@@ -78,7 +78,7 @@ def createParserClass(GrammarBase, ruleGlobals):
                 return (_locals['x'], self.currentError)
             _G_termpattern_21, lastError = self.termpattern('Repeat', _G_termpattern_17)
             self.considerError(lastError, 'Repeat')
-            _G_python_22, lastError = eval('[t.Python(repr(int(min))), t.Push(), t.Python(repr(int(max))),\n        t.Push(), t.RepeatChoice(len(x) + 2)] + x + [t.RepeatCommit(-len(x) - 1)]', self.globals, _locals), None
+            _G_python_22, lastError = eval('[t.Python(min.tag.name if min.data is None else str(min.data)), t.Push(),\n        t.Python(max.tag.name if max.data is None else str(max.data)),\n        t.Push(), t.RepeatChoice(len(x) + 3)] + x + [t.ListAppend(), t.RepeatCommit(-len(x) - 2), t.CollectList()]', self.globals, _locals), None
             self.considerError(lastError, 'Repeat')
             return (_G_python_22, self.currentError)
 

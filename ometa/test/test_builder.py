@@ -284,6 +284,22 @@ class PythonWriterTests(unittest.TestCase):
                             _G_python_1
                             """))
 
+    def test_label(self):
+        """
+        Test code generation for custom labels.
+        """
+        xs = t.Label(t.Exactly("x"), 'CustomLabel')
+        self.assertEqual(writePython(xs),
+                         dd("""
+                                def _G_label_1():
+                                    _G_exactly_2, lastError = self.exactly('x')
+                                    self.considerError(lastError, None)
+                                    return (_G_exactly_2, self.currentError)
+                                _G_label_3, lastError = self.label(_G_label_1, "CustomLabel")
+                                self.considerError(lastError, None)
+                                _G_label_3
+                                """))
+
     def test_listpattern(self):
         """
         Test code generation for list patterns.

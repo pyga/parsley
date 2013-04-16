@@ -233,6 +233,19 @@ class RuntimeTests(unittest.TestCase):
         o.many(o.rule_anything)
         self.assertEqual(o.rule_end(), (True, ParseError("abc", 3, None)))
 
+    def test_label(self):
+        """
+        L{OMetaBase.label} returns a list of parsed values and the error that
+        caused the end of the loop.
+        """
+
+        data = "ooops"
+        label = 'CustomLabel'
+        o = OMetaBase(data)
+        with self.assertRaises(ParseError) as e:
+            o.label(lambda: o.rule_exactly('x'), label)
+        self.assertEqual(e.exception,
+                         ParseError(o.input, 0, expected(label)).withMessage([("Custom Exception:", label, None)]))
 
     def test_letter(self):
         """

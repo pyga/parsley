@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+# -*- mode: python -*-
+import os
+import shutil
+
+
+def main():
+
+    bin_dir = os.path.dirname(os.path.realpath(__file__))
+    parsley_dir = os.path.split(bin_dir)[0]
+    stage_dir = os.path.join(parsley_dir, 'stage')
+    if os.path.exists(stage_dir):
+        print 'Removing stage dir'
+        shutil.rmtree(stage_dir)
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+

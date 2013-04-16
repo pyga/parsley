@@ -59,6 +59,11 @@ Basic syntax
 ``?(pythonExpression)``:
   Fail if the Python expression is false, Returns True otherwise.
 
+``expr ^(CustomLabel)``:
+  If the expr fails, the exception raised will contain CustomLabel.
+  Good for providing more context when a rule is broken.
+  CustomLabel can contain any character other than "(" and ")".
+
 Comments like Python comments are supported as well, starting with #
 and extending to the end of the line.
 

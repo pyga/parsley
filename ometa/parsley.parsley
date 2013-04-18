@@ -69,6 +69,7 @@ expr3 = (expr2:e
                       ('*' -> t.Many(e)
                       |'+' -> t.Many1(e)
                       |'?' -> t.Optional(e)
+                      |customLabel:l -> t.Label(e, l)
                       |'{' ws repeatTimes:start ws (
                       (',' ws repeatTimes:end ws '}'
                            -> t.Repeat(start, end, e))
@@ -88,11 +89,13 @@ expr = expr4:e (ws '|' expr4)*:es
 
 ruleValue = ws '->' -> self.ruleValueExpr(True)
 
+customLabel = (ws '^' ws '(' <(~')' anything)+>:e ')' -> e) ^ (customLabelException)
+
 semanticPredicate = ws '?(' -> self.semanticPredicateExpr()
 
 semanticAction = ws '!(' -> self.semanticActionExpr()
 
-ruleEnd = (hspace* vspace+) | end
+ruleEnd = ((hspace* vspace+) | end) ^ (rule end)
 
 rulePart :requiredName = noindentation name:n ?(n == requiredName)
                             !(setattr(self, "rulename", n))

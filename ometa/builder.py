@@ -282,6 +282,12 @@ class PythonWriter(object):
         return  self._expr(out, "listpattern", "self.listpattern(%s)" %(fname,),
                            debugname)
 
+    def generate_Label(self, out, expr, label, debugname=None):
+        """
+        Generate code for expr, and create label.
+        """
+        fname = self._newThunkFor(out, "label", expr)
+        return self._expr(out, 'label', 'self.label(%s, "%s")' % (fname, label.data, ), debugname)
 
     def generate_TermPattern(self, out, name, expr, debugname=None):
         fname = self._newThunkFor(out, "termpattern", expr)

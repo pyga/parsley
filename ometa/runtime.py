@@ -221,7 +221,7 @@ class InputStream(object):
                 data = self.data.__class__('').join(self.data)
             else:
                 data = self.data
-            raise EOFError(data, self.position)
+            raise EOFError(data, self.position + 1)
         return self.data[self.position], self.error
 
     def nullError(self, msg=None):

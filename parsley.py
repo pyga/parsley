@@ -1,5 +1,5 @@
 from ometa.grammar import OMeta
-from ometa.runtime import ParseError, EOFError, OMetaBase
+from ometa.runtime import ParseError, EOFError, OMetaBase, expected
 from terml.parser import parseTerm as term
 from terml.nodes import termMaker
 from terml.quasiterm import quasiterm
@@ -82,6 +82,10 @@ class _GrammarWrapper(object):
                     extra, _ = self._grammar.input.head()
                 except EOFError:
                     return ret
+                else:
+                    # problem is that input remains, so:
+                    err = ParseError(err.input, err.position + 1,
+                                     [["message", "expected EOF"]], err.trail)
             raise err
         return invokeRule
 

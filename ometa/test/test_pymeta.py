@@ -828,18 +828,6 @@ class OMetaTestCase(unittest.TestCase):
         e = self.assertRaises(ParseError, g.xs, "xy")
         self.assertEqual(e, ParseError(0, 1, expected(label)).withMessage([("Custom Exception:", label, None)]))
 
-    def test_caret_position(self):
-        """
-        Custom labels change the 'expected' in the raised exceptions.
-        """
-        g = self.compile("xs = 'x'*")
-        self.assertEqual(g.xs(""), "")
-        self.assertEqual(g.xs("x"), "x")
-        self.assertEqual(g.xs("xxxx"), "xxxx")
-        g.xs('xy')
-        self.assertRaises(ParseError, g.xs, "xy")
-
-    test_caret_position.todo = 'When ran as a trampolined test, the caret is in the wrong spot'
 
     def test_listConsumedBy(self):
         """
@@ -1121,8 +1109,8 @@ class MakeGrammarTest(unittest.TestCase):
         """
         e = self.assertRaises(ParseError, OMeta.makeGrammar, grammar,
                               "Foo")
-        self.assertEquals(e.position, 56)
-        self.assertEquals(e.error, [("expected", None, "\r\n"), ("message", "end of input")])
+        self.assertEquals(e.position, 57)
+        self.assertEquals(e.error, [("message", "end of input")])
 
 
     def test_subclassing(self):
@@ -1293,7 +1281,7 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
             tree, 'foo', callback=lambda x: setattr(self, 'result', x))
         e = self.assertRaises(ParseError, i.receive, 'foobar')
         self.assertEqual(str(e),
-        "\nfoobar\n^\nParse error at line 2, column 0:"
+        "\nfoobar\n^\nParse error at line 1, column 0:"
         " expected the character 'a'. trail: []\n")
 
 
@@ -1559,21 +1547,19 @@ class ErrorReportingTests(unittest.TestCase):
 
     def test_eof(self):
         """
-        Custom labels replace the 'expected' part of the exception.
+        EOF should raise a nice error.
         """
-        g = self.compile("""
+        import parsley
+        g = parsley.makeGrammar("""
         dig = '1' | '2' | '3'
         bits = <dig>+
-        """)
+        """, {})
 
         input = '123x321'
-
-        e = self.assertRaises(ParseError, g.dig, input)
+        e = self.assertRaises(ParseError, g(input).dig)
         self.assertEqual(e.formatError(),
                          dedent("""
                          123x321
                           ^
-                         Parse error at line 1, column 0: expected EOF. trail: []
+                         Parse error at line 1, column 1: expected EOF. trail: []
                          """))
-
-    test_eof.todo = 'We need to catch EOF and raise a better exception'

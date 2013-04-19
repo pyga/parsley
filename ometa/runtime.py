@@ -221,7 +221,7 @@ class InputStream(object):
                 data = self.data.__class__('').join(self.data)
             else:
                 data = self.data
-            raise EOFError(data, self.position)
+            raise EOFError(data, self.position + 1)
         return self.data[self.position], self.error
 
     def nullError(self, msg=None):
@@ -716,6 +716,19 @@ class OMetaBase(object):
         except ParseError, e:
             self.input = m
             raise e.withMessage(expected("token", tok))
+
+    def label(self, foo, label):
+        """
+        Wrap a function and add label to expected message.
+        """
+        try:
+            val, err = foo()
+            err2 = err.withMessage([("Custom Exception:", label, None)])
+            if self.currentError == err:
+                self.currentError = err2
+            return val, err2
+        except ParseError, e:
+            raise e.withMessage([("Custom Exception:", label, None)])
 
 
     def letter(self):

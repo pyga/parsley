@@ -1,22 +1,43 @@
 #!/usr/bin/env python
 # -*- mode: python -*-
-import sys; sys.path.append(".")
-import os, glob, shutil, sys
+import sys
+import os
+import glob
+import shutil
 from ometa.runtime import ParseError
 from ometa.grammar import OMeta
 from ometa.builder import writePython
 
 
+def main():
+    bin_dir = os.path.dirname(os.path.realpath(__file__))
+    parsley_dir = os.path.split(bin_dir)[0]
+    stage_dir = os.path.join(parsley_dir, 'stage')
+    sys.path.append(parsley_dir)
 
-def stage_pkg(pkg):
-    print "Copying", pkg
-    shutil.copytree(pkg, 'stage/' + pkg,
+    if os.path.exists(stage_dir):
+        print "Removing stage dir"
+        shutil.rmtree(stage_dir)
+
+    os.mkdir(stage_dir)
+    stage_pkg(parsley_dir, stage_dir, 'ometa')
+    stage_pkg(parsley_dir, stage_dir, 'terml')
+
+
+def stage_pkg(parsley_dir, stage_dir, pkg):
+    print "\nCopying", pkg
+    stage_pkg_dir = os.path.join(stage_dir, pkg)
+    stage_gen_dir = os.path.join(stage_pkg_dir, '_generated')
+    pkg_dir = os.path.join(parsley_dir, pkg)
+
+    shutil.copytree(pkg_dir, stage_pkg_dir,
                     ignore=lambda src, names: [n for n in names if n.endswith('pyc')])
-    for fn in glob.glob(pkg + "/*.parsley"):
-        grammar = open(fn).read()
-        grammarname = fn.split('/')[1].split('.')[0]
-        pyfn = "stage/%s/_generated/%s.py" % (pkg, grammarname)
-        print "%s => %s" % (fn, pyfn)
+    for filename in glob.glob(pkg_dir + "/*.parsley"):
+        grammar = open(filename).read()
+        grammarname = os.path.split(filename)[1].split('.')[0]
+        pyfn = os.path.join(stage_gen_dir, grammarname + '.py')
+        print "{src:38} => {dst}".format(src=os.path.relpath(filename, parsley_dir),
+                                         dst=os.path.relpath(pyfn, parsley_dir))
         g = OMeta(grammar)
         tree = g.parseGrammar(grammarname)
         source = writePython(tree)
@@ -24,9 +45,8 @@ def stage_pkg(pkg):
         pythonFile.write(source)
 
 
-os.mkdir('stage')
-stage_pkg('ometa')
-stage_pkg('terml')
+if __name__ == '__main__':
+    main()
 
 
 

@@ -67,9 +67,6 @@ class TrampolinedGrammarInterpreter(object):
             self.callback(*x)
 
 
-    def error(self, typ, val, trail=None):
-        raise ParseError(''.join(self.input.data), typ, val, trail=trail)
-
     ## Implementation note: each method, instead of being a function
     ## returning a value, is a generator that will yield '_feed_me' an
     ## arbitrary number of times, then finally yield the value of the
@@ -127,7 +124,7 @@ class TrampolinedGrammarInterpreter(object):
 
         elif isinstance(memoRec, LeftRecursion):
             memoRec.detected = True
-            self.error(None, None)
+            raise self.input.nullError()
         self.input = memoRec[1]
         yield memoRec[0]
 
@@ -188,7 +185,7 @@ class TrampolinedGrammarInterpreter(object):
             if val == c:
                 self.input = self.input.tail()
             else:
-                self.error(''.join(result), expected(None, wanted))
+                raise self.err(p.withMessage(expected(None, wanted)))
         yield ''.join(result), p
 
 
@@ -217,7 +214,7 @@ class TrampolinedGrammarInterpreter(object):
             if val == c:
                 self.input = self.input.tail()
             else:
-                self.error(''.join(result), expected(None, wanted))
+                raise self.err(p.withMessage(expected("token", wanted)))
         yield ''.join(result), p
 
 
@@ -254,7 +251,7 @@ class TrampolinedGrammarInterpreter(object):
             except ParseError, err:
                 errors.append(err)
                 self.input = i
-        self.error(*joinErrors(errors))
+        raise self.err(joinErrors(errors))
 
 
     def parse_Many(self, expr, ans=None):
@@ -358,7 +355,23 @@ class TrampolinedGrammarInterpreter(object):
             self.input = m
             yield True, self.input.nullError()
         else:
-            self.error(*self.input.nullError())
+            raise self.err(self.input.nullError())
+
+
+    def parse_Label(self, expr, label_term):
+        """
+        Execute an expression , if it fails apply the label to the exception.
+        """
+        label = label_term.data
+        try:
+            for x in self._eval(expr):
+                if x is _feed_me:
+                    yield x
+            print "^^", label
+            self.currentError = x[1].withMessage([("Custom Exception:", label, None)])
+            yield x[0], self.currentError
+        except ParseError, e:
+            raise self.err(e.withMessage([("Custom Exception:", label, None)]))
 
 
     def parse_Lookahead(self, expr):
@@ -393,7 +406,7 @@ class TrampolinedGrammarInterpreter(object):
             if x is _feed_me: yield x
         val, err = x
         if not val:
-            self.error(*err)
+            raise self.err(err)
         else:
             yield True, err
 
@@ -442,7 +455,7 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            self.error(val, expected(None, "a letter"))
+            raise self.err(p.withMessage(expected("letter")))
 
     def rule_digit(self):
         """
@@ -457,8 +470,11 @@ class TrampolinedGrammarInterpreter(object):
             self.input = self.input.tail()
             yield val, p
         else:
-            self.error(val, expected(None, "a digit"))
+            raise self.err(p.withMessage(expected("digit")))
 
+    def err(self, e):
+        e.input = ''.join(e.input)
+        raise e
 
 class GrammarInterpreter(object):
 
@@ -515,6 +531,14 @@ class GrammarInterpreter(object):
 
         elif name == "Exactly":
             return run.exactly(args[0].data)
+
+        elif name == "Label":
+            label = args[1].data
+            try:
+                val, err = self._eval(run, args[0])
+                return val, err.withMessage([("Custom Exception:", label, None)])
+            except ParseError, e:
+                raise e.withMessage([("Custom Exception:", label, None)])
 
         elif name == "Token":
             if run.tree:

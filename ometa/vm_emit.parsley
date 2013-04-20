@@ -38,7 +38,9 @@ Predicate() --> t.Predicate(),
 Push() --> t.Push(),
 Python(repr:x) --> t.Python($x),
 StartSlice() --> t.StartSlice(),
+StringTemplate(stPart*:parts) !(', '.join(parts)):partsStr --> t.StringTemplate($partsStr)
 SuperCall(repr:x) --> t.SuperCall($x),
+TermDescend(repr:name) --> t.TermDescend($name),
 ListAppend() --> t.ListAppend(),
 CollectList() --> t.CollectList(),
 
@@ -47,3 +49,5 @@ repr :s = ?(s.tag.name == 'false') -> 'False'
 repr :s = ?(s.tag.name == 'null') -> 'None'
 repr :s ?(s.data is not None) -> repr(s.data)
 
+stPart = QuasiExprHole(repr:n) --> t.QuasiExprHole($n)
+stPart = repr:s -> s

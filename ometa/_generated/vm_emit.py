@@ -281,106 +281,172 @@ def createParserClass(GrammarBase, ruleGlobals):
             return (_G_stringtemplate_69, self.currentError)
 
 
+        def rule_StringTemplate(self):
+            _locals = {'self': self}
+            self.locals['StringTemplate'] = _locals
+            def _G_termpattern_70():
+                def _G_many_71():
+                    _G_apply_72, lastError = self._apply(self.rule_stPart, "stPart", [])
+                    self.considerError(lastError, None)
+                    return (_G_apply_72, self.currentError)
+                _G_many_73, lastError = self.many(_G_many_71)
+                self.considerError(lastError, None)
+                _locals['parts'] = _G_many_73
+                return (_locals['parts'], self.currentError)
+            _G_termpattern_74, lastError = self.termpattern('StringTemplate', _G_termpattern_70)
+            self.considerError(lastError, 'StringTemplate')
+            _G_python_75, lastError = eval("', '.join(parts)", self.globals, _locals), None
+            self.considerError(lastError, 'StringTemplate')
+            _locals['partsStr'] = _G_python_75
+            from terml.parser import parseTerm as term
+            _G_stringtemplate_76, lastError = self.stringtemplate(term('["t.StringTemplate(", QuasiExprHole("partsStr"), ")"]'), _locals)
+            self.considerError(lastError, None)
+            return (_G_stringtemplate_76, self.currentError)
+
+
         def rule_SuperCall(self):
             _locals = {'self': self}
             self.locals['SuperCall'] = _locals
-            def _G_termpattern_70():
-                _G_apply_71, lastError = self._apply(self.rule_repr, "repr", [])
+            def _G_termpattern_77():
+                _G_apply_78, lastError = self._apply(self.rule_repr, "repr", [])
                 self.considerError(lastError, None)
-                _locals['x'] = _G_apply_71
+                _locals['x'] = _G_apply_78
                 return (_locals['x'], self.currentError)
-            _G_termpattern_72, lastError = self.termpattern('SuperCall', _G_termpattern_70)
+            _G_termpattern_79, lastError = self.termpattern('SuperCall', _G_termpattern_77)
             self.considerError(lastError, 'SuperCall')
             from terml.parser import parseTerm as term
-            _G_stringtemplate_73, lastError = self.stringtemplate(term('["t.SuperCall(", QuasiExprHole("x"), "),"]'), _locals)
+            _G_stringtemplate_80, lastError = self.stringtemplate(term('["t.SuperCall(", QuasiExprHole("x"), "),"]'), _locals)
             self.considerError(lastError, None)
-            return (_G_stringtemplate_73, self.currentError)
+            return (_G_stringtemplate_80, self.currentError)
+
+
+        def rule_TermDescend(self):
+            _locals = {'self': self}
+            self.locals['TermDescend'] = _locals
+            def _G_termpattern_81():
+                _G_apply_82, lastError = self._apply(self.rule_repr, "repr", [])
+                self.considerError(lastError, None)
+                _locals['name'] = _G_apply_82
+                return (_locals['name'], self.currentError)
+            _G_termpattern_83, lastError = self.termpattern('TermDescend', _G_termpattern_81)
+            self.considerError(lastError, 'TermDescend')
+            from terml.parser import parseTerm as term
+            _G_stringtemplate_84, lastError = self.stringtemplate(term('["t.TermDescend(", QuasiExprHole("name"), "),"]'), _locals)
+            self.considerError(lastError, None)
+            return (_G_stringtemplate_84, self.currentError)
 
 
         def rule_ListAppend(self):
             _locals = {'self': self}
             self.locals['ListAppend'] = _locals
-            def _G_termpattern_74():
+            def _G_termpattern_85():
                 return (None, self.currentError)
-            _G_termpattern_75, lastError = self.termpattern('ListAppend', _G_termpattern_74)
+            _G_termpattern_86, lastError = self.termpattern('ListAppend', _G_termpattern_85)
             self.considerError(lastError, 'ListAppend')
             from terml.parser import parseTerm as term
-            _G_stringtemplate_76, lastError = self.stringtemplate(term('["t.ListAppend(),"]'), _locals)
+            _G_stringtemplate_87, lastError = self.stringtemplate(term('["t.ListAppend(),"]'), _locals)
             self.considerError(lastError, None)
-            return (_G_stringtemplate_76, self.currentError)
+            return (_G_stringtemplate_87, self.currentError)
 
 
         def rule_CollectList(self):
             _locals = {'self': self}
             self.locals['CollectList'] = _locals
-            def _G_termpattern_77():
+            def _G_termpattern_88():
                 return (None, self.currentError)
-            _G_termpattern_78, lastError = self.termpattern('CollectList', _G_termpattern_77)
+            _G_termpattern_89, lastError = self.termpattern('CollectList', _G_termpattern_88)
             self.considerError(lastError, 'CollectList')
             from terml.parser import parseTerm as term
-            _G_stringtemplate_79, lastError = self.stringtemplate(term('["t.CollectList(),"]'), _locals)
+            _G_stringtemplate_90, lastError = self.stringtemplate(term('["t.CollectList(),"]'), _locals)
             self.considerError(lastError, None)
-            return (_G_stringtemplate_79, self.currentError)
+            return (_G_stringtemplate_90, self.currentError)
 
 
         def rule_repr(self):
             _locals = {'self': self}
             self.locals['repr'] = _locals
-            def _G_or_80():
-                _G_apply_81, lastError = self._apply(self.rule_anything, "anything", [])
+            def _G_or_91():
+                _G_apply_92, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError, None)
-                _locals['s'] = _G_apply_81
-                def _G_pred_82():
-                    _G_python_83, lastError = eval("s.tag.name == 'true'", self.globals, _locals), None
+                _locals['s'] = _G_apply_92
+                def _G_pred_93():
+                    _G_python_94, lastError = eval("s.tag.name == 'true'", self.globals, _locals), None
                     self.considerError(lastError, None)
-                    return (_G_python_83, self.currentError)
-                _G_pred_84, lastError = self.pred(_G_pred_82)
+                    return (_G_python_94, self.currentError)
+                _G_pred_95, lastError = self.pred(_G_pred_93)
                 self.considerError(lastError, None)
-                _G_python_85, lastError = 'True', None
+                _G_python_96, lastError = 'True', None
                 self.considerError(lastError, None)
-                return (_G_python_85, self.currentError)
-            def _G_or_86():
-                _G_apply_87, lastError = self._apply(self.rule_anything, "anything", [])
+                return (_G_python_96, self.currentError)
+            def _G_or_97():
+                _G_apply_98, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError, None)
-                _locals['s'] = _G_apply_87
-                def _G_pred_88():
-                    _G_python_89, lastError = eval("s.tag.name == 'false'", self.globals, _locals), None
+                _locals['s'] = _G_apply_98
+                def _G_pred_99():
+                    _G_python_100, lastError = eval("s.tag.name == 'false'", self.globals, _locals), None
                     self.considerError(lastError, None)
-                    return (_G_python_89, self.currentError)
-                _G_pred_90, lastError = self.pred(_G_pred_88)
+                    return (_G_python_100, self.currentError)
+                _G_pred_101, lastError = self.pred(_G_pred_99)
                 self.considerError(lastError, None)
-                _G_python_91, lastError = 'False', None
+                _G_python_102, lastError = 'False', None
                 self.considerError(lastError, None)
-                return (_G_python_91, self.currentError)
-            def _G_or_92():
-                _G_apply_93, lastError = self._apply(self.rule_anything, "anything", [])
+                return (_G_python_102, self.currentError)
+            def _G_or_103():
+                _G_apply_104, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError, None)
-                _locals['s'] = _G_apply_93
-                def _G_pred_94():
-                    _G_python_95, lastError = eval("s.tag.name == 'null'", self.globals, _locals), None
+                _locals['s'] = _G_apply_104
+                def _G_pred_105():
+                    _G_python_106, lastError = eval("s.tag.name == 'null'", self.globals, _locals), None
                     self.considerError(lastError, None)
-                    return (_G_python_95, self.currentError)
-                _G_pred_96, lastError = self.pred(_G_pred_94)
+                    return (_G_python_106, self.currentError)
+                _G_pred_107, lastError = self.pred(_G_pred_105)
                 self.considerError(lastError, None)
-                _G_python_97, lastError = 'None', None
+                _G_python_108, lastError = 'None', None
                 self.considerError(lastError, None)
-                return (_G_python_97, self.currentError)
-            def _G_or_98():
-                _G_apply_99, lastError = self._apply(self.rule_anything, "anything", [])
+                return (_G_python_108, self.currentError)
+            def _G_or_109():
+                _G_apply_110, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError, None)
-                _locals['s'] = _G_apply_99
-                def _G_pred_100():
-                    _G_python_101, lastError = eval('s.data is not None', self.globals, _locals), None
+                _locals['s'] = _G_apply_110
+                def _G_pred_111():
+                    _G_python_112, lastError = eval('s.data is not None', self.globals, _locals), None
                     self.considerError(lastError, None)
-                    return (_G_python_101, self.currentError)
-                _G_pred_102, lastError = self.pred(_G_pred_100)
+                    return (_G_python_112, self.currentError)
+                _G_pred_113, lastError = self.pred(_G_pred_111)
                 self.considerError(lastError, None)
-                _G_python_103, lastError = eval('repr(s.data)', self.globals, _locals), None
+                _G_python_114, lastError = eval('repr(s.data)', self.globals, _locals), None
                 self.considerError(lastError, None)
-                return (_G_python_103, self.currentError)
-            _G_or_104, lastError = self._or([_G_or_80, _G_or_86, _G_or_92, _G_or_98])
+                return (_G_python_114, self.currentError)
+            _G_or_115, lastError = self._or([_G_or_91, _G_or_97, _G_or_103, _G_or_109])
             self.considerError(lastError, 'repr')
-            return (_G_or_104, self.currentError)
+            return (_G_or_115, self.currentError)
+
+
+        def rule_stPart(self):
+            _locals = {'self': self}
+            self.locals['stPart'] = _locals
+            def _G_or_116():
+                def _G_termpattern_117():
+                    _G_apply_118, lastError = self._apply(self.rule_repr, "repr", [])
+                    self.considerError(lastError, None)
+                    _locals['n'] = _G_apply_118
+                    return (_locals['n'], self.currentError)
+                _G_termpattern_119, lastError = self.termpattern('QuasiExprHole', _G_termpattern_117)
+                self.considerError(lastError, None)
+                from terml.parser import parseTerm as term
+                _G_stringtemplate_120, lastError = self.stringtemplate(term('["t.QuasiExprHole(", QuasiExprHole("n"), ")"]'), _locals)
+                self.considerError(lastError, None)
+                return (_G_stringtemplate_120, self.currentError)
+            def _G_or_121():
+                _G_apply_122, lastError = self._apply(self.rule_repr, "repr", [])
+                self.considerError(lastError, None)
+                _locals['s'] = _G_apply_122
+                _G_python_123, lastError = eval('s', self.globals, _locals), None
+                self.considerError(lastError, None)
+                return (_G_python_123, self.currentError)
+            _G_or_124, lastError = self._or([_G_or_116, _G_or_121])
+            self.considerError(lastError, 'stPart')
+            return (_G_or_124, self.currentError)
 
 
         tree = True

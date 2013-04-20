@@ -1273,44 +1273,44 @@ class TreeTransformerTestCase(unittest.TestCase):
 
     def test_termForm(self):
         g = self.compile("Foo(:left :right) -> left.data + right.data")
-        self.assertEqual(g.transform(term("Foo(1, 2)"))[0], 3)
+        self.assertEqual(g([term("Foo(1, 2)")]).apply("transform")[0], 3)
 
     def test_termFormNest(self):
         g = self.compile("Foo(:left Baz(:right)) -> left.data + right.data")
-        self.assertEqual(g.transform(term("Foo(1, Baz(2))"))[0], 3)
+        self.assertEqual(g([term("Foo(1, Baz(2))")]).apply("transform")[0], 3)
 
     def test_listForm(self):
         g = self.compile("Foo(:left [:first :second]) -> left.data + first.data + second.data")
-        self.assertEqual(g.transform(term("Foo(1, [2, 3])"))[0], 6)
+        self.assertEqual(g([term("Foo(1, [2, 3])")]).apply("transform")[0], 6)
 
     def test_emptyList(self):
         g = self.compile("Foo([]) -> 6")
-        self.assertEqual(g.transform(term("Foo([])"))[0], 6)
+        self.assertEqual(g([term("Foo([])")]).apply("transform")[0], 6)
 
     def test_emptyArgs(self):
         g = self.compile("Foo() -> 6")
-        self.assertEqual(g.transform(term("Foo()"))[0], 6)
+        self.assertEqual(g([term("Foo()")]).apply("transform")[0], 6)
 
     def test_emptyArgsMeansEmpty(self):
         g = self.compile("""
                          Foo() -> 6
                          Foo(:x) -> x
                          """)
-        self.assertEqual(g.transform(term("Foo(3)"))[0].data, 3)
+        self.assertEqual(g([term("Foo(3)")]).apply("transform")[0].data, 3)
 
     def test_subTransform(self):
         g = self.compile("""
                          Foo(:left @right) -> left.data + right
                          Baz(:front :back) -> front.data * back.data
                          """)
-        self.assertEqual(g.transform(term("Foo(1, Baz(2, 3))"))[0], 7)
+        self.assertEqual(g([term("Foo(1, Baz(2, 3))")]).apply("transform")[0], 7)
 
     def test_defaultExpand(self):
         g = self.compile("""
                          Foo(:left @right) -> left.data + right
                          Baz(:front :back) -> front.data * back.data
                          """)
-        self.assertEqual(g.transform(term("Blee(Foo(1, 2), Baz(2, 3))"))[0],
+        self.assertEqual(g([term("Blee(Foo(1, 2), Baz(2, 3))")]).apply("transform")[0],
                          term("Blee(3, 6)"))
 
     def test_wide_template(self):
@@ -1320,7 +1320,7 @@ class TreeTransformerTestCase(unittest.TestCase):
             Name(@n) = ?(n == "a") --> foo
                      |             --> baz
             """)
-        self.assertEqual(g.transform(term('Pair(Name("a"), Name("b"))'))[0],
+        self.assertEqual(g([term('Pair(Name("a"), Name("b"))')]).apply("transform")[0],
                          "foo, baz")
 
     def test_tall_template(self):
@@ -1333,7 +1333,7 @@ class TreeTransformerTestCase(unittest.TestCase):
             also, $right
             }}}
             """)
-        self.assertEqual(g.transform(term('Pair(Name("a"), Name("b"))'))[0],
+        self.assertEqual(g([term('Pair(Name("a"), Name("b"))')]).apply("transform")[0],
                          "foo\nalso, baz")
 
     def test_tall_template_suite(self):
@@ -1345,7 +1345,7 @@ class TreeTransformerTestCase(unittest.TestCase):
               $suite
             }}}
             """)
-        self.assertEqual(g.transform(term('If(Name("a"), [Name("foo"), Name("baz")])'))[0],
+        self.assertEqual(g([term('If(Name("a"), [Name("foo"), Name("baz")])')]).apply("transform")[0],
                          "if a:\n  foo\n  baz")
 
     def test_foreign(self):

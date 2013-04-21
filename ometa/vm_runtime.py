@@ -1,5 +1,5 @@
-from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream, expected, LeftRecursion
-
+from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream, expected, LeftRecursion, ArgInput
+from terml.nodes import Term, coerceToTerm
 DEBUG = False
 
 class VM(object):
@@ -53,14 +53,9 @@ class VM(object):
         else:
             return self._native(name)
 
-
     def _native(self, name):
-        bltn = getattr(self.runtime, 'rule_' + name, None)
-        self.runtime.input = self.input
-        retval = bltn()
-        self.input = self.runtime.input
-        return retval
-
+        bltn = getattr(self, 'rule_' + name, None)
+        return bltn()
 
     def _apply(self, name):
         memoRec = self.input.getMemo(name)
@@ -69,7 +64,8 @@ class VM(object):
             lr = LeftRecursion()
             self.input.setMemo(name, lr)
             try:
-                memoRec = oldPosition.setMemo(name, [self._subInvoke(name), self.input])
+                memoRec = oldPosition.setMemo(name, [self._subInvoke(name),
+                                                     self.input])
             except ParseError, e:
                 e.trail.append(name)
                 if DEBUG:
@@ -189,6 +185,17 @@ class VM(object):
                 self.input = InputStream.fromIterable(inp)
             except TypeError:
                 return self.fail(self.currentError)
+        elif name == "TermDescend":
+            wanted = instr.args[0].data
+            inp, p = self.input.head()
+            if not isinstance(inp, Term) or wanted != inp.tag.name:
+                return self.fail(
+                    p.withMessage(expected("a Term named " + wanted)))
+            self.inputStack.append(self.input.tail())
+            try:
+                self.input = InputStream.fromIterable(inp.args)
+            except TypeError:
+                return self.fail(self.currentError)
         elif name == "Ascend":
             try:
                 self.input.head()
@@ -236,6 +243,8 @@ class VM(object):
             self.listStack = []
         elif name == "ListAppend":
             self.listStack.append(self.currentValue)
+        else:
+            raise ValueError("Unrecognized opcode " + name)
         self.pc += 1
 
     def fail(self, err):
@@ -257,6 +266,133 @@ class VM(object):
             # either not in a repeat, or made it to the minimum. Jump
             # to the target in the last Choice/RepeatChoice.
             self.pc = newpc
+
+    def rule_anything(self):
+        """
+        Match a single item from the input of any kind.
+        """
+        h, p = self.input.head()
+        self.input = self.input.tail()
+        return h, p
+
+    def rule_ws(self):
+        while True:
+            try:
+                c, e = self.input.head()
+            except EOFError, e:
+                break
+            t = self.input.tail()
+            if c.isspace():
+                self.input = t
+            else:
+                break
+        return True, e
+
+    def rule_letter(self):
+        """
+        Match a single letter.
+        """
+        x, e = self.rule_anything()
+        if x.isalpha():
+            return x, e
+        else:
+            raise e.withMessage(expected("letter"))
+
+    def rule_letterOrDigit(self):
+        """
+        Match a single alphanumeric character.
+        """
+        x, e = self.rule_anything()
+        if x.isalnum():
+            return x, e
+        else:
+            raise e.withMessage(expected("letter or digit"))
+
+    def rule_digit(self):
+        """
+        Match a single digit.
+        """
+        x, e = self.rule_anything()
+        if x.isdigit():
+            return x, e
+        else:
+            raise e.withMessage(expected("digit"))
+
+    def rule_transform(self):
+        tt, e = self.rule_anything()
+        if isinstance(tt, Term):
+            try:
+                return self._transform_data(tt), e
+            except ValueError:
+                name = tt.tag.name
+                if name == '.tuple.':
+                    return self._transform_iterable(tt.args)
+                else:
+                    self.input = ArgInput(tt, self.input)
+                    if getattr(self, 'rule_' + name, name in self.rules):
+                        return self.apply(name)
+                    else:
+                        return self.apply("unknown_term")
+        else:
+            return self._transform_iterable(tt)
+
+    def _transform_data(self, tt):
+        if tt.data is not None:
+            return tt.data
+        name = tt.tag.name
+        if name == 'null':
+            return None
+        if name == 'true':
+            return True
+        if name == 'false':
+            return False
+        raise ValueError()
+
+    def _transform_iterable(self, contents):
+        oldInput = self.input
+        self.input = InputStream.fromIterable(contents)
+        v = []
+        while True:
+            try:
+                m = self.input
+                item, _ = self.rule_transform()
+                v.append(item)
+            except ParseError:
+                self.input = m
+                break
+        if not self.input.atEnd():
+            return self.fail(e.withMessage(
+                    expected("a list with transformable contents"
+                             % (tt.tag.name,))))
+        self.input = oldInput
+        return v
+
+    def rule_unknown_term(self):
+        tt, _ = self.rule_anything()
+        oldInput = self.input
+        self.input = InputStream.fromIterable(tt.args)
+        newargs = []
+        while True:
+            try:
+                m = self.input
+                item, _ = self.rule_transform()
+                newargs.append(item)
+            except ParseError, e:
+                self.input = m
+                break
+        if not self.input.atEnd():
+            return self.fail(e.withMessage(
+                    expected("a Term %r with transformable args"
+                             % (tt.tag.name,))))
+        self.input = oldInput
+        return Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs)), e
+
+    def rule_null(self):
+        tt, e = self.rule_anything()
+        if not tt.tag.name == "null":
+            raise self.input.nullError()
+        return None, self.input.nullError()
+
 
 def VMWrapper(v):
     return v

@@ -216,12 +216,8 @@ class InputStream(object):
         self.error = ParseError(self.data, self.position, None)
 
     def head(self):
-        if self.position >= len(self.data):
-            if getattr(self.data, 'join', None):
-                data = self.data.__class__('').join(self.data)
-            else:
-                data = self.data
-            raise EOFError(data, self.position)
+        if self.atEnd():
+            raise EOFError(self.data, self.position)
         return self.data[self.position], self.error
 
     def nullError(self, msg=None):
@@ -266,6 +262,9 @@ class InputStream(object):
 
     def __cmp__(self, other):
         return cmp((self.data, self.position), (other.data, other.position))
+
+    def atEnd(self):
+        return self.position >= len(self.data)
 
 
 class WrappedValueInputStream(InputStream):

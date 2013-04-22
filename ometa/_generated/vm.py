@@ -413,66 +413,78 @@ def createParserClass(GrammarBase, ruleGlobals):
                 return (_locals['patts'], self.currentError)
             _G_termpattern_129, lastError = self.termpattern('TermPattern', _G_termpattern_126)
             self.considerError(lastError, 'TermPattern')
-            _G_python_130, lastError = eval('[t.TermDescend(name)] + patts + [t.Ascend()]', self.globals, _locals), None
+            _G_python_130, lastError = eval('[t.TermDescend(name)] + (patts or []) + [t.Ascend()]', self.globals, _locals), None
             self.considerError(lastError, 'TermPattern')
             return (_G_python_130, self.currentError)
+
+
+        def rule_QuasiExprHole(self):
+            _locals = {'self': self}
+            self.locals['QuasiExprHole'] = _locals
+            def _G_termpattern_131():
+                _G_apply_132, lastError = self._apply(self.rule_anything, "anything", [])
+                self.considerError(lastError, None)
+                _locals['n'] = _G_apply_132
+                return (_locals['n'], self.currentError)
+            _G_termpattern_133, lastError = self.termpattern('QuasiExprHole', _G_termpattern_131)
+            self.considerError(lastError, 'QuasiExprHole')
+            _G_python_134, lastError = eval('t.QuasiExprHole(n)', self.globals, _locals), None
+            self.considerError(lastError, 'QuasiExprHole')
+            return (_G_python_134, self.currentError)
 
 
         def rule_StringTemplate(self):
             _locals = {'self': self}
             self.locals['StringTemplate'] = _locals
-            def _G_termpattern_131():
-                _G_apply_132, lastError = self._apply(self.rule_anything, "anything", [])
+            def _G_termpattern_135():
+                _G_apply_136, lastError = self._apply(self.rule_transform, "transform", [])
                 self.considerError(lastError, None)
-                _locals['contents'] = _G_apply_132
+                _locals['contents'] = _G_apply_136
                 return (_locals['contents'], self.currentError)
-            _G_termpattern_133, lastError = self.termpattern('StringTemplate', _G_termpattern_131)
+            _G_termpattern_137, lastError = self.termpattern('StringTemplate', _G_termpattern_135)
             self.considerError(lastError, 'StringTemplate')
-            _G_apply_134, lastError = self._apply(self.rule_anything, "anything", [])
+            _G_python_138, lastError = eval('[t.StringTemplate(contents)]', self.globals, _locals), None
             self.considerError(lastError, 'StringTemplate')
-            _locals['st'] = _G_apply_134
-            _G_python_135, lastError = eval('[st]', self.globals, _locals), None
-            self.considerError(lastError, 'StringTemplate')
-            return (_G_python_135, self.currentError)
+            return (_G_python_138, self.currentError)
 
 
         def rule_Rule(self):
             _locals = {'self': self}
             self.locals['Rule'] = _locals
-            def _G_termpattern_136():
-                _G_apply_137, lastError = self._apply(self.rule_anything, "anything", [])
+            def _G_termpattern_139():
+                _G_apply_140, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError, None)
-                _locals['name'] = _G_apply_137
-                _G_apply_138, lastError = self._apply(self.rule_transform, "transform", [])
+                _locals['name'] = _G_apply_140
+                _G_apply_141, lastError = self._apply(self.rule_transform, "transform", [])
                 self.considerError(lastError, None)
-                _locals['xs'] = _G_apply_138
+                _locals['xs'] = _G_apply_141
                 return (_locals['xs'], self.currentError)
-            _G_termpattern_139, lastError = self.termpattern('Rule', _G_termpattern_136)
+            _G_termpattern_142, lastError = self.termpattern('Rule', _G_termpattern_139)
             self.considerError(lastError, 'Rule')
-            _G_python_140, lastError = eval('t.Rule(name, xs)', self.globals, _locals), None
+            _G_python_143, lastError = eval('t.Rule(name, xs)', self.globals, _locals), None
             self.considerError(lastError, 'Rule')
-            return (_G_python_140, self.currentError)
+            return (_G_python_143, self.currentError)
 
 
         def rule_Grammar(self):
             _locals = {'self': self}
             self.locals['Grammar'] = _locals
-            def _G_termpattern_141():
-                _G_apply_142, lastError = self._apply(self.rule_anything, "anything", [])
+            def _G_termpattern_144():
+                _G_apply_145, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError, None)
-                _locals['name'] = _G_apply_142
-                _G_apply_143, lastError = self._apply(self.rule_anything, "anything", [])
+                _locals['name'] = _G_apply_145
+                _G_apply_146, lastError = self._apply(self.rule_anything, "anything", [])
                 self.considerError(lastError, None)
-                _locals['tree'] = _G_apply_143
-                _G_apply_144, lastError = self._apply(self.rule_transform, "transform", [])
+                _locals['tree'] = _G_apply_146
+                _G_apply_147, lastError = self._apply(self.rule_transform, "transform", [])
                 self.considerError(lastError, None)
-                _locals['rules'] = _G_apply_144
+                _locals['rules'] = _G_apply_147
                 return (_locals['rules'], self.currentError)
-            _G_termpattern_145, lastError = self.termpattern('Grammar', _G_termpattern_141)
+            _G_termpattern_148, lastError = self.termpattern('Grammar', _G_termpattern_144)
             self.considerError(lastError, 'Grammar')
-            _G_python_146, lastError = eval('t.Grammar(name, tree, rules)', self.globals, _locals), None
+            _G_python_149, lastError = eval('t.Grammar(name, tree, rules)', self.globals, _locals), None
             self.considerError(lastError, 'Grammar')
-            return (_G_python_146, self.currentError)
+            return (_G_python_149, self.currentError)
 
 
         tree = True

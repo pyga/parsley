@@ -1,4 +1,4 @@
-from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream, expected, LeftRecursion, ArgInput
+from ometa.runtime import ArgInput, OMetaBase, EOFError, ParseError, InputStream, expected, LeftRecursion, ArgInput, stringtemplate
 from terml.nodes import Term, coerceToTerm
 DEBUG = False
 
@@ -158,9 +158,11 @@ class VM(object):
             foreignName = instr.args[0].data
             ruleName = instr.args[1].data
             newvm = self.globals.get(foreignName,
-                                     self.local.get(foreignName, None))
+                                     self.locals.get(foreignName, None))
+            self.input.memo.clear()
             try:
-                newvm.apply(ruleName)
+                self.currentValue, self.currentError = newvm(
+                    self.input, stream=True).apply(ruleName)
             except ParseError, e:
                 return self.fail(e)
         elif name == "Commit":
@@ -197,13 +199,11 @@ class VM(object):
             except TypeError:
                 return self.fail(self.currentError)
         elif name == "Ascend":
-            try:
-                self.input.head()
-            except EOFError, e:
+            if self.input.atEnd():
                 self.currentValue = self.input.data
                 self.input = self.inputStack.pop()
             else:
-                return self.fail(e)
+                return self.fail(self.input.nullError())
         elif name == "Predicate":
             if not self.currentValue:
                 return self.fail(self.input.nullError())
@@ -243,6 +243,12 @@ class VM(object):
             self.listStack = []
         elif name == "ListAppend":
             self.listStack.append(self.currentValue)
+        elif name == "StringTemplate":
+            templ = instr.args[0]
+            try:
+                self.currentValue = stringtemplate(templ, self.locals)[0]
+            except ParseError, e:
+                return self.fail(e)
         else:
             raise ValueError("Unrecognized opcode " + name)
         self.pc += 1
@@ -357,15 +363,14 @@ class VM(object):
                 m = self.input
                 item, _ = self.rule_transform()
                 v.append(item)
-            except ParseError:
+            except ParseError, e:
                 self.input = m
                 break
         if not self.input.atEnd():
             return self.fail(e.withMessage(
-                    expected("a list with transformable contents"
-                             % (tt.tag.name,))))
+                    expected("a list with transformable contents")))
         self.input = oldInput
-        return v
+        return v, e
 
     def rule_unknown_term(self):
         tt, _ = self.rule_anything()

@@ -2,8 +2,8 @@
 Grammar(@name repr:tree @rules) {{{
 from terml.nodes import termMaker as t
 from ometa.runtime import InputStream
-from ometa.vm_runtime import VM, VMWrapper
 def createParserClass(GrammarBase, ruleGlobals):
+    from ometa.vm_runtime import VM
     rules = {
         $rules
     }
@@ -11,9 +11,11 @@ def createParserClass(GrammarBase, ruleGlobals):
         mkInput = InputStream.fromIterable
     else:
         mkInput = InputStream.fromText
-    def makeParser(data):
-        vm = VM(rules, mkInput(data), $tree, GrammarBase, ruleGlobals)
-        return VMWrapper(vm)
+    def makeParser(data, stream=False):
+        if not stream:
+            data = mkInput(data)
+        vm = VM(rules, data, $tree, GrammarBase, ruleGlobals)
+        return vm
     return makeParser
 }}}
 Rule(@name @instrs) {{{
@@ -38,7 +40,7 @@ Predicate() --> t.Predicate(),
 Push() --> t.Push(),
 Python(repr:x) --> t.Python($x),
 StartSlice() --> t.StartSlice(),
-StringTemplate(stPart*:parts) !(', '.join(parts)):partsStr --> t.StringTemplate($partsStr)
+StringTemplate([stPart*:parts]) !(', '.join(parts)):partsStr --> t.StringTemplate([$partsStr]),
 SuperCall(repr:x) --> t.SuperCall($x),
 TermDescend(repr:name) --> t.TermDescend($name),
 ListAppend() --> t.ListAppend(),

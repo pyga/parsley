@@ -647,39 +647,7 @@ class OMetaBase(object):
 
 
     def stringtemplate(self, template, vals):
-        output = []
-        checkIndent = False
-        currentIndent = ""
-        for chunk in template.args:
-            if chunk.tag.name == ".String.":
-                output.append(chunk.data)
-                if checkIndent and chunk.data.isspace():
-                    currentIndent = chunk.data
-                    checkIndent = False
-                if chunk.data.endswith('\n'):
-                    checkIndent = True
-            elif chunk.tag.name == "QuasiExprHole":
-                v = vals[chunk.args[0].data]
-                if not isinstance(v, basestring):
-                    try:
-                        vs = list(v)
-                    except TypeError:
-                        raise TypeError("Only know how to templatize strings and lists of strings")
-                    lines = []
-                    for x in vs:
-                        lines.extend(x.split('\n'))
-                    compacted_lines = []
-                    for line in lines:
-                        if line:
-                            compacted_lines.append(line)
-                        elif compacted_lines:
-                            compacted_lines[-1] = compacted_lines[-1] + '\n'
-                    v = ("\n" + currentIndent).join(compacted_lines)
-                output.append(v)
-            else:
-                raise TypeError("didn't expect %r in string template" % chunk)
-        return ''.join(output).rstrip('\n'), None
-
+        return stringtemplate(template, vals)
     def end(self):
         """
         Match the end of the stream.
@@ -979,26 +947,30 @@ class TreeTransformerBase(OMetaBase):
         tt, e = self.rule_anything()
         if isinstance(tt, Term):
             try:
-                return self._transform_data(tt), e
+                res = self._transform_data(tt), e
             except ValueError:
                 name = tt.tag.name
                 if name == '.tuple.':
                     return self._transform_iterable(tt.args)
                 else:
                     if getattr(self, 'rule_' + name, None):
-                        return self.apply(name, tt)
+                        res = self.apply(name, tt)
                     else:
-                        return self.apply("unknown_term", tt)
+                        res = self.apply("unknown_term", tt)
         else:
-            return self._transform_iterable(tt)
+            res = self._transform_iterable(tt)
+
+        return res
 
     def _transform_iterable(self, contents):
         oldInput = self.input
         self.input = InputStream.fromIterable(contents)
-        v = self.many(self.rule_transform)
-        self.end()
+        v, e = self.many(self.rule_transform)
+        if not self.input.atEnd():
+            raise e.withMessage(
+                expected("a list with transformable contents"))
         self.input = oldInput
-        return v
+        return v, e
 
     def rule_unknown_term(self):
         tt, _ = self.rule_anything()
@@ -1055,3 +1027,39 @@ class TreeTransformerBase(OMetaBase):
             raise p.withMessage(expected(None, wanted))
 
     rule_exactly = exactly
+
+
+def stringtemplate(template, vals):
+    output = []
+    checkIndent = False
+    currentIndent = ""
+    for chunk in template.args:
+        if chunk.tag.name == ".String.":
+            output.append(chunk.data)
+            if checkIndent and chunk.data.isspace():
+                currentIndent = chunk.data
+                checkIndent = False
+            if chunk.data.endswith('\n'):
+                checkIndent = True
+        elif chunk.tag.name == "QuasiExprHole":
+            v = vals[chunk.args[0].data]
+            if not isinstance(v, basestring):
+                try:
+                    vs = list(v)
+                except TypeError:
+                    raise TypeError("Only know how to templatize strings and "
+                                    "lists of strings")
+                lines = []
+                for x in vs:
+                    lines.extend(x.split('\n'))
+                compacted_lines = []
+                for line in lines:
+                    if line:
+                        compacted_lines.append(line)
+                    elif compacted_lines:
+                        compacted_lines[-1] = compacted_lines[-1] + '\n'
+                v = ("\n" + currentIndent).join(compacted_lines)
+            output.append(v)
+        else:
+            raise TypeError("didn't expect %r in string template" % chunk)
+    return ''.join(output).rstrip('\n'), None

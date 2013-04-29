@@ -5,7 +5,7 @@ import os
 import glob
 import shutil
 from ometa.runtime import ParseError
-from ometa.grammar import OMeta
+from ometa.grammar import OMeta, TreeTransformerGrammar
 from ometa.builder import writePython
 
 
@@ -38,9 +38,12 @@ def stage_pkg(parsley_dir, stage_dir, pkg):
         pyfn = os.path.join(stage_gen_dir, grammarname + '.py')
         print "{src:38} => {dst}".format(src=os.path.relpath(filename, parsley_dir),
                                          dst=os.path.relpath(pyfn, parsley_dir))
-        g = OMeta(grammar)
+        if grammar.startswith('#TreeTransformer'):
+            g = TreeTransformerGrammar(grammar)
+        else:
+            g = OMeta(grammar)
         tree = g.parseGrammar(grammarname)
-        source = writePython(tree)
+        source = writePython(tree, grammar)
         pythonFile = open(pyfn, 'w')
         pythonFile.write(source)
 

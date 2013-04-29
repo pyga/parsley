@@ -31,6 +31,7 @@ class TrampolinedGrammarInterpreter(object):
         self.currentResult = None
         self.input = InputStream([], 0)
         self.ended = False
+        self._spanStart = 0
 
 
     def receive(self, buf):
@@ -489,6 +490,7 @@ class GrammarInterpreter(object):
         self._globals = globals or {}
         self.rules = decomposeGrammar(grammar)
         self.run = None
+        self._spanStart = 0
 
     def apply(self, input, rulename, tree=False):
         self.run = self.base(input, self._globals, tree=tree)

@@ -8,8 +8,8 @@ indentation = emptyline* hspace+
 noindentation = emptyline* ~~~hspace
 
 number = ws
-               ('-' barenumber:x  -> t.Exactly(-x)
-                    |barenumber:x -> t.Exactly(x))
+               ('-' barenumber:x  -> t.Exactly(-x, span=self.getSpan())
+                    |barenumber:x -> t.Exactly(x, span=self.getSpan()))
 barenumber = '0' (('x'|'X') <hexdigit+>:hs -> int(hs, 16)
                     |<octaldigit+>:ds -> int(ds, 8))
                |<digit+>:ds -> int(ds)
@@ -27,10 +27,10 @@ escapedChar = '\\' ('n' -> "\n"
                      |'\\' -> "\\")
 
 character = ws '\'' (~'\'' (escapedChar | anything))+:c
-            ws '\'' -> t.Exactly(''.join(c))
+            ws '\'' -> t.Exactly(''.join(c), span=self.getSpan())
 
 string = ws '"' (escapedChar | ~('"') anything)*:c
-         ws '"' -> t.Token(''.join(c))
+         ws '"' -> t.Token(''.join(c), span=self.getSpan())
 
 name = <letter ('_' |letterOrDigit)*>
 
@@ -39,24 +39,27 @@ args = ('(' !(self.applicationArgs(finalChar=')')):args ')'
           | -> [])
 
 application = indentation? name:name args:args
-                -> t.Apply(name, self.rulename, args)
+                -> t.Apply(name, self.rulename, args, span=self.getSpan())
 
 foreignApply = indentation? name:grammar_name '.' name:rule_name args:args
-                -> t.ForeignApply(grammar_name, rule_name, self.rulename, args)
+                -> t.ForeignApply(grammar_name, rule_name, self.rulename, args, span=self.getSpan())
 
-expr1 = foreignApply
-          |application
-          |ruleValue
-          |semanticPredicate
-          |semanticAction
-          |number:n !(self.isTree()) -> n
-          |character
-          |string
-          |ws '(' expr:e ws ')' -> e
-          |ws '<' expr:e ws '>'
-             -> t.ConsumedBy(e)
-          |ws '[' expr?:e ws ']' !(self.isTree())
-             -> t.List(e) if e else t.List()
+traceable = !(self.startSpan())
+          (  foreignApply
+          | application
+          | ruleValue
+          | semanticPredicate
+          | semanticAction
+          | number:n !(self.isTree()) -> n
+          | character
+          | string)
+
+expr1 = traceable
+      | ws '(' expr:e ws ')' -> e
+      | ws '<' expr:e ws '>'
+         -> t.ConsumedBy(e)
+      | ws '[' expr?:e ws ']' !(self.isTree())
+         -> t.List(e) if e else t.List()
 
 expr2 = (ws '~' ('~' expr2:e -> t.Lookahead(e)
                 |    expr2:e -> t.Not(e)

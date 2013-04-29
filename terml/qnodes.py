@@ -2,7 +2,7 @@ import itertools
 from collections import namedtuple
 from terml.nodes import Term, Tag, coerceToTerm
 
-class QTerm(namedtuple("QTerm", "functor data args")):
+class QTerm(namedtuple("QTerm", "functor data args span")):
     """
     A quasiterm, representing a template or pattern for a term tree.
     """
@@ -13,7 +13,7 @@ class QTerm(namedtuple("QTerm", "functor data args")):
     def _substitute(self, map):
         candidate = self.functor._substitute(map)[0]
         args = tuple(itertools.chain.from_iterable(a._substitute(map) for a in self.args))
-        term = Term(candidate.tag, candidate.data, args)
+        term = Term(candidate.tag, candidate.data, args, self.span)
         return [term]
 
     def substitute(self, map):
@@ -64,7 +64,7 @@ class QTerm(namedtuple("QTerm", "functor data args")):
                                       self.tag)
             if newf is None:
                 return None
-            return Term(newf.asFunctor(), None, spec.args)
+            return Term(newf.asFunctor(), None, spec.args, None)
         else:
             return coerceToQuasiMatch(spec, self.functor.isFunctorHole,
                                       self.tag)
@@ -79,7 +79,7 @@ class QTerm(namedtuple("QTerm", "functor data args")):
         else:
             return self.functor
 
-class QFunctor(namedtuple("QFunctor", "tag data")):
+class QFunctor(namedtuple("QFunctor", "tag data span")):
     isFunctorHole = False
     def _reserve(self):
         return 1
@@ -92,7 +92,7 @@ class QFunctor(namedtuple("QFunctor", "tag data")):
         return self.tag._unparse(indentLevel)
 
     def _substitute(self, map):
-        return [Term(self.tag, self.data, None)]
+        return [Term(self.tag, self.data, None, self.span)]
 
     def _match(self, args, specimens, bindings, index, max):
         if not specimens:
@@ -126,16 +126,16 @@ def matchArgs(quasiArglist, specimenArglist, args, bindings, index, max):
 def coerceToQuasiMatch(val, isFunctorHole, tag):
     if isFunctorHole:
         if val is None:
-            result = Term(Tag("null"), None, None)
+            result = Term(Tag("null"), None, None, None)
         elif isinstance(val, Term):
             if len(val.args) != 0:
                 return None
             else:
                 result = val
         elif isinstance(val, basestring):
-            result = Term(Tag(val), None, None)
+            result = Term(Tag(val), None, None, None)
         elif isinstance(val, bool):
-            result = Term(Tag(["false", "true"][val]), None, None)
+            result = Term(Tag(["false", "true"][val]), None, None, None)
         else:
             return None
     else:

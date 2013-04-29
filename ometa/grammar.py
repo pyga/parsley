@@ -48,12 +48,12 @@ class TermOMeta(loadGrammar(
         tree = g.parseGrammar(name)
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
-        source = g.writeTerm(tree)
+        source = g.writeTerm(tree, grammar)
         return moduleFromGrammar(source, name, modname, filename)
 
-    def writeTerm(self, term):
+    def writeTerm(self, term, grammar):
         f = StringIO()
-        pw = self._writer(term)
+        pw = self._writer(term, grammar)
         out = TextWriter(f)
         pw.output(out)
         return f.getvalue().strip()

@@ -60,30 +60,30 @@ def numberType(n):
         return ".int."
     raise ValueError("wtf")
 
-def leafInternal(tag, data):
-    return Term(tag, data, None)
+def leafInternal(tag, data, span=None):
+    return Term(tag, data, None, None)
 
-def makeTerm(t, args=None):
+def makeTerm(t, args=None, span=None):
     if isinstance(t, Term):
         if t.data is not None:
             if not args:
                 return t
             else:
                 raise ValueError("Literal terms can't have arguments")
-    return Term(t.asFunctor(), None, args and tuple(args))
+    return Term(t.asFunctor(), None, args and tuple(args), span)
 
 
-def Tuple(args):
-    return Term(Tag(".tuple."), None, tuple(args))
+def Tuple(args, span=None):
+    return Term(Tag(".tuple."), None, tuple(args), span)
 
-def Bag(args):
-    return Term(Tag(".bag."), None, tuple(args))
+def Bag(args, span=None):
+    return Term(Tag(".bag."), None, tuple(args), span)
 
-def LabelledBag(f, arg):
-    return Term(f.asFunctor(), None, (arg,))
+def LabelledBag(f, arg, span=None):
+    return Term(f.asFunctor(), None, (arg,), span)
 
-def Attr(k, v):
-    return Term(Tag(".attr."), None, (k, v))
+def Attr(k, v, span=None):
+    return Term(Tag(".attr."), None, (k, v), span)
 
 TermLParser = loadGrammar(terml, "terml", globals())
 

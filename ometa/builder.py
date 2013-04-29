@@ -28,8 +28,9 @@ class PythonWriter(object):
     """
     Converts an OMeta syntax tree into Python source.
     """
-    def __init__(self, tree):
+    def __init__(self, tree, grammarText):
         self.tree = tree
+        self.grammarText = grammarText
         self.gensymCounter = 0
 
 
@@ -49,6 +50,9 @@ class PythonWriter(object):
         args = node.args
         if name == 'null':
             return 'None'
+        if node.span:
+            out.writeln("self._trace(%r, %r, self.input.position)"
+                        % (self.grammarText[slice(*node.span)], node.span))
         return getattr(self, "generate_"+name)(out, *args, debugname=debugname)
 
 
@@ -341,10 +345,10 @@ class PythonWriter(object):
 
 
 class _Term2PythonAction(object):
-    def leafData(bldr, data):
+    def leafData(bldr, data, span):
         return repr(data)
 
-    def leafTag(bldr, tag):
+    def leafTag(bldr, tag, span):
         return tag.name
 
     def term(bldr, tag, args):
@@ -372,7 +376,7 @@ class TermActionPythonWriter(PythonWriter):
         """
 
         fname = self._newThunkFor(out, "pred", Term(Tag("Action"), None,
-                                                    [term]))
+                                                    [term], None))
         return self._expr(out, "pred", "self.pred(%s)" %(fname,), debugname)
 
     def generate_Action(self, out, term, debugname=None):
@@ -392,10 +396,10 @@ class TermActionPythonWriter(PythonWriter):
             return self.compilePythonExpr(out, term.build(self.builder()), debugname)
 
 
-def writePython(tree):
+def writePython(tree, txt):
     f = StringIO()
     out = TextWriter(f)
-    pw = PythonWriter(tree)
+    pw = PythonWriter(tree, txt)
     pw.output(out)
     return f.getvalue().strip()
 

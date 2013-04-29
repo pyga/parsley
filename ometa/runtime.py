@@ -124,7 +124,7 @@ def eof():
     """
     return [("message", "end of input")]
 
-_go = False
+
 def joinErrors(errors):
     """
     Return the error from the branch that matched the most of the input.
@@ -300,6 +300,10 @@ class ArgInput(object):
         self.err = parent.nullError()
 
     @property
+    def position(self):
+        return self.parent.position + 1j
+
+    @property
     def data(self):
         return self.parent.data
 
@@ -390,6 +394,9 @@ class OMetaBase(object):
             elif error[0] == self.currentError[0]:
                 self.currentError = joinErrors([error, self.currentError])
 
+
+    def _trace(self, src, span, inputPos):
+        pass
 
     def superApply(self, ruleName, *args):
         """
@@ -813,7 +820,7 @@ class OMetaGrammarBase(OMetaBase):
             start = time.time()
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
-        source = writePython(tree)
+        source = writePython(tree, grammar)
         if TIMING:
             print "Grammar %r generated in %g secs" % (name, time.time() - start)
         return moduleFromGrammar(source, name, modname, filename)
@@ -821,6 +828,7 @@ class OMetaGrammarBase(OMetaBase):
 
     def __init__(self, grammar, *a, **kw):
         OMetaBase.__init__(self, dedent(grammar), *a, **kw)
+        self._spanStart = 0
 
 
     def parseGrammar(self, name):
@@ -842,6 +850,12 @@ class OMetaGrammarBase(OMetaBase):
             raise err
         return res
 
+
+    def startSpan(self):
+        self._spanStart = self.input.position
+
+    def getSpan(self):
+        return (self._spanStart, self.input.position)
 
     def applicationArgs(self, finalChar):
         """
@@ -866,7 +880,7 @@ class OMetaGrammarBase(OMetaBase):
         else:
             raise self.input.nullError()
 
-    def ruleValueExpr(self, singleLine):
+    def ruleValueExpr(self, singleLine, span=None):
         """
         Find and generate code for a Python expression terminated by a close
         paren/brace or end of line.
@@ -874,26 +888,26 @@ class OMetaGrammarBase(OMetaBase):
         (expr, endchar), err = self.pythonExpr(endChars="\r\n)]")
         # if str(endchar) in ")]" or (singleLine and endchar):
         #     self.input = self.input.prev()
-        return t.Action(expr)
+        return t.Action(expr, span=span)
 
-    def semanticActionExpr(self):
+    def semanticActionExpr(self, span=None):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value is ignored.
         """
-        val = t.Action(self.pythonExpr(')')[0][0])
+        val = t.Action(self.pythonExpr(')')[0][0], span=span)
         self.exactly(')')
         return val
 
-    def semanticPredicateExpr(self):
+    def semanticPredicateExpr(self, span=None):
         """
         Find and generate code for a Python expression terminated by a
         close-paren, whose return value determines the success of the pattern
         it's in.
         """
-        expr = t.Action(self.pythonExpr(')')[0][0])
+        expr = t.Action(self.pythonExpr(')')[0][0], span=span)
         self.exactly(')')
-        return t.Predicate(expr)
+        return t.Predicate(expr, span=span)
 
 
     def eatWhitespace(self):
@@ -965,6 +979,7 @@ class OMetaGrammarBase(OMetaBase):
                              expected("Python expression"))
         return (''.join(expr).strip(), endchar), e
 
+
     def isTree(self):
         self.tree_target = True
 
@@ -1020,7 +1035,8 @@ class TreeTransformerBase(OMetaBase):
         newargs, e = self.many(self.rule_transform)
         self.end()
         self.input = oldInput
-        return Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs)), e
+        return Term(tt.tag, None, tuple(coerceToTerm(a) for a in newargs),
+                    tt.span), e
 
     def rule_null(self):
         tt, e = self.rule_anything()

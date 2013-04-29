@@ -30,11 +30,11 @@ def patternHole(i):
 def taggedHole(t, h):
     return h.__class__(t, h.name, h.isFunctorHole)
 
-def leafInternal(tag, data):
-    return QFunctor(tag, data)
+def leafInternal(tag, data, span=None):
+    return QFunctor(tag, data, span)
 
 
-def makeTerm(t, args=None):
+def makeTerm(t, args=None, span=None):
     if args is None:
         return t
     else:
@@ -44,7 +44,7 @@ def makeTerm(t, args=None):
                     return t
                 else:
                     raise ValueError("Literal terms can't have arguments")
-    return QTerm(t.asFunctor(), None, args and tuple(args))
+    return QTerm(t.asFunctor(), None, args and tuple(args), span)
 
 
 QTermParser = loadGrammar(terml, "quasiterm", TermLParser.globals, TermLParser)

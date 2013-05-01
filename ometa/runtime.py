@@ -387,11 +387,10 @@ class OMetaBase(object):
             self.input = InputStream.fromText(input)
         self.locals = {}
         if self.globals is None:
-            if globals is None:
-                self.globals = {}
-            else:
-                self.globals = globals
-
+            self.globals = globals or {}
+        if basestring is str:
+            self.globals['basestring'] = str
+            self.globals['unichr'] = chr
         self.currentError = self.input.nullError()
 
     def considerError(self, error, typ=None):

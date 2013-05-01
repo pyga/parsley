@@ -505,6 +505,8 @@ class GrammarInterpreter(object):
         self.rules = {}
         self._localsStack = []
         self._globals = globals or {}
+        if basestring is str:
+            self._globals['basestring'] = str
         self.rules = decomposeGrammar(grammar)
         self.run = None
         self._spanStart = 0
@@ -680,9 +682,6 @@ class GrammarInterpreter(object):
 
         elif name in ("Action", "Python"):
             lo = self._localsStack[-1]
-            if basestring is str:
-                lo = dict(lo)
-                lo['basestring'] = str
             val = eval(args[0].data, self._globals, lo)
             return (val, run.input.nullError())
 

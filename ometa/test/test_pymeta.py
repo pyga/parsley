@@ -1047,7 +1047,7 @@ class TermActionGrammarTests(OMetaTestCase):
         """
         g = self.compile("""
               digit = ('0' | '1' | '2'):d -> int(d)
-              foo :x = (?(gt(x, 1)) '9' | ?(lte(x, 1)) '8'):d -> int(d)
+              foo :x = (?(gt(int(x), 1)) '9' | ?(lte(int(x), 1)) '8'):d -> int(d)
               baz = digit:a foo(a):b -> [a, b]
             """, {"lte": operator.le, "gt": operator.gt})
         self.assertEqual(g.baz("18"), [1, 8])

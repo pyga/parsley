@@ -18,17 +18,50 @@ class ParseError(Exception):
 
     @property
     def position(self):
+        if self._errors is not None:
+            self.__setup_members()
         return self.args[0]
 
+    def __setup_members(self):
+        errors = self._errors
+        errors.sort(reverse=True, key=operator.itemgetter(0))
+        results = set()
+        pos = errors[0].position
+        trail = None
+        for err in errors:
+            if pos == err.position:
+                e, trail = err.error, (err.trail or trail)
+                if e is not None:
+                    for item in e:
+                            results.add(item)
+            else:
+                break
+        self._input = errors[0].input
+        self.args = [pos, list(results) or None]
+        self._trail = trail or []
+        self._errors = None
 
     @property
     def error(self):
         return self.args[1]
 
-    def __init__(self, input, position, message, trail=None):
+    @property
+    def input(self):
+        if self._errors is not None:
+            self.__setup_members()
+        return self._input
+
+    @property
+    def trail(self):
+        if self._errors is not None:
+            self.__setup_members()
+        return self._trail
+
+    def __init__(self, input=None, position=None, message=None, trail=None, errors=None):
         Exception.__init__(self, position, message)
-        self.input = input
-        self.trail = trail or []
+        self._input = input
+        self._trail = trail or []
+        self._errors = errors
 
 
     def __eq__(self, other):
@@ -129,19 +162,7 @@ def joinErrors(errors):
     """
     Return the error from the branch that matched the most of the input.
     """
-    errors.sort(reverse=True, key=operator.itemgetter(0))
-    results = set()
-    pos = errors[0].position
-    trail = None
-    for err in errors:
-        if pos == err.position:
-            e, trail = err.error, (err.trail or trail)
-            if e is not None:
-                for item in e:
-                        results.add(item)
-        else:
-            break
-    return ParseError(errors[0].input,  pos, list(results) or None, trail)
+    return ParseError(errors=errors)
 
 
 class character(str):

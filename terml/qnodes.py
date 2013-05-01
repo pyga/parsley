@@ -2,6 +2,12 @@ import itertools
 from collections import namedtuple
 from terml.nodes import Term, Tag, coerceToTerm
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
+
 class QTerm(namedtuple("QTerm", "functor data args span")):
     """
     A quasiterm, representing a template or pattern for a term tree.

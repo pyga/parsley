@@ -37,7 +37,7 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(parse("0xDECAFC0FFEEBAD"),
                          Term(Tag('.int.'), 0xDECAFC0FFEEBAD, None, None))
         self.assertEqual(parse("0755"),
-                         Term(Tag('.int.'), 0755, None, None))
+                         Term(Tag('.int.'), 0o755, None, None))
         self.assertEqual(parse("3.14159E17"),
                          Term(Tag('.float64.'), 3.14159E17, None, None))
         self.assertEqual(parse("1e9"),

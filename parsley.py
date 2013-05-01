@@ -74,7 +74,7 @@ class _GrammarWrapper(object):
             """
             try:
                 ret, err = self._grammar.apply(name, *args)
-            except ParseError, e:
+            except ParseError as e:
                 self._grammar.considerError(e)
                 err = self._grammar.currentError
             else:

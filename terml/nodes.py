@@ -1,10 +1,20 @@
 from collections import namedtuple
+import sys
+
+try:
+    basestring
+    scalar_types = (str, unicode, int, long, float)
+    integer_types = (int, long)
+except NameError:
+    basestring = str
+    scalar_types = (str, int, float)
+    integer_types = (int,)
 
 _Term = namedtuple("Term", "tag data args span")
 class Term(_Term):
     def __new__(cls, tag, data, args, span):
         #XXX AstroTag tracks (name, tag_code) and source span
-        if data and not isinstance(data, (str, unicode, int, long, float)):
+        if data and not isinstance(data, scalar_types):
             raise ValueError("Term data can't be of type %r" % (type(data),))
         if data and args:
             raise ValueError("Term %s can't have both data and children" % (tag,))
@@ -118,7 +128,7 @@ def coerceToTerm(val):
         return Term(Tag("true"), None, None, None)
     if val is False:
         return Term(Tag("false"), None, None, None)
-    if isinstance(val, (int, long)):
+    if isinstance(val, integer_types):
         return Term(Tag(".int."), val, None, None)
     if isinstance(val, float):
         return Term(Tag(".float64."), val, None, None)

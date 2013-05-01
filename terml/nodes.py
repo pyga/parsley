@@ -143,7 +143,7 @@ def coerceToTerm(val):
     if isinstance(val, dict):
         return Term(Tag('.bag.'), None, tuple(Term(Tag('.attr.'), None,
                                                    (coerceToTerm(k), coerceToTerm(v)), None)
-                                         for (k, v) in val.iteritems()),
+                                         for (k, v) in val.items()),
                     None)
     raise ValueError("Could not coerce %r to Term" % (val,))
 

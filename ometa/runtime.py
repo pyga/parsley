@@ -568,7 +568,8 @@ class OMetaBase(object):
                 m = self.input
                 v, e = fn()
                 ans.append(v)
-            except ParseError as e:
+            except ParseError as err:
+                e = err
                 self.input = m
                 break
         return ans, e

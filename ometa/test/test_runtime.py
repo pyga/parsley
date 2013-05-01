@@ -17,7 +17,7 @@ class RuntimeTests(unittest.TestCase):
 
         for i, c in enumerate(data):
             v, e = o.rule_anything()
-            self.assertEqual((c, i), (v, e[0]))
+            self.assertEqual((c, i), (v, e.args[0]))
 
 
     def test_exactly(self):
@@ -30,7 +30,7 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         v, e = o.rule_exactly("f")
         self.assertEqual(v, "f")
-        self.assertEqual(e[0], 0)
+        self.assertEqual(e.args[0], 0)
 
     def test_exactly_multi(self):
         """
@@ -42,7 +42,7 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         v, e = o.rule_exactly("fo")
         self.assertEqual(v, "fo")
-        self.assertEqual(e[0], 0)
+        self.assertEqual(e.args[0], 0)
 
     def test_exactlyFail(self):
         """
@@ -55,8 +55,8 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         with self.assertRaises(ParseError) as e:
             o.rule_exactly("g")
-        self.assertEquals(e.exception[1], expected(None, "g"))
-        self.assertEquals(e.exception[0], 0)
+        self.assertEquals(e.exception.args[1], expected(None, "g"))
+        self.assertEquals(e.exception.args[0], 0)
 
 
 
@@ -70,10 +70,10 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         v, e = o.rule_token("foo")
         self.assertEqual(v, "foo")
-        self.assertEqual(e[0], 4)
+        self.assertEqual(e.args[0], 4)
         v, e = o.rule_token("bar")
         self.assertEqual(v, "bar")
-        self.assertEqual(e[0], 8)
+        self.assertEqual(e.args[0], 8)
 
 
     def test_tokenFailed(self):
@@ -85,8 +85,8 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         with self.assertRaises(ParseError) as e:
             o.rule_token("fog")
-        self.assertEqual(e.exception[0], 2)
-        self.assertEqual(e.exception[1], expected("token", "fog"))
+        self.assertEqual(e.exception.args[0], 2)
+        self.assertEqual(e.exception.args[1], expected("token", "fog"))
 
 
     def test_many(self):
@@ -123,7 +123,7 @@ class RuntimeTests(unittest.TestCase):
         v, e = o._or(matchers)
         self.assertEqual(called, [True, True, False])
         self.assertEqual(v, 'a')
-        self.assertEqual(e[0], 0)
+        self.assertEqual(e.args[0], 0)
 
 
     def test_orSimpleFailure(self):
@@ -139,8 +139,8 @@ class RuntimeTests(unittest.TestCase):
             o._or([lambda: o.token("fog"),
                    lambda: o.token("foozik"),
                    lambda: o.token("woozle")])
-        self.assertEqual(e.exception[0], 4)
-        self.assertEqual(e.exception[1], expected("token",  "foozik"))
+        self.assertEqual(e.exception.args[0], 4)
+        self.assertEqual(e.exception.args[1], expected("token",  "foozik"))
 
 
     def test_orFalseSuccess(self):
@@ -155,8 +155,8 @@ class RuntimeTests(unittest.TestCase):
         v, e = o._or( [lambda: o.token("fog"),
                                lambda: o.token("foozik"),
                                lambda: o.token("f")])
-        self.assertEqual(e[0], 4)
-        self.assertEqual(e[1], expected("token", "foozik"))
+        self.assertEqual(e.args[0], 4)
+        self.assertEqual(e.args[1], expected("token", "foozik"))
 
     def test_orErrorTie(self):
         """
@@ -170,9 +170,9 @@ class RuntimeTests(unittest.TestCase):
         v, e = o._or( [lambda: o.token("fog"),
                                lambda: o.token("foz"),
                                lambda: o.token("f")])
-        self.assertEqual(e[0], 2)
-        self.assertEqual(e[1], [expected("token", "fog")[0],
-                                expected("token", "foz")[0]])
+        self.assertEqual(e.args[0], 2)
+        self.assertEqual(e.args[1], [expected("token", "fog")[0],
+                                     expected("token", "foz")[0]])
 
 
     def test_notError(self):
@@ -185,8 +185,8 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         with self.assertRaises(ParseError) as e:
             o._not(lambda: o.exactly("x"))
-        self.assertEqual(e.exception[0], 1)
-        self.assertEqual(e.exception[1], None)
+        self.assertEqual(e.exception.args[0], 1)
+        self.assertEqual(e.exception.args[1], None)
 
 
     def test_spaces(self):
@@ -198,7 +198,7 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase(data)
         v, e = o.rule_spaces()
 
-        self.assertEqual(e[0], 2)
+        self.assertEqual(e.args[0], 2)
 
     def test_predSuccess(self):
         """

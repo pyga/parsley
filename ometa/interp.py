@@ -283,7 +283,8 @@ class TrampolinedGrammarInterpreter(object):
                     if x is _feed_me: yield x
                 ans.append(x[0])
                 self.currentError = x[1]
-            except ParseError as err:
+            except ParseError as e:
+                err = e
                 self.input = m
                 break
         yield ans, err
@@ -336,7 +337,8 @@ class TrampolinedGrammarInterpreter(object):
                         if x is _feed_me: yield x
                     v, e = x
                     ans.append(v)
-                except ParseError as e:
+                except ParseError as err:
+                    e = err
                     self.input = m
                     break
         yield ans, e
@@ -467,7 +469,7 @@ class TrampolinedGrammarInterpreter(object):
         except EOFError:
             yield _feed_me
             val, p = self.input.head()
-        if val in string.letters:
+        if val in getattr(string, 'letters', string.ascii_letters):
             self.input = self.input.tail()
             yield val, p
         else:

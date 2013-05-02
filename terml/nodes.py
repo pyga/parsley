@@ -1,8 +1,7 @@
 from collections import namedtuple
 
-_Term = namedtuple("Term", "tag data args span")
-class Term(_Term):
-    def __new__(cls, tag, data, args, span):
+class Term(object):
+    def __init__(self, tag, data, args, span):
         #XXX AstroTag tracks (name, tag_code) and source span
         if data and not isinstance(data, (str, unicode, int, long, float)):
             raise ValueError("Term data can't be of type %r" % (type(data),))
@@ -10,11 +9,10 @@ class Term(_Term):
             raise ValueError("Term %s can't have both data and children" % (tag,))
         if args is None:
             args = ()
-        return _Term.__new__(cls, tag, data, tuple(args), span)
-
-    def __iter__(self):
-        #and now I feel a bit silly subclassing namedtuple
-        raise NotImplementedError()
+        self.tag = tag
+        self.data = data
+        self.args = args
+        self.span = span
 
     def __eq__(self, other):
         try:
@@ -66,6 +64,8 @@ class Term(_Term):
 
 
     def __cmp__(self, other):
+        if isinstance(other, Term):
+            return False
         tagc = cmp(self.tag, other.tag)
         if tagc:
             return tagc
@@ -127,21 +127,21 @@ def coerceToTerm(val):
     if isinstance(val, basestring):
         return Term(Tag(".String."), val, None, None)
     if isinstance(val, (list, tuple)):
-        return Term(Tag(".tuple."), None, tuple(coerceToTerm(item) for item in val), None)
+        return Term(Tag(".tuple."), None, [coerceToTerm(item) for item in val], None)
     if isinstance(val, set):
-        return Term(Tag('.bag.'), None, tuple(coerceToTerm(item) for item in val), None)
+        return Term(Tag('.bag.'), None, [coerceToTerm(item) for item in val], None)
     if isinstance(val, dict):
-        return Term(Tag('.bag.'), None, tuple(Term(Tag('.attr.'), None,
+        return Term(Tag('.bag.'), None, [Term(Tag('.attr.'), None,
                                                    (coerceToTerm(k), coerceToTerm(v)), None)
-                                         for (k, v) in val.iteritems()),
+                                         for (k, v) in val.iteritems()],
                     None)
-    raise ValueError("Could not coerce %r to Term" % (val,))
+    raise ValueError("Could not coerce %r to Term" % val)
 
 class TermMaker(object):
     def __getattr__(self, name):
         def mkterm(*args, **kwargs):
             return Term(Tag(name), None,
-                        tuple([coerceToTerm(a) for a in args]),
+                        [coerceToTerm(a) for a in args],
                         kwargs.get('span', None))
         return mkterm
 

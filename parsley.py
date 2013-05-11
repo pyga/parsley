@@ -16,7 +16,8 @@ def wrapGrammar(g, tracefunc=None):
         :param input: The string you want to parse.
         """
         parser = g(input)
-        parser._trace = tracefunc
+        if tracefunc:
+            parser._trace = tracefunc
         return _GrammarWrapper(parser, input)
     makeParser._grammarClass = g
     return makeParser

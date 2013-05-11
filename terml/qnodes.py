@@ -10,20 +10,20 @@ class QTerm(namedtuple("QTerm", "functor data args span")):
     def tag(self):
         return self.functor.tag
 
-    def _substitute(self, map):
-        candidate = self.functor._substitute(map)[0]
-        args = tuple(itertools.chain.from_iterable(a._substitute(map) for a in self.args))
+    def _substitute(self, _map):
+        candidate = self.functor._substitute(_map)[0]
+        args = tuple(itertools.chain.from_iterable(a._substitute(_map) for a in self.args))
         term = Term(candidate.tag, candidate.data, args, self.span)
         return [term]
 
-    def substitute(self, map):
+    def substitute(self, _map):
         """
         Fill $-holes with named values.
 
         @param map: A mapping of names to values to be inserted into
         the term tree.
         """
-        return self._substitute(map)[0]
+        return self._substitute(_map)[0]
 
     def match(self, specimen, substitutionArgs=()):
         """
@@ -91,7 +91,7 @@ class QFunctor(namedtuple("QFunctor", "tag data span")):
     def _unparse(self, indentLevel=0):
         return self.tag._unparse(indentLevel)
 
-    def _substitute(self, map):
+    def _substitute(self, _map):
         return [Term(self.tag, self.data, None, self.span)]
 
     def _match(self, args, specimens, bindings, index, _max):
@@ -186,8 +186,8 @@ class ValueHole(_Hole):
     def _unparse(self, indentLevel=0):
         return "${%s}" % (self.name,)
 
-    def _substitute(self, map):
-        termoid = map[self.name]
+    def _substitute(self, _map):
+        termoid = _map[self.name]
         val = coerceToQuasiMatch(termoid, self.isFunctorHole, self.tag)
         if val is None:
             raise TypeError("%r doesn't match %r" % (termoid, self))

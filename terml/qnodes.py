@@ -208,7 +208,7 @@ class PatternHole(_Hole):
         else:
             return "@{%s}" % (self.name,)
 
-    def _match(self, args, specimens, bindings, index, max):
+    def _match(self, args, specimens, bindings, index, _max):
         if not specimens:
             return -1
         spec = coerceToQuasiMatch(specimens[0], self.isFunctorHole, self.tag)
@@ -216,7 +216,7 @@ class PatternHole(_Hole):
             return -1
         oldval = _multiput(bindings, self.name, index, spec)
         if oldval is None or oldval != spec:
-            if max >= 1:
+            if _max >= 1:
                 return 1
         return -1
 

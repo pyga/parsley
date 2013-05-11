@@ -286,34 +286,34 @@ class TrampolinedGrammarInterpreter(object):
         yield x
 
 
-    def parse_Repeat(self, min, max, expr):
+    def parse_Repeat(self, _min, _max, expr):
         """
         Execute an expression between C{min} and C{max} times,
         collecting the results into a list. Implementation of '{}'.
         """
-        if min.tag.name == '.int.':
-            min = min.data
+        if _min.tag.name == '.int.':
+            _min = _min.data
         else:
-            min = self._localsStack[-1][min.data]
-        if max.tag.name == '.int.':
-            max = max.data
-        elif max.tag.name == 'null':
-            max = None
+            _min = self._localsStack[-1][_min.data]
+        if _max.tag.name == '.int.':
+            _max = _max.data
+        elif _max.tag.name == 'null':
+            _max = None
         else:
-            max = self._localsStack[-1][max.data]
+            _max = self._localsStack[-1][_max.data]
 
-        if min == max == 0:
+        if _min == _max == 0:
             yield '', None
             return
         ans = []
-        for i in range(min):
+        for i in range(_min):
             for x in self._eval(expr):
                 if x is _feed_me: yield x
             v, e = x
             ans.append(v)
 
-        if max is not None:
-            repeats = xrange(min, max)
+        if _max is not None:
+            repeats = xrange(_min, _max)
             for i in repeats:
                 try:
                     m = self.input
@@ -562,23 +562,23 @@ class GrammarInterpreter(object):
 
         elif name == "Repeat":
             if args[0].tag.name == '.int.':
-                min = args[0].data
+                _min = args[0].data
             else:
-                min = self._localsStack[-1][args[0].data]
+                _min = self._localsStack[-1][args[0].data]
             if args[1].tag.name == '.int.':
-                max = args[1].data
+                _max = args[1].data
             elif args[1].tag.name == 'null':
-                max = None
+                _max = None
             else:
-                max = self._localsStack[-1][args[1].data]
-            if min == max == 0:
+                _max = self._localsaStack[-1][args[1].data]
+            if _min == _max == 0:
                 return "", None
             ans = []
-            for i in range(min):
+            for i in range(_min):
                 v, e = self._eval(run, args[2])
                 ans.append(v)
 
-            for i in range(min, max):
+            for i in range(_min, _max):
                 try:
                     m = run.input
                     v, e = self._eval(run, args[2])

@@ -94,7 +94,7 @@ class QFunctor(namedtuple("QFunctor", "tag data span")):
     def _substitute(self, map):
         return [Term(self.tag, self.data, None, self.span)]
 
-    def _match(self, args, specimens, bindings, index, max):
+    def _match(self, args, specimens, bindings, index, _max):
         if not specimens:
             return -1
         spec = coerceToQuasiMatch(specimens[0], False, self.tag)
@@ -102,23 +102,23 @@ class QFunctor(namedtuple("QFunctor", "tag data span")):
             return -1
         if self.data is not None and self.data != spec.data:
             return -1
-        if max >= 1:
+        if _max >= 1:
             return 1
         return -1
 
     def asFunctor(self):
         return self
 
-def matchArgs(quasiArglist, specimenArglist, args, bindings, index, max):
+def matchArgs(quasiArglist, specimenArglist, args, bindings, index, _max):
     specs = specimenArglist
     reserves = [q._reserve() for q in quasiArglist]
     numConsumed = 0
     for i, qarg in enumerate(quasiArglist):
-        num = qarg._match(args, specs, bindings, index, max - sum(reserves[i + 1:]))
+        num = qarg._match(args, specs, bindings, index, _max - sum(reserves[i + 1:]))
         if num == -1:
             return -1
         specs = specs[num:]
-        max -= num
+        _max -= num
         numConsumed += num
     return numConsumed
 

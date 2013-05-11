@@ -1,4 +1,5 @@
 from ometa.grammar import OMeta
+from ometa.protocol import ParserProtocol
 from ometa.runtime import ParseError, EOFError, OMetaBase, expected
 from terml.parser import parseTerm as term
 from terml.nodes import termMaker
@@ -48,6 +49,20 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False,
         return g
     else:
         return wrapGrammar(g, tracefunc=tracefunc)
+
+
+def makeProtocol(source, senderFactory, stateFactory, bindings=None,
+                 name='Grammar', extends=wrapGrammar(OMetaBase)):
+    """
+    Create a Protocol implementation from a Parsley grammar.
+    """
+
+    if bindings is None:
+        bindings = {}
+    grammar = OMeta(source).parseGrammar(name)
+    def protocolFactory():
+        return ParserProtocol(grammar, senderFactory, stateFactory, bindings)
+    return protocolFactory
 
 
 def unwrapGrammar(w):

@@ -170,11 +170,11 @@ def _multiput(bindings, holenum, index, newval):
     bits = bindings
     dest = holenum
     for it in index:
-        next = bits[dest]
-        if next is None:
-            next = {}
-            bits[dest] = next
-        bits = next
+        _next = bits[dest]
+        if _next is None:
+            _next = {}
+            bits[dest] = _next
+        bits = _next
         dest = it
     result = None
     if dest in bits:

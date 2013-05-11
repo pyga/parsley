@@ -42,7 +42,7 @@ class ParseError(Exception):
         if len(self.error) == 1:
             if self.error[0][0] == 'message':
                 return self.error[0][1]
-            if self.error[0][2] == None:
+            if self.error[0][2] is None:
                 return 'expected a %s' % (self.error[0][1])
             else:
                 typ = self.error[0][1]

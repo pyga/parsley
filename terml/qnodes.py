@@ -40,7 +40,7 @@ class QTerm(namedtuple("QTerm", "functor data args span")):
     def _reserve(self):
         return 1
 
-    def _match(self, args, specimens, bindings, index, max):
+    def _match(self, args, specimens, bindings, index, _max):
         if not specimens:
             return -1
         spec = self._coerce(specimens[0])
@@ -53,7 +53,7 @@ class QTerm(namedtuple("QTerm", "functor data args span")):
             raise TypeError("Functor may only match 0 or 1 specimen")
         num = matchArgs(self.args, spec.args, args, bindings, index, len(spec.args))
         if len(spec.args) == num:
-            if max >= 1:
+            if _max >= 1:
                 return 1
         return -1
 

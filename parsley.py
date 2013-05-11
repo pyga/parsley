@@ -7,7 +7,7 @@ from terml.quasiterm import quasiterm
 __version__ = '1.1'
 
 
-def wrapGrammar(g):
+def wrapGrammar(g, tracefunc=None):
     def makeParser(input):
         """
         Creates a parser for the given input, with methods for
@@ -15,13 +15,15 @@ def wrapGrammar(g):
 
         :param input: The string you want to parse.
         """
-        return _GrammarWrapper(g(input), input)
+        parser = g(input)
+        parser._trace = tracefunc
+        return _GrammarWrapper(parser, input)
     makeParser._grammarClass = g
     return makeParser
 
 
 def makeGrammar(source, bindings, name='Grammar', unwrap=False,
-                extends=wrapGrammar(OMetaBase)):
+                extends=wrapGrammar(OMetaBase), tracefunc=None):
     """
     Create a class from a Parsley grammar.
 
@@ -33,13 +35,18 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False,
                    subclassing. If False, return a wrapper with the
                    friendly API.
     :param extends: The superclass for the generated parser class.
+
+    :param tracefunc: A 3-arg function which takes a fragment of
+    grammar source, the start/end indexes in the grammar of this
+    fragment, and a position in the input. Invoked for terminals and
+    rule applications.
     """
     g = OMeta.makeGrammar(source, name).createParserClass(
         unwrapGrammar(extends), bindings)
     if unwrap:
         return g
     else:
-        return wrapGrammar(g)
+        return wrapGrammar(g, tracefunc=tracefunc)
 
 
 def unwrapGrammar(w):

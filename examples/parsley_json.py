@@ -27,5 +27,8 @@ intPart = (digit1_9:first digits:rest -> first + rest) | digit
 floatPart :sign :ds = <('.' digits exponent?) | exponent>:tail
                     -> float(sign + ds + tail)
 exponent = ('e' | 'E') ('+' | '-')? digits
+
+top = (object | array) ws
 """
+
 JSONParser = makeGrammar(jsonGrammar, {})

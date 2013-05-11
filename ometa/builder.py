@@ -176,23 +176,23 @@ class PythonWriter(object):
         return self._expr(out, 'many1', 'self.many(%s, %s())' % (fname, fname), debugname)
 
 
-    def generate_Repeat(self, out, min, max, expr, debugname=None):
+    def generate_Repeat(self, out, _min, _max, expr, debugname=None):
         """
         Create a call to self.repeat(min, max, lambda: expr).
         """
         fname = self._newThunkFor(out, "repeat", expr)
-        if min.tag.name == '.int.':
-            min = min.data
+        if _min.tag.name == '.int.':
+            _min = _min.data
         else:
-            min = '_locals["%s"]' % min.data
-        if max.tag.name == '.int.':
-            max = max.data
+            _min = '_locals["%s"]' % _min.data
+        if _max.tag.name == '.int.':
+            _max = _max.data
         else:
-            max = '_locals["%s"]' % max.data
-        if min == max == 0:
+            _max = '_locals["%s"]' % _max.data
+        if _min == _max == 0:
             return "''"
         return self._expr(out, 'repeat', 'self.repeat(%s, %s, %s)'
-                          % (min, max, fname))
+                          % (_min, _max, fname))
 
     def generate_Optional(self, out, expr, debugname=None):
         """

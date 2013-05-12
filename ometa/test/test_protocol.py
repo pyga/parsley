@@ -21,11 +21,16 @@ class SenderFactory(object):
 
 
 class StateFactory(object):
-    def __init__(self, sender):
+    def __init__(self, sender, parser):
         self.sender = sender
+        self.parser = parser
         self.calls = []
         self.returnMap = {}
+        self.connected = False
         self.lossReason = None
+
+    def connectionMade(self):
+        self.connected = True
 
     def __call__(self, v):
         self.calls.append(v)
@@ -46,10 +51,21 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.protocol.makeConnection(transport)
         self.assertEqual(transport, self.protocol.sender.transport)
 
+    def test_parserPassed(self):
+        """The protocol is passed to the state."""
+        transport = object()
+        self.protocol.makeConnection(transport)
+        self.assertEqual(self.protocol, self.protocol.state.parser)
+
     def test_senderPassed(self):
         """The sender is passed to the state."""
         self.protocol.makeConnection(None)
         self.assertEqual(self.protocol.sender, self.protocol.state.sender)
+
+    def test_connectionEstablishes(self):
+        """connectionMade is called on the state after connection establishment."""
+        self.protocol.makeConnection(None)
+        self.assert_(self.protocol.state.connected)
 
     def test_basicParsing(self):
         """Rules can be parsed multiple times for the same effect."""
@@ -90,6 +106,20 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.assertEqual(self.protocol.state.calls, ['a'])
         self.protocol.dataReceived('baa')
         self.assertEqual(self.protocol.state.calls, ['a', 'b', 'a'])
+
+    def test_ruleSwitchingViaState(self):
+        """
+        The state is able to set the the next rule to be parsed with the parser
+        passed to it.
+        """
+        self.protocol.makeConnection(None)
+        self.protocol.dataReceived('aa')
+        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.protocol.dataReceived('a')
+        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.protocol.state.parser.setNextRule('someB')
+        self.protocol.dataReceived('abb')
+        self.assertEqual(self.protocol.state.calls, ['a', 'a', 'b'])
 
     def test_connectionLoss(self):
         """The reason for connection loss is forwarded to the state."""

@@ -11,9 +11,13 @@ class ParserProtocol(Protocol):
         self.senderFactory = senderFactory
         self.stateFactory = stateFactory
 
+    def setNextRule(self, rule):
+        self.currentRule = rule
+
     def connectionMade(self):
         self.sender = self.senderFactory(self.transport)
-        self.bindings['state'] = self.state = self.stateFactory(self.sender)
+        self.bindings['state'] = self.state = self.stateFactory(self.sender, self)
+        self.state.connectionMade()
         self._setupInterp()
 
     def _setupInterp(self):

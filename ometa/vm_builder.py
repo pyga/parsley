@@ -1,4 +1,5 @@
 from StringIO import StringIO
+import os.path
 
 from terml.nodes import Term, coerceToTerm, termMaker as t
 
@@ -7,7 +8,7 @@ def writeBytecode(expr):
     print "Gonna compile", expr
     from ometa.grammar import TreeTransformerGrammar
     from ometa.runtime import TreeTransformerBase
-    Compiler = TreeTransformerGrammar.makeGrammar(open("../ometa/vm.parsley").read(),
+    Compiler = TreeTransformerGrammar.makeGrammar(open(os.path.join(os.path.dirname(__file__), "vm.parsley")).read(),
             "Compiler").createParserClass(TreeTransformerBase, {"t": t})
     return Compiler.transform(expr)[0]
 

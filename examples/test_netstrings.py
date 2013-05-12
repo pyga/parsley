@@ -53,13 +53,18 @@ def test_sending_two_netstrings():
 
 
 class FakeState(object):
-    def __init__(self, sender):
+    def __init__(self, sender, parser):
         self.sender = sender
+        self.parser = parser
         self.netstrings = []
+        self.connected = False
         self.lossReason = None
 
     def netstringReceived(self, s):
         self.netstrings.append(s)
+
+    def connectionMade(self):
+        self.connected = True
 
     def connectionLost(self, reason):
         self.lossReason = reason
@@ -100,6 +105,11 @@ def test_receiving_two_netstrings_at_once():
     protocol, transport = build_testing_protocol()
     protocol.dataReceived('4:spam,4:eggs,')
     assert protocol.state.netstrings == ['spam', 'eggs']
+
+def test_establishing_connection():
+    assert not FakeState(None, None).connected
+    protocol, transport = build_testing_protocol()
+    assert protocol.state.connected
 
 def test_losing_connection():
     protocol, transport = build_testing_protocol()

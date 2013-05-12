@@ -8,6 +8,7 @@ testingGrammarSource = """
 
 someA = ('a' 'a') -> state('a')
 someB = ('b' 'b') -> state('b')
+someC = ('c' 'c') -> state('c')
 
 initial = someA
 
@@ -120,6 +121,18 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.protocol.state.parser.setNextRule('someB')
         self.protocol.dataReceived('abb')
         self.assertEqual(self.protocol.state.calls, ['a', 'a', 'b'])
+
+    def test_ruleSwitchingViaStateGetsOverridden(self):
+        """Returning a new rule takes priority over calling setNextRule."""
+        self.protocol.makeConnection(None)
+        self.protocol.dataReceived('aa')
+        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.protocol.dataReceived('a')
+        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.protocol.state.parser.setNextRule('someB')
+        self.protocol.state.returnMap['a'] = 'someC'
+        self.protocol.dataReceived('acc')
+        self.assertEqual(self.protocol.state.calls, ['a', 'a', 'c'])
 
     def test_connectionLoss(self):
         """The reason for connection loss is forwarded to the state."""

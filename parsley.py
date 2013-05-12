@@ -52,7 +52,7 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False,
 
 
 def makeProtocol(source, senderFactory, stateFactory, bindings=None,
-                 name='Grammar', extends=wrapGrammar(OMetaBase)):
+                 name='Grammar'):
     """
     Create a Protocol implementation from a Parsley grammar.
     """

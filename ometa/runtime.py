@@ -18,13 +18,20 @@ class ParseError(Exception):
 
     @property
     def position(self):
+        return self.args[0]
+
+    @property
+    def args(self):
         if self._errors is not None:
             self.__setup_members()
-        return self.args[0]
+        return self._args
+
+    def __cmp__(self, other):
+        return cmp((self.position, self.args), (other.position, other.args))
 
     def __setup_members(self):
         errors = self._errors
-        errors.sort(reverse=True, key=operator.itemgetter(0))
+        errors.sort(reverse=True)
         results = set()
         pos = errors[0].position
         trail = None
@@ -37,7 +44,7 @@ class ParseError(Exception):
             else:
                 break
         self._input = errors[0].input
-        self.args = [pos, list(results) or None]
+        self._args = [pos, list(results) or None]
         self._trail = trail or []
         self._errors = None
 
@@ -51,6 +58,10 @@ class ParseError(Exception):
             self.__setup_members()
         return self._input
 
+    @input.setter
+    def input(self, value):
+        self._input = value
+
     @property
     def trail(self):
         if self._errors is not None:
@@ -58,13 +69,17 @@ class ParseError(Exception):
         return self._trail
 
     def __init__(self, input=None, position=None, message=None, trail=None, errors=None):
-        Exception.__init__(self, position, message)
+        Exception.__init__(self)
         self._input = input
+        self._args = [position, message] if position is not None or message is not None else None
         self._trail = trail or []
         self._errors = errors
+        assert self._errors or self._args
 
 
     def __eq__(self, other):
+        if self._errors is not None:
+            self.__setup_members()
         if other.__class__ == self.__class__:
             return (self.position, self.error) == (other.position, other.error)
 
@@ -75,7 +90,7 @@ class ParseError(Exception):
         if len(self.error) == 1:
             if self.error[0][0] == 'message':
                 return self.error[0][1]
-            if self.error[0][2] == None:
+            if self.error[0][2] is None:
                 return 'expected a %s' % (self.error[0][1])
             else:
                 typ = self.error[0][1]
@@ -129,6 +144,8 @@ class ParseError(Exception):
     def __str__(self):
         return self.formatError()
 
+    def __getitem__(self, item):
+        return self.args[item]
 
     def withMessage(self, msg):
         return ParseError(self.input, self.position, msg, self.trail)

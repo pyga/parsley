@@ -11,7 +11,7 @@ class Term(object):
             args = ()
         self.tag = tag
         self.data = data
-        self.args = args
+        self.args = list(args)
         self.span = span
 
     def __eq__(self, other):

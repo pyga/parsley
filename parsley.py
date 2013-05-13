@@ -1,3 +1,5 @@
+import functools
+
 from ometa.grammar import OMeta
 from ometa.protocol import ParserProtocol
 from ometa.runtime import ParseError, EOFError, OMetaBase, expected
@@ -60,9 +62,8 @@ def makeProtocol(source, senderFactory, stateFactory, bindings=None,
     if bindings is None:
         bindings = {}
     grammar = OMeta(source).parseGrammar(name)
-    def protocolFactory():
-        return ParserProtocol(grammar, senderFactory, stateFactory, bindings)
-    return protocolFactory
+    return functools.partial(
+        ParserProtocol, grammar, senderFactory, stateFactory, bindings)
 
 
 def unwrapGrammar(w):

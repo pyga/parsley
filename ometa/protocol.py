@@ -1,4 +1,5 @@
 from twisted.internet.protocol import Protocol
+from twisted.python.failure import Failure
 
 from ometa.interp import TrampolinedGrammarInterpreter, _feed_me
 
@@ -10,6 +11,7 @@ class ParserProtocol(Protocol):
         self.bindings = dict(bindings)
         self.senderFactory = senderFactory
         self.stateFactory = stateFactory
+        self.disconnecting = False
 
     def setNextRule(self, rule):
         self.currentRule = rule
@@ -30,11 +32,24 @@ class ParserProtocol(Protocol):
             self.currentRule = nextRule
 
     def dataReceived(self, data):
+        if self.disconnecting:
+            return
+
         while data:
-            if self._interp.receive(data) is _feed_me:
+            try:
+                status = self._interp.receive(data)
+            except Exception:
+                self.connectionLost(Failure())
+                self.transport.abortConnection()
                 return
+            else:
+                if status is _feed_me:
+                    return
             data = ''.join(self._interp.input.data[self._interp.input.position:])
             self._setupInterp()
 
     def connectionLost(self, reason):
+        if self.disconnecting:
+            return
         self.state.connectionLost(reason)
+        self.disconnecting = True

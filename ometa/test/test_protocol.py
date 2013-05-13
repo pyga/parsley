@@ -1,7 +1,8 @@
-import unittest
+from twisted.trial import unittest
 
 from ometa.grammar import OMeta
 from ometa.protocol import ParserProtocol
+from ometa.runtime import ParseError
 
 
 testingGrammarSource = """
@@ -9,8 +10,9 @@ testingGrammarSource = """
 someA = ('a' 'a') -> state('a')
 someB = ('b' 'b') -> state('b')
 someC = ('c' 'c') -> state('c')
+someExc = 'e' -> state.raiseSomething()
 
-initial = someA
+initial = someA | someExc
 
 """
 testGrammar = OMeta(testingGrammarSource).parseGrammar('testGrammar')
@@ -19,6 +21,10 @@ testGrammar = OMeta(testingGrammarSource).parseGrammar('testGrammar')
 class SenderFactory(object):
     def __init__(self, transport):
         self.transport = transport
+
+
+class SomeException(Exception):
+    pass
 
 
 class StateFactory(object):
@@ -37,8 +43,19 @@ class StateFactory(object):
         self.calls.append(v)
         return self.returnMap.get(v)
 
+    def raiseSomething(self):
+        raise SomeException()
+
     def connectionLost(self, reason):
         self.lossReason = reason
+
+
+class FakeTransport(object):
+    def __init__(self):
+        self.aborted = False
+
+    def abortConnection(self):
+        self.aborted = True
 
 
 class ParserProtocolTestCase(unittest.TestCase):
@@ -140,3 +157,39 @@ class ParserProtocolTestCase(unittest.TestCase):
         reason = object()
         self.protocol.connectionLost(reason)
         self.assertEqual(self.protocol.state.lossReason, reason)
+
+    def test_parseFailure(self):
+        """
+        Parse failures cause connection abortion with the parse error as the
+        reason.
+        """
+        transport = FakeTransport()
+        self.protocol.makeConnection(transport)
+        self.protocol.dataReceived('b')
+        self.failIfEqual(self.protocol.state.lossReason, None)
+        self.failUnlessIsInstance(self.protocol.state.lossReason.value,
+                                  ParseError)
+        self.assert_(transport.aborted)
+
+    def test_exceptionsRaisedFromState(self):
+        """
+        Raising an exception from state methods called from the grammar
+        propagate to connectionLost.
+        """
+        transport = FakeTransport()
+        self.protocol.makeConnection(transport)
+        self.protocol.dataReceived('e')
+        self.failIfEqual(self.protocol.state.lossReason, None)
+        self.failUnlessIsInstance(self.protocol.state.lossReason.value,
+                                  SomeException)
+        self.assert_(transport.aborted)
+
+    def test_dataIgnoredAfterDisconnection(self):
+        """After connectionLost is called, all incoming data is ignored."""
+        transport = FakeTransport()
+        self.protocol.makeConnection(transport)
+        reason = object()
+        self.protocol.connectionLost(reason)
+        self.protocol.dataReceived('d')
+        self.assertEqual(self.protocol.state.lossReason, reason)
+        self.assert_(not transport.aborted)

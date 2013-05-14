@@ -1,7 +1,13 @@
-from twisted.trial import unittest
+try:
+    from twisted.trial import unittest
+    from ometa.protocol import ParserProtocol
+except ImportError:
+    import unittest
+    skip = "twisted not installed or usable"
+else:
+    skip = None
 
 from ometa.grammar import OMeta
-from ometa.protocol import ParserProtocol
 from ometa.runtime import ParseError
 
 
@@ -59,6 +65,8 @@ class FakeTransport(object):
 
 
 class ParserProtocolTestCase(unittest.TestCase):
+    skip = skip
+
     def setUp(self):
         self.protocol = ParserProtocol(
             testGrammar, SenderFactory, StateFactory, {})

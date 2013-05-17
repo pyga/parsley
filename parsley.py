@@ -52,7 +52,7 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False,
         return wrapGrammar(g, tracefunc=tracefunc)
 
 
-def makeProtocol(source, senderFactory, stateFactory, bindings=None,
+def makeProtocol(source, senderFactory, receiverFactory, bindings=None,
                  name='Grammar'):
     """
     Create a Protocol implementation from a Parsley grammar.
@@ -63,7 +63,7 @@ def makeProtocol(source, senderFactory, stateFactory, bindings=None,
         bindings = {}
     grammar = OMeta(source).parseGrammar(name)
     return functools.partial(
-        ParserProtocol, grammar, senderFactory, stateFactory, bindings)
+        ParserProtocol, grammar, senderFactory, receiverFactory, bindings)
 
 
 def unwrapGrammar(w):

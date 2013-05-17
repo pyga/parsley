@@ -13,10 +13,10 @@ from ometa.runtime import ParseError
 
 testingGrammarSource = """
 
-someA = ('a' 'a') -> state('a')
-someB = ('b' 'b') -> state('b')
-someC = ('c' 'c') -> state('c')
-someExc = 'e' -> state.raiseSomething()
+someA = ('a' 'a') -> receiver('a')
+someB = ('b' 'b') -> receiver('b')
+someC = ('c' 'c') -> receiver('c')
+someExc = 'e' -> receiver.raiseSomething()
 
 initial = someA | someExc
 
@@ -33,7 +33,7 @@ class SomeException(Exception):
     pass
 
 
-class StateFactory(object):
+class ReceiverFactory(object):
     def __init__(self, sender, parser):
         self.sender = sender
         self.parser = parser
@@ -69,7 +69,7 @@ class ParserProtocolTestCase(unittest.TestCase):
 
     def setUp(self):
         self.protocol = ParserProtocol(
-            testGrammar, SenderFactory, StateFactory, {})
+            testGrammar, SenderFactory, ReceiverFactory, {})
 
     def test_transportPassed(self):
         """The sender is passed the transport recieved by the protocol."""
@@ -78,93 +78,93 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.assertEqual(transport, self.protocol.sender.transport)
 
     def test_parserPassed(self):
-        """The protocol is passed to the state."""
+        """The protocol is passed to the receiver."""
         transport = object()
         self.protocol.makeConnection(transport)
-        self.assertEqual(self.protocol, self.protocol.state.parser)
+        self.assertEqual(self.protocol, self.protocol.receiver.parser)
 
     def test_senderPassed(self):
-        """The sender is passed to the state."""
+        """The sender is passed to the receiver."""
         self.protocol.makeConnection(None)
-        self.assertEqual(self.protocol.sender, self.protocol.state.sender)
+        self.assertEqual(self.protocol.sender, self.protocol.receiver.sender)
 
     def test_connectionEstablishes(self):
-        """connectionMade is called on the state after connection establishment."""
+        """connectionMade is called on the receiver after connection establishment."""
         self.protocol.makeConnection(None)
-        self.assert_(self.protocol.state.connected)
+        self.assert_(self.protocol.receiver.connected)
 
     def test_basicParsing(self):
         """Rules can be parsed multiple times for the same effect."""
         self.protocol.makeConnection(None)
         self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
         self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.state.calls, ['a', 'a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a', 'a'])
 
     def test_parsingChunks(self):
         """Any number of rules can be called from one dataRecived."""
         self.protocol.makeConnection(None)
         self.protocol.dataReceived('a')
-        self.assertEqual(self.protocol.state.calls, [])
+        self.assertEqual(self.protocol.receiver.calls, [])
         self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
         self.protocol.dataReceived('aaa')
-        self.assertEqual(self.protocol.state.calls, ['a', 'a', 'a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a', 'a', 'a'])
 
     def test_ruleSwitching(self):
         """The rule being parsed can specify the next rule to be parsed."""
         self.protocol.makeConnection(None)
-        self.protocol.state.returnMap.update(dict(a='someB', b='someA'))
+        self.protocol.receiver.returnMap.update(dict(a='someB', b='someA'))
         self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
         self.protocol.dataReceived('bb')
-        self.assertEqual(self.protocol.state.calls, ['a', 'b'])
+        self.assertEqual(self.protocol.receiver.calls, ['a', 'b'])
         self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.state.calls, ['a', 'b', 'a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a', 'b', 'a'])
 
     def test_ruleSwitchingWithChunks(self):
         """Any number of rules can be called even during rule switching."""
         self.protocol.makeConnection(None)
-        self.protocol.state.returnMap.update(dict(a='someB', b='someA'))
+        self.protocol.receiver.returnMap.update(dict(a='someB', b='someA'))
         self.protocol.dataReceived('a')
-        self.assertEqual(self.protocol.state.calls, [])
+        self.assertEqual(self.protocol.receiver.calls, [])
         self.protocol.dataReceived('ab')
-        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
         self.protocol.dataReceived('baa')
-        self.assertEqual(self.protocol.state.calls, ['a', 'b', 'a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a', 'b', 'a'])
 
-    def test_ruleSwitchingViaState(self):
+    def test_ruleSwitchingViaReceiver(self):
         """
-        The state is able to set the the next rule to be parsed with the parser
-        passed to it.
+        The receiver is able to set the the next rule to be parsed with the
+        parser passed to it.
         """
         self.protocol.makeConnection(None)
         self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
         self.protocol.dataReceived('a')
-        self.assertEqual(self.protocol.state.calls, ['a'])
-        self.protocol.state.parser.setNextRule('someB')
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
+        self.protocol.receiver.parser.setNextRule('someB')
         self.protocol.dataReceived('abb')
-        self.assertEqual(self.protocol.state.calls, ['a', 'a', 'b'])
+        self.assertEqual(self.protocol.receiver.calls, ['a', 'a', 'b'])
 
-    def test_ruleSwitchingViaStateGetsOverridden(self):
+    def test_ruleSwitchingViaReceiverGetsOverridden(self):
         """Returning a new rule takes priority over calling setNextRule."""
         self.protocol.makeConnection(None)
         self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.state.calls, ['a'])
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
         self.protocol.dataReceived('a')
-        self.assertEqual(self.protocol.state.calls, ['a'])
-        self.protocol.state.parser.setNextRule('someB')
-        self.protocol.state.returnMap['a'] = 'someC'
+        self.assertEqual(self.protocol.receiver.calls, ['a'])
+        self.protocol.receiver.parser.setNextRule('someB')
+        self.protocol.receiver.returnMap['a'] = 'someC'
         self.protocol.dataReceived('acc')
-        self.assertEqual(self.protocol.state.calls, ['a', 'a', 'c'])
+        self.assertEqual(self.protocol.receiver.calls, ['a', 'a', 'c'])
 
     def test_connectionLoss(self):
-        """The reason for connection loss is forwarded to the state."""
+        """The reason for connection loss is forwarded to the receiver."""
         self.protocol.makeConnection(None)
         reason = object()
         self.protocol.connectionLost(reason)
-        self.assertEqual(self.protocol.state.lossReason, reason)
+        self.assertEqual(self.protocol.receiver.lossReason, reason)
 
     def test_parseFailure(self):
         """
@@ -174,21 +174,21 @@ class ParserProtocolTestCase(unittest.TestCase):
         transport = FakeTransport()
         self.protocol.makeConnection(transport)
         self.protocol.dataReceived('b')
-        self.failIfEqual(self.protocol.state.lossReason, None)
-        self.failUnlessIsInstance(self.protocol.state.lossReason.value,
+        self.failIfEqual(self.protocol.receiver.lossReason, None)
+        self.failUnlessIsInstance(self.protocol.receiver.lossReason.value,
                                   ParseError)
         self.assert_(transport.aborted)
 
-    def test_exceptionsRaisedFromState(self):
+    def test_exceptionsRaisedFromReceiver(self):
         """
-        Raising an exception from state methods called from the grammar
+        Raising an exception from receiver methods called from the grammar
         propagate to connectionLost.
         """
         transport = FakeTransport()
         self.protocol.makeConnection(transport)
         self.protocol.dataReceived('e')
-        self.failIfEqual(self.protocol.state.lossReason, None)
-        self.failUnlessIsInstance(self.protocol.state.lossReason.value,
+        self.failIfEqual(self.protocol.receiver.lossReason, None)
+        self.failUnlessIsInstance(self.protocol.receiver.lossReason.value,
                                   SomeException)
         self.assert_(transport.aborted)
 
@@ -199,5 +199,5 @@ class ParserProtocolTestCase(unittest.TestCase):
         reason = object()
         self.protocol.connectionLost(reason)
         self.protocol.dataReceived('d')
-        self.assertEqual(self.protocol.state.lossReason, reason)
+        self.assertEqual(self.protocol.receiver.lossReason, reason)
         self.assert_(not transport.aborted)

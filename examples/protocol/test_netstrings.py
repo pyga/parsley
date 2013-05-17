@@ -52,7 +52,7 @@ def test_sending_two_netstrings():
     assert transport.value() == '4:spam,5:egggs,'
 
 
-class FakeState(object):
+class FakeReceiver(object):
     def __init__(self, sender, parser):
         self.sender = sender
         self.parser = parser
@@ -70,7 +70,7 @@ class FakeState(object):
         self.lossReason = reason
 
 TestingNetstringProtocol = parsley.makeProtocol(
-    netstrings.grammar, netstrings.NetstringSender, FakeState)
+    netstrings.grammar, netstrings.NetstringSender, FakeReceiver)
 
 def build_testing_protocol():
     protocol = TestingNetstringProtocol()
@@ -81,38 +81,38 @@ def build_testing_protocol():
 def test_receiving_empty_netstring():
     protocol, transport = build_testing_protocol()
     protocol.dataReceived('0:,')
-    assert protocol.state.netstrings == ['']
+    assert protocol.receiver.netstrings == ['']
 
 def test_receiving_one_netstring_by_byte():
     protocol, transport = build_testing_protocol()
     for c in '4:spam,':
         protocol.dataReceived(c)
-    assert protocol.state.netstrings == ['spam']
+    assert protocol.receiver.netstrings == ['spam']
 
 def test_receiving_two_netstrings_by_byte():
     protocol, transport = build_testing_protocol()
     for c in '4:spam,4:eggs,':
         protocol.dataReceived(c)
-    assert protocol.state.netstrings == ['spam', 'eggs']
+    assert protocol.receiver.netstrings == ['spam', 'eggs']
 
 def test_receiving_two_netstrings_in_chunks():
     protocol, transport = build_testing_protocol()
     for c in ['4:', 'spa', 'm,4', ':eg', 'gs,']:
         protocol.dataReceived(c)
-    assert protocol.state.netstrings == ['spam', 'eggs']
+    assert protocol.receiver.netstrings == ['spam', 'eggs']
 
 def test_receiving_two_netstrings_at_once():
     protocol, transport = build_testing_protocol()
     protocol.dataReceived('4:spam,4:eggs,')
-    assert protocol.state.netstrings == ['spam', 'eggs']
+    assert protocol.receiver.netstrings == ['spam', 'eggs']
 
 def test_establishing_connection():
-    assert not FakeState(None, None).connected
+    assert not FakeReceiver(None, None).connected
     protocol, transport = build_testing_protocol()
-    assert protocol.state.connected
+    assert protocol.receiver.connected
 
 def test_losing_connection():
     protocol, transport = build_testing_protocol()
     reason = object()
     protocol.connectionLost(reason)
-    assert protocol.state.lossReason == reason
+    assert protocol.receiver.lossReason == reason

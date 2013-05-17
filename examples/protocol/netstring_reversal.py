@@ -7,7 +7,7 @@ from parsley import makeProtocol
 from netstrings import grammar, NetstringSender
 
 
-class NetstringReverserState(object):
+class NetstringReverserReceiver(object):
     def __init__(self, sender, parser):
         self.sender = sender
 
@@ -22,7 +22,7 @@ class NetstringReverserState(object):
 
 
 NetstringReverser = makeProtocol(
-    grammar, NetstringSender, NetstringReverserState)
+    grammar, NetstringSender, NetstringReverserReceiver)
 
 
 class NetstringReverserFactory(ServerFactory):

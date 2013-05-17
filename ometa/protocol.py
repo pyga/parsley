@@ -6,11 +6,11 @@ from ometa.interp import TrampolinedGrammarInterpreter, _feed_me
 class ParserProtocol(Protocol):
     currentRule = 'initial'
 
-    def __init__(self, grammar, senderFactory, stateFactory, bindings):
+    def __init__(self, grammar, senderFactory, receiverFactory, bindings):
         self.grammar = grammar
         self.bindings = dict(bindings)
         self.senderFactory = senderFactory
-        self.stateFactory = stateFactory
+        self.receiverFactory = receiverFactory
         self.disconnecting = False
 
     def setNextRule(self, rule):
@@ -18,8 +18,9 @@ class ParserProtocol(Protocol):
 
     def connectionMade(self):
         self.sender = self.senderFactory(self.transport)
-        self.bindings['state'] = self.state = self.stateFactory(self.sender, self)
-        self.state.connectionMade()
+        self.bindings['receiver'] = self.receiver = self.receiverFactory(
+            self.sender, self)
+        self.receiver.connectionMade()
         self._setupInterp()
 
     def _setupInterp(self):
@@ -51,5 +52,5 @@ class ParserProtocol(Protocol):
     def connectionLost(self, reason):
         if self.disconnecting:
             return
-        self.state.connectionLost(reason)
+        self.receiver.connectionLost(reason)
         self.disconnecting = True

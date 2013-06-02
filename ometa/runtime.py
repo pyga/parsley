@@ -320,8 +320,8 @@ class ArgInput(object):
         prevVal, _, input =  self.parent.slice(n - 1)
         return [self.arg] + list(prevVal), self.err, input
 
-    def nullError(self):
-        return self.parent.nullError()
+    def nullError(self, msg=None):
+        return self.parent.nullError(msg=None)
 
 
     def getMemo(self, name):

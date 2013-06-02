@@ -418,14 +418,17 @@ class OMetaTestCase(unittest.TestCase):
     classTested = OMeta
 
 
-    def compile(self, grammar, globals=None):
+    def compile(self, grammar, globals=None, debug=False):
         """
         Produce an object capable of parsing via this grammar.
 
         @param grammar: A string containing an OMeta grammar.
         """
         g = self.classTested.makeGrammar(grammar, 'TestGrammar').createParserClass(OMetaBase, globals or {})
-        return HandyWrapper(g)
+        if debug:
+            return HandyWrapper(g)
+        else:
+            return HandyWrapper(g._fastGrammar)
 
 
     def test_literals(self):
@@ -808,7 +811,7 @@ class OMetaTestCase(unittest.TestCase):
         Custom labels change the 'expected' in the raised exceptions.
         """
         label = 'Letter not starting with digit'
-        g = self.compile("ident = (<letter (letter | digit)*>) ^ (" + label + ")")
+        g = self.compile("ident = (<letter (letter | digit)*>) ^ (" + label + ")", debug=True)
         self.assertEqual(g.ident("a"), "a")
         self.assertEqual(g.ident("abc"), "abc")
         self.assertEqual(g.ident("a1z"), "a1z")
@@ -821,7 +824,7 @@ class OMetaTestCase(unittest.TestCase):
         Custom labels change the 'expected' in the raised exceptions.
         """
         label = 'lots of xs'
-        g = self.compile("xs = ('x'*) ^ (" + label + ")")
+        g = self.compile("xs = ('x'*) ^ (" + label + ")", debug=True)
         self.assertEqual(g.xs(""), "")
         self.assertEqual(g.xs("x"), "x")
         self.assertEqual(g.xs("xxx"), "xxx")
@@ -1209,7 +1212,7 @@ class HandyInterpWrapper(object):
 
 class InterpTestCase(OMetaTestCase):
 
-    def compile(self, grammar, globals=None):
+    def compile(self, grammar, globals=None, debug=None):
         """
         Produce an object capable of parsing via this grammar.
 
@@ -1265,7 +1268,7 @@ class TrampolinedInterpWrapper(object):
 
 class TrampolinedInterpreterTestCase(OMetaTestCase):
 
-    def compile(self, grammar, globals=None):
+    def compile(self, grammar, globals=None, debug=None):
         g = OMeta(grammar)
         tree = g.parseGrammar('TestGrammar')
         return TrampolinedInterpWrapper(tree, globals)
@@ -1300,7 +1303,7 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
 
 class TreeTransformerTestCase(unittest.TestCase):
 
-    def compile(self, grammar, namespace=None):
+    def compile(self, grammar, namespace=None, debug=None):
         """
         Produce an object capable of parsing via this grammar.
 

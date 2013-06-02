@@ -1,3 +1,4 @@
+import difflib
 from textwrap import dedent
 import unittest
 
@@ -12,6 +13,24 @@ class PythonWriterTests(unittest.TestCase):
     """
     Tests for generating Python source from an AST.
     """
+    def assertEqual(self, first, second, msg=None):
+        """Assert that two multi-line strings are equal.
+
+        If they aren't, show a nice diff.
+
+        """
+        self.assertTrue(isinstance(first, str),
+                'First argument is not a string')
+        self.assertTrue(isinstance(second, str),
+                'Second argument is not a string')
+
+        if first != second:
+            message = ''.join(difflib.ndiff(first.splitlines(True),
+                                                second.splitlines(True)))
+            if msg:
+                message += " : " + msg
+            self.fail("Multi-line strings are unequal:\n" + message)
+
 
     def test_exactly(self):
         """
@@ -19,7 +38,7 @@ class PythonWriterTests(unittest.TestCase):
         """
 
         x = t.Exactly("x")
-        self.assertEqual(writePython(x ,""),
+        self.assertEqual(writePython(x ,"", debug=True),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
                             self.considerError(lastError, None)
@@ -36,7 +55,7 @@ class PythonWriterTests(unittest.TestCase):
         one = t.Action("1")
         x = t.Action("x")
         a = t.Apply("foo", "main", [one, x])
-        self.assertEqual(writePython(a, ""),
+        self.assertEqual(writePython(a, "", debug=True),
                          dd("""
                             _G_python_1, lastError = 1, None
                             self.considerError(lastError, None)
@@ -54,7 +73,7 @@ class PythonWriterTests(unittest.TestCase):
         one = t.Action("1")
         x = t.Action("x")
         a = t.ForeignApply("thegrammar", "foo", "main", [one, x])
-        self.assertEqual(writePython(a, ""),
+        self.assertEqual(writePython(a, "", debug=True),
                          dd("""
                             _G_python_1, lastError = 1, None
                             self.considerError(lastError, None)
@@ -73,7 +92,7 @@ class PythonWriterTests(unittest.TestCase):
         one = t.Action("1")
         x = t.Action("x")
         a = t.Apply("super", "main", [one, x])
-        self.assertEqual(writePython(a, ""),
+        self.assertEqual(writePython(a, "", debug=True),
                          dd("""
                             _G_python_1, lastError = 1, None
                             self.considerError(lastError, None)
@@ -92,7 +111,7 @@ class PythonWriterTests(unittest.TestCase):
         """
 
         xs = t.Many(t.Exactly("x"))
-        self.assertEqual(writePython(xs, ""),
+        self.assertEqual(writePython(xs, "", debug=True),
                          dd("""
                             def _G_many_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -111,7 +130,7 @@ class PythonWriterTests(unittest.TestCase):
         """
 
         xs = t.Many1(t.Exactly("x"))
-        self.assertEqual(writePython(xs, ""),
+        self.assertEqual(writePython(xs, "", debug=True),
                          dd("""
                             def _G_many1_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -131,7 +150,7 @@ class PythonWriterTests(unittest.TestCase):
 
         xy = t.Or([t.Exactly("x"),
                                t.Exactly("y")])
-        self.assertEqual(writePython(xy, ""),
+        self.assertEqual(writePython(xy, "", debug=True),
                          dd("""
                             def _G_or_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -153,7 +172,7 @@ class PythonWriterTests(unittest.TestCase):
 
         x1 = t.Or([t.Exactly("x")])
         x = t.Exactly("x")
-        self.assertEqual(writePython(x, ""), writePython(x1, ""))
+        self.assertEqual(writePython(x, "", debug=True), writePython(x1, "", debug=True))
 
 
     def test_optional(self):
@@ -161,7 +180,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for optional terms.
         """
         x = t.Optional(t.Exactly("x"))
-        self.assertEqual(writePython(x, ""),
+        self.assertEqual(writePython(x, "", debug=True),
                          dd("""
                             def _G_optional_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -180,7 +199,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for negated terms.
         """
         x = t.Not(t.Exactly("x"))
-        self.assertEqual(writePython(x ,""),
+        self.assertEqual(writePython(x ,"", debug=True),
                          dd("""
                             def _G_not_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -197,7 +216,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for lookahead expressions.
         """
         x = t.Lookahead(t.Exactly("x"))
-        self.assertEqual(writePython(x, ""),
+        self.assertEqual(writePython(x, "", debug=True),
                          dd("""
                             def _G_lookahead_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -217,7 +236,7 @@ class PythonWriterTests(unittest.TestCase):
         x = t.Exactly("x")
         y = t.Exactly("y")
         z = t.And([x, y])
-        self.assertEqual(writePython(z, ""),
+        self.assertEqual(writePython(z, "", debug=True),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
                             self.considerError(lastError, None)
@@ -233,7 +252,7 @@ class PythonWriterTests(unittest.TestCase):
         """
         x = t.Exactly("x")
         b = t.Bind("var", x)
-        self.assertEqual(writePython(b, ""),
+        self.assertEqual(writePython(b, "", debug=True),
                          dd("""
                             _G_exactly_1, lastError = self.exactly('x')
                             self.considerError(lastError, None)
@@ -247,7 +266,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for predicate expressions.
         """
         x = t.Predicate(t.Exactly("x"))
-        self.assertEqual(writePython(x, ""),
+        self.assertEqual(writePython(x, "", debug=True),
                          dd("""
                             def _G_pred_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -264,7 +283,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for semantic actions.
         """
         x = t.Action("doStuff()")
-        self.assertEqual(writePython(x, ""),
+        self.assertEqual(writePython(x, "", debug=True),
                          dd("""
                             _G_python_1, lastError = eval('doStuff()', self.globals, _locals), None
                             self.considerError(lastError, None)
@@ -277,7 +296,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for semantic predicates.
         """
         x = t.Action("returnStuff()")
-        self.assertEqual(writePython(x, ""),
+        self.assertEqual(writePython(x, "", debug=True),
                          dd("""
                             _G_python_1, lastError = eval('returnStuff()', self.globals, _locals), None
                             self.considerError(lastError, None)
@@ -289,7 +308,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for custom labels.
         """
         xs = t.Label(t.Exactly("x"), 'CustomLabel')
-        self.assertEqual(writePython(xs, ""),
+        self.assertEqual(writePython(xs, "", debug=True),
                          dd("""
                                 def _G_label_1():
                                     _G_exactly_2, lastError = self.exactly('x')
@@ -305,7 +324,7 @@ class PythonWriterTests(unittest.TestCase):
         Test code generation for list patterns.
         """
         x = t.List(t.Exactly("x"))
-        self.assertEqual(writePython(x, ""),
+        self.assertEqual(writePython(x, "", debug=True),
                          dd("""
                             def _G_listpattern_1():
                                 _G_exactly_2, lastError = self.exactly('x')
@@ -325,7 +344,7 @@ class PythonWriterTests(unittest.TestCase):
         x = t.Rule("foo", t.List(
                 t.Exactly("x")))
         g = t.Grammar("TestGrammar", True, [x])
-        self.assertIn("\n        tree = True\n", writePython(g, ""))
+        self.assertIn("\n        tree = True\n", writePython(g, "", debug=True))
 
 
     def test_rule(self):
@@ -334,7 +353,7 @@ class PythonWriterTests(unittest.TestCase):
         """
 
         x = t.Rule("foo", t.Exactly("x"))
-        self.assertEqual(writePython(x, ""),
+        self.assertEqual(writePython(x, "", debug=True),
                          dd("""
                             def rule_foo(self):
                                 _locals = {'self': self}
@@ -353,26 +372,41 @@ class PythonWriterTests(unittest.TestCase):
         r2 = t.Rule("baz", t.Exactly("y"))
         x = t.Grammar("BuilderTest", False, [r1, r2])
         self.assertEqual(
-            writePython(x, ""),
+            writePython(x, "", debug=True),
             dd("""
                def createParserClass(GrammarBase, ruleGlobals):
                    if ruleGlobals is None:
                        ruleGlobals = {}
-                   class BuilderTest(GrammarBase):
+                   class BuilderTest_fast(GrammarBase):
                        def rule_foo(self):
                            _locals = {'self': self}
                            self.locals['foo'] = _locals
-                           _G_exactly_1, lastError = self.exactly('x')
-                           self.considerError(lastError, 'foo')
+                           _G_exactly_1, _ = self.exactly('x')
                            return (_G_exactly_1, self.currentError)
 
 
                        def rule_baz(self):
                            _locals = {'self': self}
                            self.locals['baz'] = _locals
-                           _G_exactly_2, lastError = self.exactly('y')
-                           self.considerError(lastError, 'baz')
+                           _G_exactly_2, _ = self.exactly('y')
                            return (_G_exactly_2, self.currentError)
+
+
+                   class BuilderTest(GrammarBase):
+                       def rule_foo(self):
+                           _locals = {'self': self}
+                           self.locals['foo'] = _locals
+                           _G_exactly_3, lastError = self.exactly('x')
+                           self.considerError(lastError, 'foo')
+                           return (_G_exactly_3, self.currentError)
+
+
+                       def rule_baz(self):
+                           _locals = {'self': self}
+                           self.locals['baz'] = _locals
+                           _G_exactly_4, lastError = self.exactly('y')
+                           self.considerError(lastError, 'baz')
+                           return (_G_exactly_4, self.currentError)
 
 
                    if BuilderTest.globals is not None:
@@ -380,5 +414,7 @@ class PythonWriterTests(unittest.TestCase):
                        BuilderTest.globals.update(ruleGlobals)
                    else:
                        BuilderTest.globals = ruleGlobals
+                   BuilderTest._fastGrammar = BuilderTest_fast
+                   BuilderTest._fastGrammar.globals = BuilderTest.globals
                    return BuilderTest
                             """))

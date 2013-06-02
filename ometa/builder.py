@@ -28,6 +28,7 @@ class PythonWriter(object):
     """
     Converts an OMeta syntax tree into Python source.
     """
+    _GENERATE_DEBUG = None
     def __init__(self, tree, grammarText):
         self.tree = tree
         self.grammarText = grammarText
@@ -82,8 +83,11 @@ class PythonWriter(object):
         variable name bound to its value.
         """
         name = self._gensym(typ)
-        out.writeln("%s, lastError = %s" % (name, e))
-        out.writeln("self.considerError(lastError, %r)" % (debugname and debugname.data,))
+        if self._GENERATE_DEBUG:
+            out.writeln("%s, lastError = %s" % (name, e))
+            out.writeln("self.considerError(lastError, %r)" % (debugname and debugname.data,))
+        else:
+            out.writeln("%s, _ = %s" % (name, e))
         return name
 
 
@@ -325,14 +329,9 @@ class PythonWriter(object):
         funcOut = out.indent()
         funcOut.writeln("if ruleGlobals is None:")
         funcOut.indent().writeln("ruleGlobals = {}")
-        funcOut.writeln("class %s(GrammarBase):" % (name.data,))
+        self.writeClass(funcOut, name, rules, debugname, debug=False)
+        self.writeClass(funcOut, name, rules, debugname, debug=True)
         out = funcOut.indent()
-        for rule in rules.args:
-            self._generateNode(out, rule, debugname)
-            out.writeln("")
-            out.writeln("")
-        if self.takesTreeInput:
-            out.writeln("tree = %s" % self.takesTreeInput)
         funcOut.writeln(
             "if %s.globals is not None:" % (name.data,))
         out.writeln("%s.globals = %s.globals.copy()" % (name.data,
@@ -341,7 +340,25 @@ class PythonWriter(object):
         funcOut.writeln(
             "else:")
         out.writeln("%s.globals = ruleGlobals" % (name.data,))
+
+        funcOut.writeln("%s._fastGrammar = %s_fast" % (name.data, name.data))
+        funcOut.writeln("%s._fastGrammar.globals = %s.globals" % (name.data, name.data))
         funcOut.writeln("return " + name.data)
+
+    def writeClass(self, funcOut, name, rules, debugname, debug):
+        if debug:
+            funcOut.writeln("class %s(GrammarBase):" % (name.data,))
+        else:
+            funcOut.writeln("class %s_fast(GrammarBase):" % (name.data,))
+        out = funcOut.indent()
+        self._GENERATE_DEBUG = debug
+        for rule in rules.args:
+            self._generateNode(out, rule, debugname)
+            out.writeln("")
+            out.writeln("")
+        self._GENERATE_DEBUG = None
+        if self.takesTreeInput:
+            out.writeln("tree = %s" % self.takesTreeInput)
 
 
 class _Term2PythonAction(object):
@@ -396,10 +413,11 @@ class TermActionPythonWriter(PythonWriter):
             return self.compilePythonExpr(out, term.build(self.builder()), debugname)
 
 
-def writePython(tree, txt):
+def writePython(tree, txt, debug=None):
     f = StringIO()
     out = TextWriter(f)
     pw = PythonWriter(tree, txt)
+    pw._GENERATE_DEBUG = debug
     pw.output(out)
     return f.getvalue().strip()
 

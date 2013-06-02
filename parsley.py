@@ -15,10 +15,11 @@ def wrapGrammar(g, tracefunc=None):
 
         :param input: The string you want to parse.
         """
+        fastParser = g._fastGrammar(input)
         parser = g(input)
         if tracefunc:
             parser._trace = tracefunc
-        return _GrammarWrapper(parser, input)
+        return _GrammarWrapper(fastParser, parser, input)
     makeParser._grammarClass = g
     return makeParser
 
@@ -64,8 +65,9 @@ class _GrammarWrapper(object):
     To invoke a Parsley rule, invoke a method with that name -- this
     turns x(input).foo() calls into grammar.apply("foo") calls.
     """
-    def __init__(self, grammar, input):
-        self._grammar = grammar
+    def __init__(self, fastParser, parser, input):
+        self._fastParser = fastParser
+        self._parser = parser
         self._input = input
         #so pydoc doesn't get trapped in the __getattr__
         self.__name__ = _GrammarWrapper.__name__
@@ -76,18 +78,19 @@ class _GrammarWrapper(object):
         rule.
         :param name: Rule name.
         """
-        def invokeRule(*args, **kwargs):
+        def _invokeRule( *args, **kwargs):
             """
             Invoke a Parsley rule. Passes any positional args to the rule.
             """
+            print "PARSE FAILED. Re-running to collect debug info..."
             try:
-                ret, err = self._grammar.apply(name, *args)
+                ret, err = self._parser.apply(name, *args)
             except ParseError, e:
-                self._grammar.considerError(e)
-                err = self._grammar.currentError
+                self._parser.considerError(e)
+                err = self._parser.currentError
             else:
                 try:
-                    extra, _ = self._grammar.input.head()
+                    extra, _ = self._parser.input.head()
                 except EOFError:
                     return ret
                 else:
@@ -95,6 +98,30 @@ class _GrammarWrapper(object):
                     err = ParseError(err.input, err.position + 1,
                                      [["message", "expected EOF"]], err.trail)
             raise err
-        return invokeRule
+
+        def _fastInvokeRule( *args, **kwargs):
+            """
+            Invoke a Parsley rule. Passes any positional args to the rule.
+            """
+            try:
+                ret, _ = self._fastParser.apply(name, *args)
+            except ParseError, e:
+                return _invokeRule(*args, **kwargs)
+            else:
+                try:
+                    extra, _ = self._fastParser.input.head()
+                except EOFError:
+                    return ret
+            return _invokeRule(*args, **kwargs)
+
+
+        return _fastInvokeRule
 
 __all__ = ['makeGrammar', 'wrapGrammar', 'unwrapGrammar', 'term', 'quasiterm']
+
+
+
+
+
+
+

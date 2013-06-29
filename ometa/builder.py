@@ -107,7 +107,7 @@ class PythonWriter(object):
         """
         try:
             ast.literal_eval(expr)
-            return self._expr(out, 'python', expr + ', None', debugname)
+            return self._expr(out, 'python', '(' + expr + '), None', debugname)
         except ValueError:
             return self._expr(out, 'python',
                               'eval(%r, self.globals, _locals), None' % (expr,),
@@ -250,9 +250,14 @@ class PythonWriter(object):
         Bind the value of 'expr' to a name in the _locals dict.
         """
         v = self._generateNode(out, expr, debugname)
-        ref = "_locals['%s']" % (name.data,)
-        out.writeln("%s = %s" %(ref, v))
-        return ref
+        if name.data:
+            ref = "_locals['%s']" % (name.data,)
+            out.writeln("%s = %s" % (ref, v))
+        else:
+            for i, n in enumerate(name.args):
+                ref = "_locals['%s']" % (n.data,)
+                out.writeln("%s = %s[%i]" %(ref, v, i))
+        return v
 
 
     def generate_Predicate(self, out, expr, debugname=None):

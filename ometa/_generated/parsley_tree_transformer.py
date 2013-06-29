@@ -532,7 +532,7 @@ def createParserClass(GrammarBase, ruleGlobals):
             self.considerError(lastError, 'termRulePart')
             def _G_optional_185():
                 self._trace(' token("=")', (1425, 1436), self.input.position)
-                _G_python_186, lastError = "=", None
+                _G_python_186, lastError = ("="), None
                 self.considerError(lastError, None)
                 _G_apply_187, lastError = self._apply(self.rule_token, "token", [_G_python_186])
                 self.considerError(lastError, None)

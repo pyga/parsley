@@ -38,7 +38,7 @@ class PythonWriterTests(unittest.TestCase):
         a = t.Apply("foo", "main", [one, x])
         self.assertEqual(writePython(a, ""),
                          dd("""
-                            _G_python_1, lastError = 1, None
+                            _G_python_1, lastError = (1), None
                             self.considerError(lastError, None)
                             _G_python_2, lastError = eval('x', self.globals, _locals), None
                             self.considerError(lastError, None)
@@ -56,7 +56,7 @@ class PythonWriterTests(unittest.TestCase):
         a = t.ForeignApply("thegrammar", "foo", "main", [one, x])
         self.assertEqual(writePython(a, ""),
                          dd("""
-                            _G_python_1, lastError = 1, None
+                            _G_python_1, lastError = (1), None
                             self.considerError(lastError, None)
                             _G_python_2, lastError = eval('x', self.globals, _locals), None
                             self.considerError(lastError, None)
@@ -75,7 +75,7 @@ class PythonWriterTests(unittest.TestCase):
         a = t.Apply("super", "main", [one, x])
         self.assertEqual(writePython(a, ""),
                          dd("""
-                            _G_python_1, lastError = 1, None
+                            _G_python_1, lastError = (1), None
                             self.considerError(lastError, None)
                             _G_python_2, lastError = eval('x', self.globals, _locals), None
                             self.considerError(lastError, None)
@@ -238,7 +238,7 @@ class PythonWriterTests(unittest.TestCase):
                             _G_exactly_1, lastError = self.exactly('x')
                             self.considerError(lastError, None)
                             _locals['var'] = _G_exactly_1
-                            _locals['var']
+                            _G_exactly_1
                             """))
 
 

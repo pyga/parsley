@@ -242,7 +242,7 @@ As mentioned before, it's possible to switch the rule that the
 ``ParserProtocol`` uses to match incoming data. Imagine a "netstrings2"
 protocol that looks like this::
 
-  3:foo,3;bar:4:spam,4;eggs,
+  3:foo,3;bar,4:spam,4;eggs,
 
 That is, the protocol alternates between using ``:`` and using ``;`` delimiting
 data length and the data. The amended grammar would look something like this::

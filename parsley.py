@@ -1,9 +1,8 @@
 import functools
 
 from ometa.grammar import OMeta
-from ometa.runtime import ParseError, EOFError, OMetaBase, expected
+from ometa.runtime import ParseError, EOFError, OMetaBase
 from terml.parser import parseTerm as term
-from terml.nodes import termMaker
 from terml.quasiterm import quasiterm
 
 __version__ = '1.1'

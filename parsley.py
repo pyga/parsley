@@ -123,7 +123,37 @@ def makeProtocol(source, senderFactory, receiverFactory, bindings=None,
         ParserProtocol, grammar, senderFactory, receiverFactory, bindings)
 
 
+def stackSenders(baseSender, *wrappers):
+    """
+    Stack some senders for ease of wrapping.
+
+    ``stackSenders(x, y, z)`` will return a sender factory which will, when
+    called with a transport, return ``z(y(x(transport)))``.
+    """
+    def senderFactory(transport):
+        ret = baseSender(transport)
+        for wrapper in wrappers:
+            ret = wrapper(ret)
+        return ret
+    return senderFactory
+
+
+def stackReceivers(baseReceiver, *wrappers):
+    """
+    Stack some receivers for ease of wrapping.
+
+    ``stackReceivers(x, y, z)`` will return a receiver factory which, when
+    called with a sender and parser, will return ``z(y(x(sender, parser)))``.
+    """
+    def receiverFactory(sender, parser):
+        ret = baseReceiver(sender, parser)
+        for wrapper in wrappers:
+            ret = wrapper(ret)
+        return ret
+    return receiverFactory
+
+
 __all__ = [
     'makeGrammar', 'wrapGrammar', 'unwrapGrammar', 'term', 'quasiterm',
-    'makeProtocol',
+    'makeProtocol', 'stackSenders', 'stackReceivers',
 ]

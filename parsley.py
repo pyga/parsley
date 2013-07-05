@@ -122,31 +122,35 @@ def makeProtocol(source, senderFactory, receiverFactory, bindings=None,
         ParserProtocol, grammar, senderFactory, receiverFactory, bindings)
 
 
-def stackSenders(baseSender, *wrappers):
+def stackSenders(*wrappers):
     """
     Stack some senders for ease of wrapping.
 
     ``stackSenders(x, y, z)`` will return a sender factory which will, when
-    called with a transport, return ``z(y(x(transport)))``.
+    called with a transport, return ``x(y(z(transport)))``.
     """
+    if not wrappers:
+        raise TypeError('at least one argument is required')
     def senderFactory(transport):
-        ret = baseSender(transport)
-        for wrapper in wrappers:
+        ret = wrappers[-1](transport)
+        for wrapper in wrappers[-2::-1]:
             ret = wrapper(ret)
         return ret
     return senderFactory
 
 
-def stackReceivers(baseReceiver, *wrappers):
+def stackReceivers(*wrappers):
     """
     Stack some receivers for ease of wrapping.
 
     ``stackReceivers(x, y, z)`` will return a receiver factory which, when
     called with a sender and parser, will return ``z(y(x(sender, parser)))``.
     """
+    if not wrappers:
+        raise TypeError('at least one argument is required')
     def receiverFactory(sender, parser):
-        ret = baseReceiver(sender, parser)
-        for wrapper in wrappers:
+        ret = wrappers[-1](sender, parser)
+        for wrapper in wrappers[-2::-1]:
             ret = wrapper(ret)
         return ret
     return receiverFactory

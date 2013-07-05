@@ -20,17 +20,18 @@ class StackSendersTestCase(unittest.TestCase):
 
     def test_oneWrapper(self):
         "stackSenders can be called with one wrapper."
-        fac = parsley.stackSenders(nullFactory, wrapperFactory(0))
+        fac = parsley.stackSenders(wrapperFactory(0), nullFactory)
         self.assertEqual(fac('a'), (0, ('a',)))
 
     def test_tenWrappers(self):
         "stackSenders can be called with ten wrappers."
-        wrappers = []
+        args = []
         result = 'a',
         for x in xrange(10):
-            wrappers.append(wrapperFactory(x))
-            result = x, result
-        fac = parsley.stackSenders(nullFactory, *wrappers)
+            args.append(wrapperFactory(x))
+            result = 9 - x, result
+        args.append(nullFactory)
+        fac = parsley.stackSenders(*args)
         self.assertEqual(fac('a'), result)
 
     def test_failsWithNoBaseSender(self):
@@ -52,17 +53,18 @@ class StackReceiversTestCase(unittest.TestCase):
 
     def test_oneWrapper(self):
         "stackReceivers can be called with one wrapper."
-        fac = parsley.stackReceivers(nullFactory, wrapperFactory(0))
+        fac = parsley.stackReceivers(wrapperFactory(0), nullFactory)
         self.assertEqual(fac('a', 'b'), (0, ('a', 'b')))
 
     def test_tenWrappers(self):
         "stackReceivers can be called with ten wrappers."
-        wrappers = []
+        args = []
         result = 'a', 'b'
         for x in xrange(10):
-            wrappers.append(wrapperFactory(x))
-            result = x, result
-        fac = parsley.stackReceivers(nullFactory, *wrappers)
+            args.append(wrapperFactory(x))
+            result = 9 - x, result
+        args.append(nullFactory)
+        fac = parsley.stackReceivers(*args)
         self.assertEqual(fac('a', 'b'), result)
 
     def test_failsWithNoBaseReceiver(self):

@@ -192,9 +192,9 @@ more wrappers.
 
 Their use is extremely simple: ``stackSenders(x, y, z)`` will return a sender
 factory which will, when called with a transport, return
-``z(y(x(transport)))``. Similarly, ``stackReceivers(x, y, z)`` will return a
+``x(y(z(transport)))``. Similarly, ``stackReceivers(x, y, z)`` will return a
 receiver factory which, when called with a sender and parser, will return
-``z(y(x(sender, parser)))``.
+``x(y(z(sender, parser)))``.
 
 An example of wrapping a sender factory::
 
@@ -209,7 +209,7 @@ And then, constructing the Protocol::
 
   NetstringProtocol = makeProtocol(
       grammar,
-      stackSenders(NetstringSender, NetstringReversalWrapper),
+      stackSenders(NetstringReversalWrapper, NetstringSender),
       NetstringReceiver)
 
 A wrapper doesn't need to call the same methods on the thing it's wrapping.
@@ -248,8 +248,8 @@ The corresponding receiver and again, constructing the Protocol::
 
   NetstringProtocol = makeProtocol(
       grammar,
-      stackSenders(NetstringSender, NetstringReversalWrapper),
-      stackReceivers(SplitNetstringReceiver, NetstringSplittingWrapper))
+      stackSenders(NetstringReversalWrapper, NetstringSender),
+      stackReceivers(NetstringSplittingWrapper, SplitNetstringReceiver))
 
 
 .. _advanced-parsing:

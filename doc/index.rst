@@ -13,6 +13,7 @@ Contents:
 
    tutorial
    tutorial2
+   tutorial3
    extending
    terml
    reference

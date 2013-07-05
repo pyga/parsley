@@ -14,10 +14,11 @@ is no guarantee of receiving whole messages. Buffering is often complicated by
 protocols switching between using fixed-width messages and delimiters for
 framing. Fortunately, Parsley can remove all of this tedium.
 
-With :func:`makeParser`, Parsley can generate a `Twisted`_
+With :func:`parsley.makeProtocol`, Parsley can generate a `Twisted`_
 `IProtocol`_-implementing class which will match incoming network data using
-Parlsey grammar rules. Before getting started with :func:`makeParser`, let's
-build a grammar for `netstrings`_. The netstrings protocol is very simple::
+Parlsey grammar rules. Before getting started with
+:func:`~parsley.makeProtocol`, let's build a grammar for `netstrings`_. The
+netstrings protocol is very simple::
 
   4:spam,4:eggs,
 
@@ -30,11 +31,11 @@ prefixed with one or more ASCII digits followed by a ``:``, and suffixed with a
 
   netstring = digits:length ':' <anything{length}>:string ',' -> string
 
-:func:`makeParser` takes, in addition to a grammar, a factory for a "sender"
-and a factory for a "receiver". In the system of objects managed by the
-``ParserProtocol``, the sender is in charge of writing data to the wire, and
-the receiver has methods called on it by the Parsley rules. To demonstrate it,
-here is the final piece needed in the Parsley grammar for netstrings::
+:func:`~parsley.makeProtocol` takes, in addition to a grammar, a factory for a
+"sender" and a factory for a "receiver". In the system of objects managed by
+the ``ParserProtocol``, the sender is in charge of writing data to the wire,
+and the receiver has methods called on it by the Parsley rules. To demonstrate
+it, here is the final piece needed in the Parsley grammar for netstrings::
 
   initial = netstring:string -> receiver.netstringReceived(string)
 
@@ -185,9 +186,9 @@ Composing senders and receivers
 
 The design of senders and receivers is intentional to make composition easy:
 no subclassing is required. While the composition is easy enough to do on your
-own, Parsley provides two functions: :func:`stackSenders` and
-:func:`stackReceivers`. Both take a base factory followed by zero or more
-wrappers.
+own, Parsley provides two functions: :func:`~parsley.stackSenders` and
+:func:`~parsley.stackReceivers`. Both take a base factory followed by zero or
+more wrappers.
 
 Their use is extremely simple: ``stackSenders(x, y, z)`` will return a sender
 factory which will, when called with a transport, return

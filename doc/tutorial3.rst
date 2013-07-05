@@ -39,10 +39,13 @@ here is the final piece needed in the Parsley grammar for netstrings::
   initial = netstring:string -> receiver.netstringReceived(string)
 
 The receiver is always available in Parsley rules with the name ``receiver``,
-allowing Parsley rules to call methods on it. This rule is specifically called
-``initial`` because that's the default name of the starting rule. Unless
+allowing Parsley rules to call methods on it. By default, the
+``ParserProtocol`` tries to use a rule named ``initial`` as the starting rule.
+If a rule named ``initial`` is not defined in the grammar, and another rule is
+not set to be the starting rule before parsing begins (see :ref:`Advanced
+parsing <advanced-parsing>` below), parsing will immediately fail. Unless
 another starting rule is chosen, the ``ParserProtocol`` will use the starting
-rule as the first current rule.
+rule ``initial`` as the first current rule.
 
 When data is received over the wire, the ``ParserProtocol`` tries to match the
 received data against the current rule. If the current rule requires more data
@@ -51,14 +54,11 @@ comes in, then tries to continue matching. This repeats until the current rule
 is completely matched, and then the ``ParserProtocol`` starts matching any
 leftover data against the current rule again.
 
-.. note::
-
-   The current rule can change during parsing. There are two ways to change the
-   current rule, which will be addressed later. The default behavior is to keep
-   using the same rule.
-
-Since the netstring protocol doesn't change, the default behavior of continuing
-to use the same rule is fine for parsing netstrings.
+The current rule can change during parsing. There are two ways to change the
+current rule, which are addressed in the :ref:`Advanced parsing
+<advanced-parsing>` section. The default behavior is to keep using the same
+rule. Since the netstring protocol doesn't change, the default behavior of
+continuing to use the same rule is fine for parsing netstrings.
 
 Both the sender factory and receiver factory are constructed when the
 ``ParserProtocol``'s connection is established. The sender factory is a
@@ -251,8 +251,10 @@ The corresponding receiver and again, constructing the Protocol::
       stackReceivers(SplitNetstringReceiver, NetstringSplittingWrapper))
 
 
-More advanced parsing
----------------------
+.. _advanced-parsing:
+
+Advanced parsing
+----------------
 
 As mentioned before, it's possible to change the current rule. Imagine a
 "netstrings2" protocol that looks like this::

@@ -69,7 +69,7 @@ class StackReceiversTestCase(unittest.TestCase):
         "stackReceivers does require at least the base receiver factory."
         self.assertRaises(TypeError, parsley.stackReceivers)
 
-    def test_receiverFactoriesTakeOneArgument(self):
+    def test_receiverFactoriesTakeTwoArguments(self):
         "The callable returned by stackReceivers takes exactly two arguments."
         fac = parsley.stackReceivers(nullFactory)
         self.assertRaises(TypeError, fac)

@@ -52,20 +52,6 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False,
         return wrapGrammar(g, tracefunc=tracefunc)
 
 
-def makeProtocol(source, senderFactory, receiverFactory, bindings=None,
-                 name='Grammar'):
-    """
-    Create a Protocol implementation from a Parsley grammar.
-    """
-
-    from ometa.protocol import ParserProtocol
-    if bindings is None:
-        bindings = {}
-    grammar = OMeta(source).parseGrammar(name)
-    return functools.partial(
-        ParserProtocol, grammar, senderFactory, receiverFactory, bindings)
-
-
 def unwrapGrammar(w):
     """
     Access the internal parser class for a Parsley grammar object.
@@ -113,4 +99,31 @@ class _GrammarWrapper(object):
             raise err
         return invokeRule
 
-__all__ = ['makeGrammar', 'wrapGrammar', 'unwrapGrammar', 'term', 'quasiterm']
+
+def makeProtocol(source, senderFactory, receiverFactory, bindings=None,
+                 name='Grammar'):
+    """
+    Create a Protocol implementation from a Parsley grammar.
+
+    :param source: A grammar, as a string.
+    :param senderFactory: A one-argument callable that takes a twisted
+        ``Transport`` and returns a sender.
+    :param receiverFactory: A two-argument callable that takes the sender
+        returned by the ``senderFactory`` and the ``ParserProtocol`` instance and
+        returns a receiver.
+    :param bindings: A mapping of variable names to objects.
+    :param name: Name used for the generated class.
+    """
+
+    from ometa.protocol import ParserProtocol
+    if bindings is None:
+        bindings = {}
+    grammar = OMeta(source).parseGrammar(name)
+    return functools.partial(
+        ParserProtocol, grammar, senderFactory, receiverFactory, bindings)
+
+
+__all__ = [
+    'makeGrammar', 'wrapGrammar', 'unwrapGrammar', 'term', 'quasiterm',
+    'makeProtocol',
+]

@@ -39,10 +39,10 @@ def makeGrammar(source, bindings, name='Grammar', unwrap=False,
                    friendly API.
     :param extends: The superclass for the generated parser class.
 
-    :param tracefunc: A 3-arg function which takes a fragment of
-    grammar source, the start/end indexes in the grammar of this
-    fragment, and a position in the input. Invoked for terminals and
-    rule applications.
+    :param tracefunc: A 3-arg function which takes a fragment of grammar
+                      source, the start/end indexes in the grammar of this
+                      fragment, and a position in the input. Invoked for
+                      terminals and rule applications.
     """
     g = OMeta.makeGrammar(source, name).createParserClass(
         unwrapGrammar(extends), bindings)

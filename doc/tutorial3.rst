@@ -12,9 +12,9 @@ Basic parsing
 Parsing data that comes in over the network can be difficult due to that there
 is no guarantee of receiving whole messages. Buffering is often complicated by
 protocols switching between using fixed-width messages and delimiters for
-framing. Fortunately, parsley can remove all of this tedium.
+framing. Fortunately, Parsley can remove all of this tedium.
 
-With:func:`makeParser`, Parsley can generate a `Twisted`_
+With :func:`makeParser`, Parsley can generate a `Twisted`_
 `IProtocol`_-implementing class which will match incoming network data using
 Parlsey grammar rules. Before getting started with :func:`makeParser`, let's
 build a grammar for `netstrings`_. The netstrings protocol is very simple::
@@ -23,7 +23,7 @@ build a grammar for `netstrings`_. The netstrings protocol is very simple::
 
 This stream contains two netstrings: ``spam``, and ``eggs``. The data is
 prefixed with one or more ASCII digits followed by a ``:``, and suffixed with a
-``,``. So, a parsley grammar to match a netstring would look like::
+``,``. So, a Parsley grammar to match a netstring would look like::
 
   nonzeroDigit = digit:x ?(x != '0')
   digits = <'0' | nonzeroDigit digit*>:i -> int(i)
@@ -64,8 +64,8 @@ have ``connectionMade`` and ``connectionLost`` methods. These are called at the
 same time as the same-named methods on the ``ParserProtocol``.
 
 .. note::
-   Both the receiver factory and its the returned object's ``connectionMade``
-   are called at in the ``ParserProtocol``'s ``connectionMade`` method; this
+   Both the receiver factory and its returned object's ``connectionMade`` are
+   called at in the ``ParserProtocol``'s ``connectionMade`` method; this
    separation is for ease of testing receivers.
 
 To demonstrate a receiver, here is a simple receiver that receives netstrings
@@ -254,7 +254,7 @@ data length and the data. The amended grammar would look something like this::
   semicolon = digits:length ';' <anything{length}>:string ',' -> receiver.netstringReceived(';', string)
 
 Note that there is no ``initial`` rule. The initial rule can be changed using
-the ``setNextRule`` method of ``ParserProtocol``s. Here's the beginning of a
+the ``setNextRule`` method of a ``ParserProtocol``. Here's the beginning of a
 receiver for netstrings2::
 
 
@@ -269,9 +269,9 @@ receiver for netstrings2::
 It doesn't actually matter if ``setNextRule`` is called in ``__init__`` or
 ``connectionMade`` to set the initial rule as long as it's called in one of
 them (or something called by one of them). The other way to change the rule the
-``ParserProtocol`` is matching is to make the currently rule evaluate to a
-string naming another rule. Since in our grammar the ``colon`` rule evaluates
-to the result of calling ``receiver.netstringReceived(...)``, the
+``ParserProtocol`` is matching is to make the current rule evaluate to a string
+naming another rule. Since in our grammar the ``colon`` rule evaluates to the
+result of calling ``receiver.netstringReceived(...)``, the
 ``netstringReceived`` method could look like this::
 
   def netstringReceived(self, delimiter, string):
@@ -290,10 +290,12 @@ The same effect can be achieved with ``setNextRule``::
       else:
           self.parser.setNextRule('colon')
 
-``setNextRule`` can be called at any time. However, if ``setNextRule`` is
-called from somewhere other than the receiver factory, its ``connectionMade``,
-or a method called from the grammar, Parsley will wait until the current rule
-is completely matched before switching rules.
+.. note::
+
+   ``setNextRule`` can be called at any time. However, if ``setNextRule`` is
+   called from somewhere other than the receiver factory, its
+   ``connectionMade``, or a method called from the grammar, Parsley will wait
+   until the current rule is completely matched before switching rules.
 
 
 .. _Twisted: http://twistedmatrix.com/trac/

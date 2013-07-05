@@ -199,7 +199,7 @@ A wrapper doesn't need to call the same methods on the thing it's wrapping.
 Also note that in most cases, it's important to forward unknown methods on to
 the wrapped object. An example of wrapping a receiver::
 
-  class NetstringSplittingReceiver(object):
+  class NetstringSplittingWrapper(object):
       def __init__(self, wrapped):
           self.wrapped = wrapped
 
@@ -232,7 +232,7 @@ The corresponding receiver and again, constructing the Protocol::
   NetstringProtocol = makeProtocol(
       grammar,
       stackSenders(NetstringSender, NetstringReversalWrapper),
-      stackReceivers(SplitNetstringReceiver, NetstringSplittingReceiver))
+      stackReceivers(SplitNetstringReceiver, NetstringSplittingWrapper))
 
 
 More advanced parsing

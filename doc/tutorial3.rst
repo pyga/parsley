@@ -40,10 +40,25 @@ here is the final piece needed in the Parsley grammar for netstrings::
 
 The receiver is always available in Parsley rules with the name ``receiver``,
 allowing Parsley rules to call methods on it. This rule is specifically called
-``initial`` because ``ParserProtocol`` defaults to matching against this rule
-first. There are two ways to change the rule that ``ParserProtocol`` matches
-against, which will be addressed later. The default behavior is to keep using
-the same rule, which is fine for netstrings.
+``initial`` because that's the default name of the starting rule. Unless
+another starting rule is chosen, the ``ParserProtocol`` will use the starting
+rule as the first current rule.
+
+When data is received over the wire, the ``ParserProtocol`` tries to match the
+received data against the current rule. If the current rule requires more data
+to finish matching, the ``ParserProtocol`` stops and waits until more data
+comes in, then tries to continue matching. This repeats until the current rule
+is completely matched, and then the ``ParserProtocol`` starts matching any
+leftover data against the current rule again.
+
+.. note::
+
+   The current rule can change during parsing. There are two ways to change the
+   current rule, which will be addressed later. The default behavior is to keep
+   using the same rule.
+
+Since the netstring protocol doesn't change, the default behavior of continuing
+to use the same rule is fine for parsing netstrings.
 
 Both the sender factory and receiver factory are constructed when the
 ``ParserProtocol``'s connection is established. The sender factory is a
@@ -168,10 +183,11 @@ At present, there is no way to recover from failure.
 Composing senders and receivers
 -------------------------------
 
-The design of senders and receivers is intentional to make composition easy.
-While the composition is easy enough to do on your own, Parsley provides two
-functions: :func:`stackSenders` and :func:`stackReceivers`. Both take a base
-factory followed by zero or more wrappers.
+The design of senders and receivers is intentional to make composition easy:
+no subclassing is required. While the composition is easy enough to do on your
+own, Parsley provides two functions: :func:`stackSenders` and
+:func:`stackReceivers`. Both take a base factory followed by zero or more
+wrappers.
 
 Their use is extremely simple: ``stackSenders(x, y, z)`` will return a sender
 factory which will, when called with a transport, return
@@ -238,9 +254,8 @@ The corresponding receiver and again, constructing the Protocol::
 More advanced parsing
 ---------------------
 
-As mentioned before, it's possible to switch the rule that the
-``ParserProtocol`` uses to match incoming data. Imagine a "netstrings2"
-protocol that looks like this::
+As mentioned before, it's possible to change the current rule. Imagine a
+"netstrings2" protocol that looks like this::
 
   3:foo,3;bar,4:spam,4;eggs,
 
@@ -253,10 +268,9 @@ data length and the data. The amended grammar would look something like this::
   colon = digits:length ':' <anything{length}>:string ',' -> receiver.netstringReceived(':', string)
   semicolon = digits:length ';' <anything{length}>:string ',' -> receiver.netstringReceived(';', string)
 
-Note that there is no ``initial`` rule. The initial rule can be changed using
-the ``setNextRule`` method of a ``ParserProtocol``. Here's the beginning of a
-receiver for netstrings2::
-
+Note that there is no ``initial`` rule. The starting rule can be specified
+using the ``setNextRule`` method of a ``ParserProtocol``. Here's the beginning
+of a receiver for netstrings2::
 
   class Netstring2Receiver(object):
       def __init__(self, sender, parser):
@@ -266,12 +280,19 @@ receiver for netstrings2::
       def connectionMade(self):
           self.parser.setNextRule('colon')
 
-It doesn't actually matter if ``setNextRule`` is called in ``__init__`` or
-``connectionMade`` to set the initial rule as long as it's called in one of
-them (or something called by one of them). The other way to change the rule the
-``ParserProtocol`` is matching is to make the current rule evaluate to a string
-naming another rule. Since in our grammar the ``colon`` rule evaluates to the
-result of calling ``receiver.netstringReceived(...)``, the
+In our case calling ``setNextRule`` is required before parsing begins since
+there is no rule named ``initial``. Otherwise, the ``ParserProtocol`` would try
+to match against a nonexistant rule and fail.
+
+.. note::
+
+   It doesn't matter if ``setNextRule`` is called in ``__init__`` or
+   ``connectionMade`` to set the starting rule as long as it's called in one of
+   them (or something called by one of them).
+
+The other way to change the current rule is to make the current rule evaluate
+to a string naming another rule. Since in our grammar the ``colon`` rule
+evaluates to the result of calling ``receiver.netstringReceived(...)``, the
 ``netstringReceived`` method could look like this::
 
   def netstringReceived(self, delimiter, string):

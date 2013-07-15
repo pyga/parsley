@@ -16,7 +16,7 @@ framing. Fortunately, Parsley can remove all of this tedium.
 
 With :func:`parsley.makeProtocol`, Parsley can generate a `Twisted`_
 `IProtocol`_-implementing class which will match incoming network data using
-Parlsey grammar rules. Before getting started with
+Parsley grammar rules. Before getting started with
 :func:`~parsley.makeProtocol`, let's build a grammar for `netstrings`_. The
 netstrings protocol is very simple::
 

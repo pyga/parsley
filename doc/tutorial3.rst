@@ -76,11 +76,13 @@ example::
 
 The receiver factory is a two-argument callable which is passed the constructed
 sender and the ``ParserProtocol`` instance. The returned object must at least
-have ``connectionMade`` and ``connectionLost`` methods. These are called at the
-same time as the same-named methods on the ``ParserProtocol``.
+have ``prepareParsing`` and ``finishParsing`` methods. ``prepareParsing`` is
+called when a connection is established (i.e. in the ``connectionMade`` of the
+``ParserProtocol``) and ``finishParsing`` is called when a connection is closed
+(i.e. in the ``connectionLost`` of the ``ParserProtocol``).
 
 .. note::
-   Both the receiver factory and its returned object's ``connectionMade`` are
+   Both the receiver factory and its returned object's ``prepareParsing`` are
    called at in the ``ParserProtocol``'s ``connectionMade`` method; this
    separation is for ease of testing receivers.
 
@@ -91,10 +93,10 @@ and echos the same netstrings back::
       def __init__(self, sender, parser):
           self.sender = sender
 
-      def connectionMade(self):
+      def prepareParsing(self):
           pass
 
-      def connectionLost(self, reason):
+      def finishParsing(self, reason):
           pass
 
       def netstringReceived(self, string):
@@ -141,10 +143,10 @@ And finally, a complete example::
       def __init__(self, sender, parser):
           self.sender = sender
 
-      def connectionMade(self):
+      def prepareParsing(self):
           pass
 
-      def connectionLost(self, reason):
+      def finishParsing(self, reason):
           pass
 
       def netstringReceived(self, string):
@@ -175,7 +177,7 @@ Intermezzo: error reporting
 If an exception is raised from within Parsley during parsing, whether it's due
 to input not matching the current rule or an exception being raised from code
 the grammar calls, the connection will be immediately closed. The traceback
-will be captured as a `Failure`_ and passed to the ``connectionLost`` method of
+will be captured as a `Failure`_ and passed to the ``finishParsing`` method of
 the receiver.
 
 At present, there is no way to recover from failure.
@@ -234,10 +236,10 @@ The corresponding receiver and again, constructing the Protocol::
       def __init__(self, sender, parser):
           self.sender = sender
 
-      def connectionMade(self):
+      def prepareParsing(self):
           pass
 
-      def connectionLost(self, reason):
+      def finishParsing(self, reason):
           pass
 
       def netstringFirstHalfReceived(self, string):
@@ -280,7 +282,7 @@ of a receiver for netstrings2::
           self.sender = sender
           self.parser = parser
 
-      def connectionMade(self):
+      def prepareParsing(self):
           self.parser.setNextRule('colon')
 
 In our case calling ``setNextRule`` is required before parsing begins since
@@ -290,7 +292,7 @@ to match against a nonexistant rule and fail.
 .. note::
 
    It doesn't matter if ``setNextRule`` is called in ``__init__`` or
-   ``connectionMade`` to set the starting rule as long as it's called in one of
+   ``prepareParsing`` to set the starting rule as long as it's called in one of
    them (or something called by one of them).
 
 The other way to change the current rule is to make the current rule evaluate
@@ -318,7 +320,7 @@ The same effect can be achieved with ``setNextRule``::
 
    ``setNextRule`` can be called at any time. However, if ``setNextRule`` is
    called from somewhere other than the receiver factory, its
-   ``connectionMade``, or a method called from the grammar, Parsley will wait
+   ``prepareParsing``, or a method called from the grammar, Parsley will wait
    until the current rule is completely matched before switching rules.
 
 

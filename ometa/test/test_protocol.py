@@ -42,7 +42,7 @@ class ReceiverFactory(object):
         self.connected = False
         self.lossReason = None
 
-    def connectionMade(self):
+    def prepareParsing(self):
         self.connected = True
 
     def __call__(self, v):
@@ -52,7 +52,7 @@ class ReceiverFactory(object):
     def raiseSomething(self):
         raise SomeException()
 
-    def connectionLost(self, reason):
+    def finishParsing(self, reason):
         self.lossReason = reason
 
 
@@ -89,7 +89,7 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.assertEqual(self.protocol.sender, self.protocol.receiver.sender)
 
     def test_connectionEstablishes(self):
-        """connectionMade is called on the receiver after connection establishment."""
+        """prepareParsing is called on the receiver after connection establishment."""
         self.protocol.makeConnection(None)
         self.assert_(self.protocol.receiver.connected)
 
@@ -182,7 +182,7 @@ class ParserProtocolTestCase(unittest.TestCase):
     def test_exceptionsRaisedFromReceiver(self):
         """
         Raising an exception from receiver methods called from the grammar
-        propagate to connectionLost.
+        propagate to finishParsing.
         """
         transport = FakeTransport()
         self.protocol.makeConnection(transport)

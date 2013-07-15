@@ -63,10 +63,10 @@ class FakeReceiver(object):
     def netstringReceived(self, s):
         self.netstrings.append(s)
 
-    def connectionMade(self):
+    def prepareParsing(self):
         self.connected = True
 
-    def connectionLost(self, reason):
+    def finishParsing(self, reason):
         self.lossReason = reason
 
 TestingNetstringProtocol = parsley.makeProtocol(

@@ -20,7 +20,7 @@ class ParserProtocol(Protocol):
         self.sender = self.senderFactory(self.transport)
         self.bindings['receiver'] = self.receiver = self.receiverFactory(
             self.sender, self)
-        self.receiver.connectionMade()
+        self.receiver.prepareParsing()
         self._setupInterp()
 
     def _setupInterp(self):
@@ -52,5 +52,5 @@ class ParserProtocol(Protocol):
     def connectionLost(self, reason):
         if self.disconnecting:
             return
-        self.receiver.connectionLost(reason)
+        self.receiver.finishParsing(reason)
         self.disconnecting = True

@@ -11,10 +11,10 @@ class NetstringReverserReceiver(object):
     def __init__(self, sender, parser):
         self.sender = sender
 
-    def connectionMade(self):
+    def prepareParsing(self):
         pass
 
-    def connectionLost(self, reason):
+    def finishParsing(self, reason):
         pass
 
     def netstringReceived(self, string):

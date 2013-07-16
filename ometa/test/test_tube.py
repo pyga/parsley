@@ -12,6 +12,9 @@ class TrampolinedReceiver():
     """
     Receive and store the passed in data.
     """
+
+    currentRule = 'initial'
+
     def __init__(self):
         self.received = []
 

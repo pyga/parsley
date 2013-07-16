@@ -1128,6 +1128,7 @@ class MakeGrammarTest(unittest.TestCase):
         """
         e = self.assertRaises(ParseError, OMeta.makeGrammar, grammar,
                               "Foo")
+        print e
         self.assertEquals(e.position, 57)
         self.assertEquals(e.error, [("message", "end of input")])
 
@@ -1477,10 +1478,10 @@ class ErrorReportingTests(unittest.TestCase):
 
         #matching "some" means second branch of 'start' is taken
         self.assertEqual(e.position, 23)
-        self.assertEqual(e.error, [('expected', "token", "bananas"),
+        self.assertEqual(set(e.error), {('expected', "token", "bananas"),
                                    ('expected', 'token', "bacon"),
                                    ('expected', "token", "robots"),
-                                   ('expected', "token", "americans")])
+                                   ('expected', "token", "americans")})
 
         e = self.assertRaises(ParseError, g.start,
                               "crazy horse likes mountains")
@@ -1488,11 +1489,11 @@ class ErrorReportingTests(unittest.TestCase):
         #no "some" means first branch of 'start' is taken...
         #but second is also viable
         self.assertEqual(e.position, 18)
-        self.assertEqual(e.error, [('expected', "token", "some"),
+        self.assertEqual(set(e.error), {('expected', "token", "some"),
                                    ('expected', "token", "bananas"),
                                    ('expected', 'token', "bacon"),
                                    ('expected', "token", "robots"),
-                                   ('expected', "token", "americans")])
+                                   ('expected', "token", "americans")})
 
 
     def test_formattedReporting(self):

@@ -34,9 +34,10 @@ class SomeException(Exception):
 
 
 class ReceiverFactory(object):
-    def __init__(self, sender, parser):
+    currentRule = 'initial'
+
+    def __init__(self, sender):
         self.sender = sender
-        self.parser = parser
         self.calls = []
         self.returnMap = {}
         self.connected = False
@@ -47,7 +48,8 @@ class ReceiverFactory(object):
 
     def __call__(self, v):
         self.calls.append(v)
-        return self.returnMap.get(v)
+        if v in self.returnMap:
+            self.currentRule = self.returnMap[v]
 
     def raiseSomething(self):
         raise SomeException()
@@ -76,12 +78,6 @@ class ParserProtocolTestCase(unittest.TestCase):
         transport = object()
         self.protocol.makeConnection(transport)
         self.assertEqual(transport, self.protocol.sender.transport)
-
-    def test_parserPassed(self):
-        """The protocol is passed to the receiver."""
-        transport = object()
-        self.protocol.makeConnection(transport)
-        self.assertEqual(self.protocol, self.protocol.receiver.parser)
 
     def test_senderPassed(self):
         """The sender is passed to the receiver."""
@@ -133,29 +129,17 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.protocol.dataReceived('baa')
         self.assertEqual(self.protocol.receiver.calls, ['a', 'b', 'a'])
 
-    def test_ruleSwitchingViaReceiver(self):
+    def test_rulesCannotBeSwitchedDuringParsing(self):
         """
-        The receiver is able to set the the next rule to be parsed with the
-        parser passed to it.
+        One can set a new rule during parsing, but it won't change the rule
+        currently being parsed.
         """
         self.protocol.makeConnection(None)
         self.protocol.dataReceived('aa')
         self.assertEqual(self.protocol.receiver.calls, ['a'])
         self.protocol.dataReceived('a')
         self.assertEqual(self.protocol.receiver.calls, ['a'])
-        self.protocol.receiver.parser.setNextRule('someB')
-        self.protocol.dataReceived('abb')
-        self.assertEqual(self.protocol.receiver.calls, ['a', 'a', 'b'])
-
-    def test_ruleSwitchingViaReceiverGetsOverridden(self):
-        """Returning a new rule takes priority over calling setNextRule."""
-        self.protocol.makeConnection(None)
-        self.protocol.dataReceived('aa')
-        self.assertEqual(self.protocol.receiver.calls, ['a'])
-        self.protocol.dataReceived('a')
-        self.assertEqual(self.protocol.receiver.calls, ['a'])
-        self.protocol.receiver.parser.setNextRule('someB')
-        self.protocol.receiver.returnMap['a'] = 'someC'
+        self.protocol.receiver.currentRule = 'someC'
         self.protocol.dataReceived('acc')
         self.assertEqual(self.protocol.receiver.calls, ['a', 'a', 'c'])
 

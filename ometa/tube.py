@@ -26,8 +26,8 @@ class TrampolinedParser:
         'initial'.
         """
         self._interp = TrampolinedGrammarInterpreter(
-            grammar=self.grammar, ruleName='initial', callback=None,
-            globals=self.bindings)
+            grammar=self.grammar, ruleName=self.receiver.currentRule,
+            callback=None, globals=self.bindings)
 
 
     def receive(self, data):
@@ -38,13 +38,8 @@ class TrampolinedParser:
         @param data: The raw data received.
         """
         while data:
-            try:
-                status = self._interp.receive(data)
-            except Exception as e:
-                # maybe we should raise it?
-                raise e
-            else:
-                if status is _feed_me:
-                    return
+            status = self._interp.receive(data)
+            if status is _feed_me:
+                return
             data = ''.join(self._interp.input.data[self._interp.input.position:])
             self._setupInterp()

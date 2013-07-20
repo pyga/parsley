@@ -7,14 +7,12 @@ from parsley import makeProtocol
 
 
 grammar = """
-
 nonzeroDigit = digit:x ?(x != '0')
 digits = <'0' | nonzeroDigit digit*>:i -> int(i)
 netstring :delimiter = digits:length delimiter <anything{length}>:string ',' -> string
 
 colon = digits:length ':' <anything{length}>:string ',' -> receiver.netstringReceived(':', string)
 semicolon = digits:length ';' <anything{length}>:string ',' -> receiver.netstringReceived(';', string)
-
 """
 
 

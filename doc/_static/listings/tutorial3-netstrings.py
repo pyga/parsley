@@ -7,14 +7,11 @@ from parsley import makeProtocol
 
 
 grammar = """
-
 nonzeroDigit = digit:x ?(x != '0')
 digits = <'0' | nonzeroDigit digit*>:i -> int(i)
 
 netstring = digits:length ':' <anything{length}>:string ',' -> string
-
 receiveNetstring = netstring:string -> receiver.netstringReceived(string)
-
 """
 
 

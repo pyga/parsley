@@ -24,20 +24,21 @@ netstrings protocol is very simple::
 
 This stream contains two netstrings: ``spam``, and ``eggs``. The data is
 prefixed with one or more ASCII digits followed by a ``:``, and suffixed with a
-``,``. So, a Parsley grammar to match a netstring would look like::
+``,``. So, a Parsley grammar to match a netstring would look like:
 
-  nonzeroDigit = digit:x ?(x != '0')
-  digits = <'0' | nonzeroDigit digit*>:i -> int(i)
-
-  netstring = digits:length ':' <anything{length}>:string ',' -> string
+.. literalinclude:: _static/listings/tutorial3-netstrings.py
+   :start-after: grammar =
+   :end-before: receiveNetstring
 
 :func:`~parsley.makeProtocol` takes, in addition to a grammar, a factory for a
 "sender" and a factory for a "receiver". In the system of objects managed by
 the ``ParserProtocol``, the sender is in charge of writing data to the wire,
 and the receiver has methods called on it by the Parsley rules. To demonstrate
-it, here is the final piece needed in the Parsley grammar for netstrings::
+it, here is the final piece needed in the Parsley grammar for netstrings:
 
-  receiveNetstring = netstring:string -> receiver.netstringReceived(string)
+.. literalinclude:: _static/listings/tutorial3-netstrings.py
+   :start-after: netstring =
+   :end-before: """
 
 The receiver is always available in Parsley rules with the name ``receiver``,
 allowing Parsley rules to call methods on it.
@@ -87,10 +88,11 @@ and echos the same netstrings back:
    :pyobject: NetstringReceiver
 
 Putting it all together, the Protocol is constructed using the grammar, sender
-factory, and receiver factory::
+factory, and receiver factory:
 
-  NetstringProtocol = makeProtocol(
-      grammar, NetstringSender, NetstringReceiver)
+.. literalinclude:: _static/listings/tutorial3-netstrings.py
+   :start-after: self.sender.sendNetstring
+   :end-before: class
 
 :download:`The complete script is also available for download.
 <_static/listings/tutorial3-netstrings.py>`
@@ -144,12 +146,9 @@ The corresponding receiver and again, constructing the Protocol:
 .. literalinclude:: _static/listings/tutorial3-netstring-reversal.py
    :pyobject: SplitNetstringReceiver
 
-.. code-block:: python
-
-  NetstringProtocol = makeProtocol(
-      grammar,
-      stack(NetstringReversalWrapper, NetstringSender),
-      stack(NetstringSplittingWrapper, SplitNetstringReceiver))
+.. literalinclude:: _static/listings/tutorial3-netstring-reversal.py
+   :start-after: begin protocol definition
+   :end-before: SplitNetstringReceiver
 
 :download:`The complete script is also available for download.
 <_static/listings/tutorial3-netstring-reversal.py>`
@@ -166,13 +165,11 @@ As mentioned before, it's possible to change the current rule. Imagine a
   3:foo,3;bar,4:spam,4;eggs,
 
 That is, the protocol alternates between using ``:`` and using ``;`` delimiting
-data length and the data. The amended grammar would look something like this::
+data length and the data. The amended grammar would look something like this:
 
-  nonzeroDigit = digit:x ?(x != '0')
-  digits = <'0' | nonzeroDigit digit*>:i -> int(i)
-
-  colon = digits:length ':' <anything{length}>:string ',' -> receiver.netstringReceived(':', string)
-  semicolon = digits:length ';' <anything{length}>:string ',' -> receiver.netstringReceived(';', string)
+.. literalinclude:: _static/listings/tutorial3-netstrings2.py
+   :start-after: grammar =
+   :end-before: """
 
 Changing the current rule is as simple as changing the ``currentRule``
 attribute on the receiver. So, the ``netstringReceived`` method could look like

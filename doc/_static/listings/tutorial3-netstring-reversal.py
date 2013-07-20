@@ -7,14 +7,12 @@ from parsley import makeProtocol, stack
 
 
 grammar = """
-
 nonzeroDigit = digit:x ?(x != '0')
 digits = <'0' | nonzeroDigit digit*>:i -> int(i)
 
 netstring = digits:length ':' <anything{length}>:string ',' -> string
 
 receiveNetstring = netstring:string -> receiver.netstringReceived(string)
-
 """
 
 
@@ -65,7 +63,7 @@ class SplitNetstringReceiver(object):
     def netstringSecondHalfReceived(self, string):
         pass
 
-
+pass  # begin protocol definition
 NetstringProtocol = makeProtocol(
     grammar,
     stack(NetstringReversalWrapper, NetstringSender),

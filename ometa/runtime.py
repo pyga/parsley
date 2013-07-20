@@ -27,6 +27,15 @@ class ParseError(Exception):
             return (self.position, self.error) == (other.position, other.error)
 
 
+    def mergeWith(self, other):
+        """
+        Merges in another error's error and trail.
+        """
+        self.error = list(set(self.error + other.error))
+        self.args = (self.position, self.error)
+        self.trail = other.trail or self.trail or []
+
+
     def formatReason(self):
         if not self.error:
             return "Syntax error"
@@ -392,13 +401,7 @@ class OMetaBase(object):
             if newPos > curPos:
                 self.currentError = error
             elif newPos == curPos:
-                # Same logic as joinErrors, inlined and special-cased for two
-                # errors at the same position
-                self.currentError = ParseError(
-                    self.currentError.input,
-                    curPos,
-                    list(set(self.currentError.error + error.error)),
-                    error.trail or self.currentError.trail or None)
+                self.currentError.mergeWith(error)
 
 
     def _trace(self, src, span, inputPos):

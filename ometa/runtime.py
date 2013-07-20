@@ -19,7 +19,7 @@ class ParseError(Exception):
     def __init__(self, input, position, message, trail=None):
         Exception.__init__(self, position, message)
         self.position = position
-        self.error = message
+        self.error = message or []
         self.input = input
         self.trail = trail or []
 
@@ -30,7 +30,7 @@ class ParseError(Exception):
 
 
     def formatReason(self):
-        if self.error is None:
+        if not self.error:
             return "Syntax error"
         if len(self.error) == 1:
             if self.error[0][0] == 'message':
@@ -118,29 +118,30 @@ def eof():
     return [("message", "end of input")]
 
 
-def joinErrors(errors, presorted=False):
+def joinErrors(errors):
     """
     Return the error from the branch that matched the most of the input.
     """
     if len(errors) == 1:
         return errors[0]
 
-    if not presorted:
-        errors.sort(reverse=True, key=operator.itemgetter(0))
-
+    highestPos = -1
     results = set()
-    pos = errors[0].position
     trail = None
+
     for err in errors:
-        if pos != err.position:
-            break
+        pos = err.position
+        if pos < highestPos:
+            continue
+        elif pos > highestPos:
+            highestPos = pos
+            trail = err.trail or None
+            results = set(err.error)
+        else:
+            trail = err.trail or trail
+            results.update(err.error)
 
-        trail = err.trail or trail
-        e = err.error
-        if e:
-            results.update(e)
-
-    return ParseError(errors[0].input,  pos, list(results) or None, trail)
+    return ParseError(errors[0].input, highestPos, list(results), trail)
 
 
 class character(str):
@@ -393,7 +394,13 @@ class OMetaBase(object):
             if newPos > curPos:
                 self.currentError = error
             elif newPos == curPos:
-                self.currentError = joinErrors([error, self.currentError], presorted=True)
+                # Same logic as joinErrors, inlined and special-cased for two
+                # errors at the same position
+                self.currentError = ParseError(
+                    self.currentError.input,
+                    curPos,
+                    list(set(self.currentError.error + error.error)),
+                    error.trail or self.currentError.trail or None)
 
 
     def _trace(self, src, span, inputPos):

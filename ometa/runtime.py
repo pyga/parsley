@@ -16,17 +16,10 @@ class ParseError(Exception):
     ?Redo from start
     """
 
-    @property
-    def position(self):
-        return self.args[0]
-
-
-    @property
-    def error(self):
-        return self.args[1]
-
     def __init__(self, input, position, message, trail=None):
         Exception.__init__(self, position, message)
+        self.position = position
+        self.error = message
         self.input = input
         self.trail = trail or []
 
@@ -137,8 +130,7 @@ def joinErrors(errors):
         if pos == err.position:
             e, trail = err.error, (err.trail or trail)
             if e is not None:
-                for item in e:
-                        results.add(item)
+                results.update(e)
         else:
             break
     return ParseError(errors[0].input,  pos, list(results) or None, trail)

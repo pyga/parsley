@@ -22,22 +22,22 @@ class ParserProtocol(Protocol):
         :param bindings: A dict of additional globals for the grammar rules.
         """
 
-        self.grammar = grammar
-        self.bindings = dict(bindings)
-        self.senderFactory = senderFactory
-        self.receiverFactory = receiverFactory
-        self.disconnecting = False
+        self._grammar = grammar
+        self._bindings = dict(bindings)
+        self._senderFactory = senderFactory
+        self._receiverFactory = receiverFactory
+        self._disconnecting = False
 
     def connectionMade(self):
         """
         Start parsing, since the connection has been established.
         """
 
-        self.sender = self.senderFactory(self.transport)
-        self.receiver = self.receiverFactory(self.sender)
+        self.sender = self._senderFactory(self.transport)
+        self.receiver = self._receiverFactory(self.sender)
         self.receiver.prepareParsing(self)
-        self.parser = TrampolinedParser(
-            self.grammar, self.receiver, self.bindings)
+        self._parser = TrampolinedParser(
+            self._grammar, self.receiver, self._bindings)
 
     def dataReceived(self, data):
         """
@@ -46,11 +46,11 @@ class ParserProtocol(Protocol):
         :param data: A ``str`` from Twisted.
         """
 
-        if self.disconnecting:
+        if self._disconnecting:
             return
 
         try:
-            self.parser.receive(data)
+            self._parser.receive(data)
         except Exception:
             self.connectionLost(Failure())
             self.transport.abortConnection()
@@ -63,7 +63,7 @@ class ParserProtocol(Protocol):
         :param reason: A ``Failure`` instance from Twisted.
         """
 
-        if self.disconnecting:
+        if self._disconnecting:
             return
         self.receiver.finishParsing(reason)
-        self.disconnecting = True
+        self._disconnecting = True

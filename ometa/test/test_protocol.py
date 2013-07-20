@@ -42,9 +42,11 @@ class ReceiverFactory(object):
         self.returnMap = {}
         self.connected = False
         self.lossReason = None
+        self.parser = None
 
-    def prepareParsing(self):
+    def prepareParsing(self, parser):
         self.connected = True
+        self.parser = parser
 
     def __call__(self, v):
         self.calls.append(v)
@@ -83,6 +85,11 @@ class ParserProtocolTestCase(unittest.TestCase):
         """The sender is passed to the receiver."""
         self.protocol.makeConnection(None)
         self.assertEqual(self.protocol.sender, self.protocol.receiver.sender)
+
+    def test_parserPassed(self):
+        """The parser is passed in the prepareParsing method."""
+        self.protocol.makeConnection(None)
+        self.assertEqual(self.protocol, self.protocol.receiver.parser)
 
     def test_connectionEstablishes(self):
         """prepareParsing is called on the receiver after connection establishment."""

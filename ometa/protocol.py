@@ -35,7 +35,7 @@ class ParserProtocol(Protocol):
 
         self.sender = self.senderFactory(self.transport)
         self.receiver = self.receiverFactory(self.sender)
-        self.receiver.prepareParsing()
+        self.receiver.prepareParsing(self)
         self.parser = TrampolinedParser(
             self.grammar, self.receiver, self.bindings)
 

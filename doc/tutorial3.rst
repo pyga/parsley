@@ -71,10 +71,11 @@ example:
 
 The receiver factory is another one-argument callable which is passed the
 constructed sender. The returned object must at least have ``prepareParsing``
-and ``finishParsing`` methods. ``prepareParsing`` is called when a connection
-is established (i.e. in the ``connectionMade`` of the ``ParserProtocol``) and
-``finishParsing`` is called when a connection is closed (i.e. in the
-``connectionLost`` of the ``ParserProtocol``).
+and ``finishParsing`` methods. ``prepareParsing`` is called with the
+``ParserProtocol`` instance when a connection is established (i.e. in the
+``connectionMade`` of the ``ParserProtocol``) and ``finishParsing`` is called
+when a connection is closed (i.e. in the ``connectionLost`` of the
+``ParserProtocol``).
 
 .. note::
    Both the receiver factory and its returned object's ``prepareParsing`` are

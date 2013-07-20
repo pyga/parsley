@@ -1,1 +1,6 @@
 *.pyc
+/_trial_temp
+/.coverage
+/htmlcov
+/build
+/dist

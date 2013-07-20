@@ -122,6 +122,9 @@ def joinErrors(errors, presorted=False):
     """
     Return the error from the branch that matched the most of the input.
     """
+    if len(errors) == 1:
+        return errors[0]
+
     if not presorted:
         errors.sort(reverse=True, key=operator.itemgetter(0))
 
@@ -129,12 +132,14 @@ def joinErrors(errors, presorted=False):
     pos = errors[0].position
     trail = None
     for err in errors:
-        if pos == err.position:
-            e, trail = err.error, (err.trail or trail)
-            if e is not None:
-                results.update(e)
-        else:
+        if pos != err.position:
             break
+
+        trail = err.trail or trail
+        e = err.error
+        if e:
+            results.update(e)
+
     return ParseError(errors[0].input,  pos, list(results) or None, trail)
 
 
@@ -383,9 +388,11 @@ class OMetaBase(object):
 
     def considerError(self, error, typ=None):
         if error:
-            if error[0] > self.currentError[0]:
+            newPos = error.position
+            curPos = self.currentError.position
+            if newPos > curPos:
                 self.currentError = error
-            elif error[0] == self.currentError[0]:
+            elif newPos == curPos:
                 self.currentError = joinErrors([error, self.currentError], presorted=True)
 
 

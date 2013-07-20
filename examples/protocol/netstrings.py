@@ -5,7 +5,7 @@ digits = <'0' | nonzeroDigit digit*>:i -> int(i)
 
 netstring = digits:length ':' <anything{length}>:string ',' -> string
 
-initial = netstring:string -> receiver.netstringReceived(string)
+receiveNetstring = netstring:string -> receiver.netstringReceived(string)
 
 """
 

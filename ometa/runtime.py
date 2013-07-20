@@ -118,11 +118,13 @@ def eof():
     return [("message", "end of input")]
 
 
-def joinErrors(errors):
+def joinErrors(errors, presorted=False):
     """
     Return the error from the branch that matched the most of the input.
     """
-    errors.sort(reverse=True, key=operator.itemgetter(0))
+    if not presorted:
+        errors.sort(reverse=True, key=operator.itemgetter(0))
+
     results = set()
     pos = errors[0].position
     trail = None
@@ -384,7 +386,7 @@ class OMetaBase(object):
             if error[0] > self.currentError[0]:
                 self.currentError = error
             elif error[0] == self.currentError[0]:
-                self.currentError = joinErrors([error, self.currentError])
+                self.currentError = joinErrors([error, self.currentError], presorted=True)
 
 
     def _trace(self, src, span, inputPos):

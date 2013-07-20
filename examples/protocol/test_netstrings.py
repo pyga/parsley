@@ -64,7 +64,7 @@ class FakeReceiver(object):
     def netstringReceived(self, s):
         self.netstrings.append(s)
 
-    def prepareParsing(self):
+    def prepareParsing(self, parser):
         self.connected = True
 
     def finishParsing(self, reason):

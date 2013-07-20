@@ -2,9 +2,7 @@
 """
 Code needed to run a grammar after it has been compiled.
 """
-import string
 import time
-import operator
 from textwrap import dedent
 from terml.nodes import coerceToTerm, Term, termMaker as t
 from ometa.builder import moduleFromGrammar, writePython
@@ -598,7 +596,7 @@ class OMetaBase(object):
         m = self.input
         try:
             fn()
-        except ParseError, e:
+        except ParseError:
             self.input = m
             return True, self.input.nullError()
         else:
@@ -614,9 +612,9 @@ class OMetaBase(object):
                 c, e = self.input.head()
             except EOFError, e:
                 break
-            t = self.input.tail()
+            tl = self.input.tail()
             if c.isspace():
-                self.input = t
+                self.input = tl
             else:
                 break
         return True, e
@@ -851,7 +849,7 @@ class OMetaGrammarBase(OMetaBase):
         self.name = name
         res, err = self.apply("grammar")
         try:
-            x = self.input.head()
+            self.input.head()
         except EOFError:
             pass
         else:

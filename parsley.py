@@ -102,16 +102,19 @@ class _GrammarWrapper(object):
 def makeProtocol(source, senderFactory, receiverFactory, bindings=None,
                  name='Grammar'):
     """
-    Create a Protocol implementation from a Parsley grammar.
+    Create a Twisted ``Protocol`` factory from a Parsley grammar.
 
     :param source: A grammar, as a string.
     :param senderFactory: A one-argument callable that takes a twisted
-        ``Transport`` and returns a sender.
-    :param receiverFactory: A two-argument callable that takes the sender
-        returned by the ``senderFactory`` and the ``ParserProtocol`` instance and
-        returns a receiver.
-    :param bindings: A mapping of variable names to objects.
-    :param name: Name used for the generated class.
+        ``Transport`` and returns a :ref:`sender <senders>`.
+    :param receiverFactory: A one-argument callable that takes the sender
+        returned by the ``senderFactory`` and returns a :ref:`receiver
+        <receivers>`.
+    :param bindings: A mapping of variable names to objects which will be
+        accessible from python code in the grammar.
+    :param name: The name used for the generated grammar class.
+    :returns: A nullary callable which will return an instance of
+        :class:`~.ParserProtocol`.
     """
 
     from ometa.protocol import ParserProtocol
@@ -127,8 +130,8 @@ def stack(*wrappers):
     Stack some senders or receivers for ease of wrapping.
 
     ``stack(x, y, z)`` will return a factory usable as a sender or receiver
-    factory which will, when called with a transport or sender, return
-    ``x(y(z(transport-or-sender)))``.
+    factory which will, when called with a transport or sender as an argument,
+    return ``x(y(z(argument)))``.
     """
     if not wrappers:
         raise TypeError('at least one argument is required')

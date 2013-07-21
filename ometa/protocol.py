@@ -1,56 +1,69 @@
 from twisted.internet.protocol import Protocol
 from twisted.python.failure import Failure
 
-from ometa.interp import TrampolinedGrammarInterpreter, _feed_me
+from ometa.tube import TrampolinedParser
+
 
 class ParserProtocol(Protocol):
-    currentRule = 'initial'
+    """
+    A Twisted ``Protocol`` subclass for parsing stream protocols.
+    """
+
 
     def __init__(self, grammar, senderFactory, receiverFactory, bindings):
-        self.grammar = grammar
-        self.bindings = dict(bindings)
-        self.senderFactory = senderFactory
-        self.receiverFactory = receiverFactory
-        self.disconnecting = False
+        """
+        Initialize the parser.
 
-    def setNextRule(self, rule):
-        self.currentRule = rule
+        :param grammar: An OMeta grammar to use for parsing.
+        :param senderFactory: A unary callable that returns a sender given a
+                              transport.
+        :param receiverFactory: A unary callable that returns a receiver given
+                                a sender.
+        :param bindings: A dict of additional globals for the grammar rules.
+        """
+
+        self._grammar = grammar
+        self._bindings = dict(bindings)
+        self._senderFactory = senderFactory
+        self._receiverFactory = receiverFactory
+        self._disconnecting = False
 
     def connectionMade(self):
-        self.sender = self.senderFactory(self.transport)
-        self.bindings['receiver'] = self.receiver = self.receiverFactory(
-            self.sender, self)
-        self.receiver.connectionMade()
-        self._setupInterp()
+        """
+        Start parsing, since the connection has been established.
+        """
 
-    def _setupInterp(self):
-        self._interp = TrampolinedGrammarInterpreter(
-            self.grammar, self.currentRule, callback=self._parsedRule,
-            globals=self.bindings)
-
-    def _parsedRule(self, nextRule, position):
-        if nextRule is not None:
-            self.currentRule = nextRule
+        self.sender = self._senderFactory(self.transport)
+        self.receiver = self._receiverFactory(self.sender)
+        self.receiver.prepareParsing(self)
+        self._parser = TrampolinedParser(
+            self._grammar, self.receiver, self._bindings)
 
     def dataReceived(self, data):
-        if self.disconnecting:
+        """
+        Receive and parse some data.
+
+        :param data: A ``str`` from Twisted.
+        """
+
+        if self._disconnecting:
             return
 
-        while data:
-            try:
-                status = self._interp.receive(data)
-            except Exception:
-                self.connectionLost(Failure())
-                self.transport.abortConnection()
-                return
-            else:
-                if status is _feed_me:
-                    return
-            data = ''.join(self._interp.input.data[self._interp.input.position:])
-            self._setupInterp()
+        try:
+            self._parser.receive(data)
+        except Exception:
+            self.connectionLost(Failure())
+            self.transport.abortConnection()
+            return
 
     def connectionLost(self, reason):
-        if self.disconnecting:
+        """
+        Stop parsing, since the connection has been lost.
+
+        :param reason: A ``Failure`` instance from Twisted.
+        """
+
+        if self._disconnecting:
             return
-        self.receiver.connectionLost(reason)
-        self.disconnecting = True
+        self.receiver.finishParsing(reason)
+        self._disconnecting = True

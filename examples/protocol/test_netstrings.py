@@ -53,9 +53,10 @@ def test_sending_two_netstrings():
 
 
 class FakeReceiver(object):
-    def __init__(self, sender, parser):
+    currentRule = 'receiveNetstring'
+
+    def __init__(self, sender):
         self.sender = sender
-        self.parser = parser
         self.netstrings = []
         self.connected = False
         self.lossReason = None
@@ -63,10 +64,10 @@ class FakeReceiver(object):
     def netstringReceived(self, s):
         self.netstrings.append(s)
 
-    def connectionMade(self):
+    def prepareParsing(self, parser):
         self.connected = True
 
-    def connectionLost(self, reason):
+    def finishParsing(self, reason):
         self.lossReason = reason
 
 TestingNetstringProtocol = parsley.makeProtocol(
@@ -107,7 +108,7 @@ def test_receiving_two_netstrings_at_once():
     assert protocol.receiver.netstrings == ['spam', 'eggs']
 
 def test_establishing_connection():
-    assert not FakeReceiver(None, None).connected
+    assert not FakeReceiver(None).connected
     protocol, transport = build_testing_protocol()
     assert protocol.receiver.connected
 

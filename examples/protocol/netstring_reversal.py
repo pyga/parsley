@@ -13,7 +13,7 @@ class NetstringReverserReceiver(object):
     def __init__(self, sender):
         self.sender = sender
 
-    def prepareParsing(self):
+    def prepareParsing(self, parser):
         pass
 
     def finishParsing(self, reason):

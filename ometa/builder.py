@@ -32,6 +32,7 @@ class PythonWriter(object):
         self.tree = tree
         self.grammarText = grammarText
         self.gensymCounter = 0
+        self.compiledExprCache = None
 
 
     def _generate(self, out, expr, retrn=False, debugname=None):
@@ -109,9 +110,19 @@ class PythonWriter(object):
             ast.literal_eval(expr)
             return self._expr(out, 'python', '(' + expr + '), None', debugname)
         except ValueError:
-            return self._expr(out, 'python',
-                              'eval(%r, self.globals, _locals), None' % (expr,),
-                              debugname)
+            if self.compiledExprCache is None:
+                return self._expr(out, 'python',
+                                'eval(%r, self.globals, _locals), None' % (expr,),
+                                debugname)
+            else:
+                if expr in self.compiledExprCache:
+                    sym = self.compiledExprCache[expr]
+                else:
+                    sym = self.compiledExprCache[expr] = self._gensym('expr')
+
+                return self._expr(out, 'python',
+                                'eval(self.%s, self.globals, _locals), None' % (sym,),
+                                debugname)
 
     def _convertArgs(self, out, rawArgs, debugname):
         return [self._generateNode(out, x, debugname) for x in rawArgs]
@@ -325,6 +336,7 @@ class PythonWriter(object):
 
     def generate_Grammar(self, out, name, takesTreeInput, rules,
                          debugname=None):
+        self.compiledExprCache = {}
         self.takesTreeInput = takesTreeInput.tag.name == 'true'
         out.writeln("def createParserClass(GrammarBase, ruleGlobals):")
         funcOut = out.indent()
@@ -338,6 +350,8 @@ class PythonWriter(object):
             out.writeln("")
         if self.takesTreeInput:
             out.writeln("tree = %s" % self.takesTreeInput)
+        for expr, sym in self.compiledExprCache.items():
+            out.writeln("%s = compile(%r, '<string>', 'eval')" % (sym, expr))
         funcOut.writeln(
             "if %s.globals is not None:" % (name.data,))
         out.writeln("%s.globals = %s.globals.copy()" % (name.data,
@@ -347,6 +361,7 @@ class PythonWriter(object):
             "else:")
         out.writeln("%s.globals = ruleGlobals" % (name.data,))
         funcOut.writeln("return " + name.data)
+        self.compiledExprCache = None
 
 
 class _Term2PythonAction(object):

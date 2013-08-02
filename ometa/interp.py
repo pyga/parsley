@@ -412,7 +412,11 @@ class TrampolinedGrammarInterpreter(object):
         for x in self._eval(expr):
             if x is _feed_me: yield x
         v, err = x
-        self._localsStack[-1][name.data] = v
+        if name.data:
+            self._localsStack[-1][name.data] = v
+        else:
+            for n, val in zip(name.args, v):
+                self._localsStack[-1][n.data] = val
         yield v, err
 
 
@@ -658,7 +662,11 @@ class GrammarInterpreter(object):
 
         elif name == "Bind":
             v, err =  self._eval(run, args[1])
-            self._localsStack[-1][args[0].data] = v
+            if args[0].data:
+                self._localsStack[-1][args[0].data] = v
+            else:
+                for n, val in zip(args[0].args, v):
+                    self._localsStack[-1][n.data] = val
             return v, err
 
         elif name == "Predicate":

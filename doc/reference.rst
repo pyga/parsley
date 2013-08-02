@@ -74,6 +74,74 @@ Python API
    :members:
 
 
+Protocol parsing API
+====================
+
+.. py:module:: ometa.protocol
+
+.. py:class:: ParserProtocol
+
+   The Twisted ``Protocol`` subclass used for :ref:`parsing stream protocols
+   using Parsley <protocol-parsing>`. It has two public attributes:
+
+   .. py:attribute:: sender
+
+      After the connection is established, this attribute will refer to the
+      sender created by the sender factory of the :class:`ParserProtocol`.
+
+   .. py:attribute:: receiver
+
+      After the connection is established, this attribute will refer to the
+      receiver created by the receiver factory of the :class:`ParserProtocol`.
+
+   It's common to also add a ``factory`` attribute to the
+   :class:`ParserProtocol` from its factory's ``buildProtocol`` method, but
+   this isn't strictly required or guaranteed to be present.
+
+   Subclassing or instantiating :class:`ParserProtocol` is not necessary;
+   :func:`~parsley.makeProtocol` is sufficient and requires less boilerplate.
+
+.. _receivers:
+
+.. py:class:: Receiver
+
+   :class:`Receiver` is not a real class but is used here for demonstration
+   purposes to indicate the required API.
+
+   .. py:attribute:: currentRule
+
+      :class:`ParserProtocol` examines the :attr:`currentRule` attribute at the
+      beginning of parsing as well as after every time a rule has completely
+      matched. At these times, the rule with the same name as the value of
+      :attr:`currentRule` will be selected to start parsing the incoming stream
+      of data.
+
+   .. py:method:: prepareParsing(parserProtocol)
+
+      :meth:`prepareParsing` is called after the :class:`.ParserProtocol` has
+      established a connection, and is passed the :class:`.ParserProtocol`
+      instance itself.
+
+      :param parserProtocol: An instance of :class:`.ProtocolParser`.
+
+   .. py:method:: finishParsing(reason)
+
+      :meth:`finishParsing` is called if an exception was raised during
+      parsing, or when the :class:`.ParserProtocol` has lost its connection,
+      whichever comes first. It will only be called once.
+
+      An exception raised during parsing can be due to incoming data that
+      doesn't match the current rule or an exception raised calling python code
+      during matching.
+
+      :param reason: A `Failure`_ encapsulating the reason parsing has ended.
+
+.. _senders:
+
+Senders do not have any required API as :class:`ParserProtocol` will never call
+methods on a sender.
+
+
 Built-in Parsley Rules
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -97,3 +165,6 @@ Built-in Parsley Rules
 
 ``exactly(char)``:
    Matches the character `char`.
+
+
+.. _Failure: http://twistedmatrix.com/documents/current/api/twisted.python.failure.Failure.html

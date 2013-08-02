@@ -247,56 +247,56 @@ def createParserClass(GrammarBase, ruleGlobals):
                 self._trace("'n'", (486, 489), self.input.position)
                 _G_exactly_82, lastError = self.exactly('n')
                 self.considerError(lastError, None)
-                _G_python_83, lastError = "\n", None
+                _G_python_83, lastError = ("\n"), None
                 self.considerError(lastError, None)
                 return (_G_python_83, self.currentError)
             def _G_or_84():
                 self._trace("'r'", (520, 523), self.input.position)
                 _G_exactly_85, lastError = self.exactly('r')
                 self.considerError(lastError, None)
-                _G_python_86, lastError = "\r", None
+                _G_python_86, lastError = ("\r"), None
                 self.considerError(lastError, None)
                 return (_G_python_86, self.currentError)
             def _G_or_87():
                 self._trace("'t'", (554, 557), self.input.position)
                 _G_exactly_88, lastError = self.exactly('t')
                 self.considerError(lastError, None)
-                _G_python_89, lastError = "\t", None
+                _G_python_89, lastError = ("\t"), None
                 self.considerError(lastError, None)
                 return (_G_python_89, self.currentError)
             def _G_or_90():
                 self._trace("'b'", (588, 591), self.input.position)
                 _G_exactly_91, lastError = self.exactly('b')
                 self.considerError(lastError, None)
-                _G_python_92, lastError = "\b", None
+                _G_python_92, lastError = ("\b"), None
                 self.considerError(lastError, None)
                 return (_G_python_92, self.currentError)
             def _G_or_93():
                 self._trace("'f'", (622, 625), self.input.position)
                 _G_exactly_94, lastError = self.exactly('f')
                 self.considerError(lastError, None)
-                _G_python_95, lastError = "\f", None
+                _G_python_95, lastError = ("\f"), None
                 self.considerError(lastError, None)
                 return (_G_python_95, self.currentError)
             def _G_or_96():
                 self._trace('\'"\'', (656, 659), self.input.position)
                 _G_exactly_97, lastError = self.exactly('"')
                 self.considerError(lastError, None)
-                _G_python_98, lastError = '"', None
+                _G_python_98, lastError = ('"'), None
                 self.considerError(lastError, None)
                 return (_G_python_98, self.currentError)
             def _G_or_99():
                 self._trace("'\\''", (689, 693), self.input.position)
                 _G_exactly_100, lastError = self.exactly("'")
                 self.considerError(lastError, None)
-                _G_python_101, lastError = "'", None
+                _G_python_101, lastError = ("'"), None
                 self.considerError(lastError, None)
                 return (_G_python_101, self.currentError)
             def _G_or_102():
                 self._trace("'\\\\'", (723, 727), self.input.position)
                 _G_exactly_103, lastError = self.exactly('\\')
                 self.considerError(lastError, None)
-                _G_python_104, lastError = "\\", None
+                _G_python_104, lastError = ("\\"), None
                 self.considerError(lastError, None)
                 return (_G_python_104, self.currentError)
             _G_or_105, lastError = self._or([_G_or_81, _G_or_84, _G_or_87, _G_or_90, _G_or_93, _G_or_96, _G_or_99, _G_or_102])

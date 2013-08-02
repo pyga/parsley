@@ -307,49 +307,49 @@ def createParserClass(GrammarBase, ruleGlobals):
                 self._trace("'n'", (646, 649), self.input.position)
                 _G_exactly_100, lastError = self.exactly('n')
                 self.considerError(lastError, None)
-                _G_python_101, lastError = "\n", None
+                _G_python_101, lastError = ("\n"), None
                 self.considerError(lastError, None)
                 return (_G_python_101, self.currentError)
             def _G_or_102():
                 self._trace("'r'", (680, 683), self.input.position)
                 _G_exactly_103, lastError = self.exactly('r')
                 self.considerError(lastError, None)
-                _G_python_104, lastError = "\r", None
+                _G_python_104, lastError = ("\r"), None
                 self.considerError(lastError, None)
                 return (_G_python_104, self.currentError)
             def _G_or_105():
                 self._trace("'t'", (714, 717), self.input.position)
                 _G_exactly_106, lastError = self.exactly('t')
                 self.considerError(lastError, None)
-                _G_python_107, lastError = "\t", None
+                _G_python_107, lastError = ("\t"), None
                 self.considerError(lastError, None)
                 return (_G_python_107, self.currentError)
             def _G_or_108():
                 self._trace("'b'", (748, 751), self.input.position)
                 _G_exactly_109, lastError = self.exactly('b')
                 self.considerError(lastError, None)
-                _G_python_110, lastError = "\b", None
+                _G_python_110, lastError = ("\b"), None
                 self.considerError(lastError, None)
                 return (_G_python_110, self.currentError)
             def _G_or_111():
                 self._trace("'f'", (782, 785), self.input.position)
                 _G_exactly_112, lastError = self.exactly('f')
                 self.considerError(lastError, None)
-                _G_python_113, lastError = "\f", None
+                _G_python_113, lastError = ("\f"), None
                 self.considerError(lastError, None)
                 return (_G_python_113, self.currentError)
             def _G_or_114():
                 self._trace('\'"\'', (816, 819), self.input.position)
                 _G_exactly_115, lastError = self.exactly('"')
                 self.considerError(lastError, None)
-                _G_python_116, lastError = '"', None
+                _G_python_116, lastError = ('"'), None
                 self.considerError(lastError, None)
                 return (_G_python_116, self.currentError)
             def _G_or_117():
                 self._trace("'\\''", (849, 853), self.input.position)
                 _G_exactly_118, lastError = self.exactly("'")
                 self.considerError(lastError, None)
-                _G_python_119, lastError = "'", None
+                _G_python_119, lastError = ("'"), None
                 self.considerError(lastError, None)
                 return (_G_python_119, self.currentError)
             def _G_or_120():
@@ -374,7 +374,7 @@ def createParserClass(GrammarBase, ruleGlobals):
                 self._trace("'\\\\'", (950, 954), self.input.position)
                 _G_exactly_128, lastError = self.exactly('\\')
                 self.considerError(lastError, None)
-                _G_python_129, lastError = "\\", None
+                _G_python_129, lastError = ("\\"), None
                 self.considerError(lastError, None)
                 return (_G_python_129, self.currentError)
             _G_or_130, lastError = self._or([_G_or_99, _G_or_102, _G_or_105, _G_or_108, _G_or_111, _G_or_114, _G_or_117, _G_or_120, _G_or_127])
@@ -516,7 +516,7 @@ def createParserClass(GrammarBase, ruleGlobals):
                 self.considerError(lastError, None)
                 return (_G_python_175, self.currentError)
             def _G_or_176():
-                _G_python_177, lastError = [], None
+                _G_python_177, lastError = ([]), None
                 self.considerError(lastError, None)
                 return (_G_python_177, self.currentError)
             _G_or_178, lastError = self._or([_G_or_171, _G_or_176])
@@ -883,300 +883,334 @@ def createParserClass(GrammarBase, ruleGlobals):
                     self.considerError(lastError, None)
                     return (_G_python_300, self.currentError)
                 def _G_or_301():
-                    _G_python_302, lastError = eval('r', self.globals, _locals), None
+                    self._trace(" ':('", (2787, 2792), self.input.position)
+                    _G_exactly_302, lastError = self.exactly(':(')
                     self.considerError(lastError, None)
-                    return (_G_python_302, self.currentError)
-                _G_or_303, lastError = self._or([_G_or_297, _G_or_301])
+                    self._trace(' name', (2792, 2797), self.input.position)
+                    _G_apply_303, lastError = self._apply(self.rule_name, "name", [])
+                    self.considerError(lastError, None)
+                    _locals['n'] = _G_apply_303
+                    def _G_many_304():
+                        self._trace("','", (2801, 2804), self.input.position)
+                        _G_exactly_305, lastError = self.exactly(',')
+                        self.considerError(lastError, None)
+                        self._trace(' ws', (2804, 2807), self.input.position)
+                        _G_apply_306, lastError = self._apply(self.rule_ws, "ws", [])
+                        self.considerError(lastError, None)
+                        self._trace(' name', (2807, 2812), self.input.position)
+                        _G_apply_307, lastError = self._apply(self.rule_name, "name", [])
+                        self.considerError(lastError, None)
+                        return (_G_apply_307, self.currentError)
+                    _G_many_308, lastError = self.many(_G_many_304)
+                    self.considerError(lastError, None)
+                    _locals['others'] = _G_many_308
+                    self._trace(' ws', (2821, 2824), self.input.position)
+                    _G_apply_309, lastError = self._apply(self.rule_ws, "ws", [])
+                    self.considerError(lastError, None)
+                    self._trace(" ')'", (2824, 2828), self.input.position)
+                    _G_exactly_310, lastError = self.exactly(')')
+                    self.considerError(lastError, None)
+                    _G_python_311, lastError = eval('[n] + others if others else n', self.globals, _locals), None
+                    self.considerError(lastError, None)
+                    _locals['n'] = _G_python_311
+                    _G_python_312, lastError = eval('t.Bind(n, r)', self.globals, _locals), None
+                    self.considerError(lastError, None)
+                    return (_G_python_312, self.currentError)
+                def _G_or_313():
+                    _G_python_314, lastError = eval('r', self.globals, _locals), None
+                    self.considerError(lastError, None)
+                    return (_G_python_314, self.currentError)
+                _G_or_315, lastError = self._or([_G_or_297, _G_or_301, _G_or_313])
                 self.considerError(lastError, None)
-                return (_G_or_303, self.currentError)
-            def _G_or_304():
-                self._trace('ws', (2805, 2807), self.input.position)
-                _G_apply_305, lastError = self._apply(self.rule_ws, "ws", [])
+                return (_G_or_315, self.currentError)
+            def _G_or_316():
+                self._trace('ws', (2928, 2930), self.input.position)
+                _G_apply_317, lastError = self._apply(self.rule_ws, "ws", [])
                 self.considerError(lastError, None)
-                self._trace(" ':'", (2807, 2811), self.input.position)
-                _G_exactly_306, lastError = self.exactly(':')
+                self._trace(" ':'", (2930, 2934), self.input.position)
+                _G_exactly_318, lastError = self.exactly(':')
                 self.considerError(lastError, None)
-                self._trace(' name', (2811, 2816), self.input.position)
-                _G_apply_307, lastError = self._apply(self.rule_name, "name", [])
+                self._trace(' name', (2934, 2939), self.input.position)
+                _G_apply_319, lastError = self._apply(self.rule_name, "name", [])
                 self.considerError(lastError, None)
-                _locals['n'] = _G_apply_307
-                _G_python_308, lastError = eval('t.Bind(n, t.Apply("anything", self.rulename, []))', self.globals, _locals), None
+                _locals['n'] = _G_apply_319
+                _G_python_320, lastError = eval('t.Bind(n, t.Apply("anything", self.rulename, []))', self.globals, _locals), None
                 self.considerError(lastError, None)
-                return (_G_python_308, self.currentError)
-            _G_or_309, lastError = self._or([_G_or_263, _G_or_304])
+                return (_G_python_320, self.currentError)
+            _G_or_321, lastError = self._or([_G_or_263, _G_or_316])
             self.considerError(lastError, 'expr3')
-            return (_G_or_309, self.currentError)
+            return (_G_or_321, self.currentError)
 
 
         def rule_expr4(self):
             _locals = {'self': self}
             self.locals['expr4'] = _locals
-            def _G_many1_310():
-                self._trace(' expr3', (2890, 2896), self.input.position)
-                _G_apply_311, lastError = self._apply(self.rule_expr3, "expr3", [])
+            def _G_many1_322():
+                self._trace(' expr3', (3013, 3019), self.input.position)
+                _G_apply_323, lastError = self._apply(self.rule_expr3, "expr3", [])
                 self.considerError(lastError, None)
-                return (_G_apply_311, self.currentError)
-            _G_many1_312, lastError = self.many(_G_many1_310, _G_many1_310())
+                return (_G_apply_323, self.currentError)
+            _G_many1_324, lastError = self.many(_G_many1_322, _G_many1_322())
             self.considerError(lastError, 'expr4')
-            _locals['es'] = _G_many1_312
-            _G_python_313, lastError = eval('es[0] if len(es) == 1 else t.And(es)', self.globals, _locals), None
+            _locals['es'] = _G_many1_324
+            _G_python_325, lastError = eval('es[0] if len(es) == 1 else t.And(es)', self.globals, _locals), None
             self.considerError(lastError, 'expr4')
-            return (_G_python_313, self.currentError)
+            return (_G_python_325, self.currentError)
 
 
         def rule_expr(self):
             _locals = {'self': self}
             self.locals['expr'] = _locals
-            self._trace(' expr4', (2948, 2954), self.input.position)
-            _G_apply_314, lastError = self._apply(self.rule_expr4, "expr4", [])
+            self._trace(' expr4', (3071, 3077), self.input.position)
+            _G_apply_326, lastError = self._apply(self.rule_expr4, "expr4", [])
             self.considerError(lastError, 'expr')
-            _locals['e'] = _G_apply_314
-            def _G_many_315():
-                self._trace('ws', (2958, 2960), self.input.position)
-                _G_apply_316, lastError = self._apply(self.rule_ws, "ws", [])
+            _locals['e'] = _G_apply_326
+            def _G_many_327():
+                self._trace('ws', (3081, 3083), self.input.position)
+                _G_apply_328, lastError = self._apply(self.rule_ws, "ws", [])
                 self.considerError(lastError, None)
-                self._trace(" '|'", (2960, 2964), self.input.position)
-                _G_exactly_317, lastError = self.exactly('|')
+                self._trace(" '|'", (3083, 3087), self.input.position)
+                _G_exactly_329, lastError = self.exactly('|')
                 self.considerError(lastError, None)
-                self._trace(' expr4', (2964, 2970), self.input.position)
-                _G_apply_318, lastError = self._apply(self.rule_expr4, "expr4", [])
+                self._trace(' expr4', (3087, 3093), self.input.position)
+                _G_apply_330, lastError = self._apply(self.rule_expr4, "expr4", [])
                 self.considerError(lastError, None)
-                return (_G_apply_318, self.currentError)
-            _G_many_319, lastError = self.many(_G_many_315)
+                return (_G_apply_330, self.currentError)
+            _G_many_331, lastError = self.many(_G_many_327)
             self.considerError(lastError, 'expr')
-            _locals['es'] = _G_many_319
-            _G_python_320, lastError = eval('t.Or([e] + es) if es else e', self.globals, _locals), None
+            _locals['es'] = _G_many_331
+            _G_python_332, lastError = eval('t.Or([e] + es) if es else e', self.globals, _locals), None
             self.considerError(lastError, 'expr')
-            return (_G_python_320, self.currentError)
+            return (_G_python_332, self.currentError)
 
 
         def rule_ruleValue(self):
             _locals = {'self': self}
             self.locals['ruleValue'] = _locals
-            self._trace(' ws', (3029, 3032), self.input.position)
-            _G_apply_321, lastError = self._apply(self.rule_ws, "ws", [])
+            self._trace(' ws', (3152, 3155), self.input.position)
+            _G_apply_333, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'ruleValue')
-            self._trace(" '->'", (3032, 3037), self.input.position)
-            _G_exactly_322, lastError = self.exactly('->')
+            self._trace(" '->'", (3155, 3160), self.input.position)
+            _G_exactly_334, lastError = self.exactly('->')
             self.considerError(lastError, 'ruleValue')
-            _G_python_323, lastError = eval('self.ruleValueExpr(True)', self.globals, _locals), None
+            _G_python_335, lastError = eval('self.ruleValueExpr(True)', self.globals, _locals), None
             self.considerError(lastError, 'ruleValue')
-            return (_G_python_323, self.currentError)
+            return (_G_python_335, self.currentError)
 
 
         def rule_customLabel(self):
             _locals = {'self': self}
             self.locals['customLabel'] = _locals
-            def _G_label_324():
-                self._trace('ws', (3082, 3084), self.input.position)
-                _G_apply_325, lastError = self._apply(self.rule_ws, "ws", [])
+            def _G_label_336():
+                self._trace('ws', (3205, 3207), self.input.position)
+                _G_apply_337, lastError = self._apply(self.rule_ws, "ws", [])
                 self.considerError(lastError, None)
-                self._trace(" '^'", (3084, 3088), self.input.position)
-                _G_exactly_326, lastError = self.exactly('^')
+                self._trace(" '^'", (3207, 3211), self.input.position)
+                _G_exactly_338, lastError = self.exactly('^')
                 self.considerError(lastError, None)
-                self._trace(' ws', (3088, 3091), self.input.position)
-                _G_apply_327, lastError = self._apply(self.rule_ws, "ws", [])
+                self._trace(' ws', (3211, 3214), self.input.position)
+                _G_apply_339, lastError = self._apply(self.rule_ws, "ws", [])
                 self.considerError(lastError, None)
-                self._trace(" '('", (3091, 3095), self.input.position)
-                _G_exactly_328, lastError = self.exactly('(')
+                self._trace(" '('", (3214, 3218), self.input.position)
+                _G_exactly_340, lastError = self.exactly('(')
                 self.considerError(lastError, None)
-                def _G_consumedby_329():
-                    def _G_many1_330():
-                        def _G_not_331():
-                            self._trace("')'", (3099, 3102), self.input.position)
-                            _G_exactly_332, lastError = self.exactly(')')
+                def _G_consumedby_341():
+                    def _G_many1_342():
+                        def _G_not_343():
+                            self._trace("')'", (3222, 3225), self.input.position)
+                            _G_exactly_344, lastError = self.exactly(')')
                             self.considerError(lastError, None)
-                            return (_G_exactly_332, self.currentError)
-                        _G_not_333, lastError = self._not(_G_not_331)
+                            return (_G_exactly_344, self.currentError)
+                        _G_not_345, lastError = self._not(_G_not_343)
                         self.considerError(lastError, None)
-                        self._trace(' anything', (3102, 3111), self.input.position)
-                        _G_apply_334, lastError = self._apply(self.rule_anything, "anything", [])
+                        self._trace(' anything', (3225, 3234), self.input.position)
+                        _G_apply_346, lastError = self._apply(self.rule_anything, "anything", [])
                         self.considerError(lastError, None)
-                        return (_G_apply_334, self.currentError)
-                    _G_many1_335, lastError = self.many(_G_many1_330, _G_many1_330())
+                        return (_G_apply_346, self.currentError)
+                    _G_many1_347, lastError = self.many(_G_many1_342, _G_many1_342())
                     self.considerError(lastError, None)
-                    return (_G_many1_335, self.currentError)
-                _G_consumedby_336, lastError = self.consumedby(_G_consumedby_329)
+                    return (_G_many1_347, self.currentError)
+                _G_consumedby_348, lastError = self.consumedby(_G_consumedby_341)
                 self.considerError(lastError, None)
-                _locals['e'] = _G_consumedby_336
-                self._trace(" ')'", (3116, 3120), self.input.position)
-                _G_exactly_337, lastError = self.exactly(')')
+                _locals['e'] = _G_consumedby_348
+                self._trace(" ')'", (3239, 3243), self.input.position)
+                _G_exactly_349, lastError = self.exactly(')')
                 self.considerError(lastError, None)
-                _G_python_338, lastError = eval('e', self.globals, _locals), None
+                _G_python_350, lastError = eval('e', self.globals, _locals), None
                 self.considerError(lastError, None)
-                return (_G_python_338, self.currentError)
-            _G_label_339, lastError = self.label(_G_label_324, "customLabelException")
+                return (_G_python_350, self.currentError)
+            _G_label_351, lastError = self.label(_G_label_336, "customLabelException")
             self.considerError(lastError, 'customLabel')
-            return (_G_label_339, self.currentError)
+            return (_G_label_351, self.currentError)
 
 
         def rule_semanticPredicate(self):
             _locals = {'self': self}
             self.locals['semanticPredicate'] = _locals
-            self._trace(' ws', (3172, 3175), self.input.position)
-            _G_apply_340, lastError = self._apply(self.rule_ws, "ws", [])
+            self._trace(' ws', (3295, 3298), self.input.position)
+            _G_apply_352, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'semanticPredicate')
-            self._trace(" '?('", (3175, 3180), self.input.position)
-            _G_exactly_341, lastError = self.exactly('?(')
+            self._trace(" '?('", (3298, 3303), self.input.position)
+            _G_exactly_353, lastError = self.exactly('?(')
             self.considerError(lastError, 'semanticPredicate')
-            _G_python_342, lastError = eval('self.semanticPredicateExpr()', self.globals, _locals), None
+            _G_python_354, lastError = eval('self.semanticPredicateExpr()', self.globals, _locals), None
             self.considerError(lastError, 'semanticPredicate')
-            return (_G_python_342, self.currentError)
+            return (_G_python_354, self.currentError)
 
 
         def rule_semanticAction(self):
             _locals = {'self': self}
             self.locals['semanticAction'] = _locals
-            self._trace(' ws', (3230, 3233), self.input.position)
-            _G_apply_343, lastError = self._apply(self.rule_ws, "ws", [])
+            self._trace(' ws', (3353, 3356), self.input.position)
+            _G_apply_355, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'semanticAction')
-            self._trace(" '!('", (3233, 3238), self.input.position)
-            _G_exactly_344, lastError = self.exactly('!(')
+            self._trace(" '!('", (3356, 3361), self.input.position)
+            _G_exactly_356, lastError = self.exactly('!(')
             self.considerError(lastError, 'semanticAction')
-            _G_python_345, lastError = eval('self.semanticActionExpr()', self.globals, _locals), None
+            _G_python_357, lastError = eval('self.semanticActionExpr()', self.globals, _locals), None
             self.considerError(lastError, 'semanticAction')
-            return (_G_python_345, self.currentError)
+            return (_G_python_357, self.currentError)
 
 
         def rule_ruleEnd(self):
             _locals = {'self': self}
             self.locals['ruleEnd'] = _locals
-            def _G_label_346():
-                def _G_or_347():
-                    def _G_many_348():
-                        self._trace('hspace', (3281, 3287), self.input.position)
-                        _G_apply_349, lastError = self._apply(self.rule_hspace, "hspace", [])
+            def _G_label_358():
+                def _G_or_359():
+                    def _G_many_360():
+                        self._trace('hspace', (3404, 3410), self.input.position)
+                        _G_apply_361, lastError = self._apply(self.rule_hspace, "hspace", [])
                         self.considerError(lastError, None)
-                        return (_G_apply_349, self.currentError)
-                    _G_many_350, lastError = self.many(_G_many_348)
+                        return (_G_apply_361, self.currentError)
+                    _G_many_362, lastError = self.many(_G_many_360)
                     self.considerError(lastError, None)
-                    def _G_many1_351():
-                        self._trace(' vspace', (3288, 3295), self.input.position)
-                        _G_apply_352, lastError = self._apply(self.rule_vspace, "vspace", [])
+                    def _G_many1_363():
+                        self._trace(' vspace', (3411, 3418), self.input.position)
+                        _G_apply_364, lastError = self._apply(self.rule_vspace, "vspace", [])
                         self.considerError(lastError, None)
-                        return (_G_apply_352, self.currentError)
-                    _G_many1_353, lastError = self.many(_G_many1_351, _G_many1_351())
+                        return (_G_apply_364, self.currentError)
+                    _G_many1_365, lastError = self.many(_G_many1_363, _G_many1_363())
                     self.considerError(lastError, None)
-                    return (_G_many1_353, self.currentError)
-                def _G_or_354():
-                    self._trace(' end', (3299, 3303), self.input.position)
-                    _G_apply_355, lastError = self._apply(self.rule_end, "end", [])
+                    return (_G_many1_365, self.currentError)
+                def _G_or_366():
+                    self._trace(' end', (3422, 3426), self.input.position)
+                    _G_apply_367, lastError = self._apply(self.rule_end, "end", [])
                     self.considerError(lastError, None)
-                    return (_G_apply_355, self.currentError)
-                _G_or_356, lastError = self._or([_G_or_347, _G_or_354])
+                    return (_G_apply_367, self.currentError)
+                _G_or_368, lastError = self._or([_G_or_359, _G_or_366])
                 self.considerError(lastError, None)
-                return (_G_or_356, self.currentError)
-            _G_label_357, lastError = self.label(_G_label_346, "rule end")
+                return (_G_or_368, self.currentError)
+            _G_label_369, lastError = self.label(_G_label_358, "rule end")
             self.considerError(lastError, 'ruleEnd')
-            return (_G_label_357, self.currentError)
+            return (_G_label_369, self.currentError)
 
 
         def rule_rulePart(self):
             _locals = {'self': self}
             self.locals['rulePart'] = _locals
-            _G_apply_358, lastError = self._apply(self.rule_anything, "anything", [])
+            _G_apply_370, lastError = self._apply(self.rule_anything, "anything", [])
             self.considerError(lastError, 'rulePart')
-            _locals['requiredName'] = _G_apply_358
-            self._trace(' noindentation', (3343, 3357), self.input.position)
-            _G_apply_359, lastError = self._apply(self.rule_noindentation, "noindentation", [])
+            _locals['requiredName'] = _G_apply_370
+            self._trace(' noindentation', (3466, 3480), self.input.position)
+            _G_apply_371, lastError = self._apply(self.rule_noindentation, "noindentation", [])
             self.considerError(lastError, 'rulePart')
-            self._trace(' name', (3357, 3362), self.input.position)
-            _G_apply_360, lastError = self._apply(self.rule_name, "name", [])
+            self._trace(' name', (3480, 3485), self.input.position)
+            _G_apply_372, lastError = self._apply(self.rule_name, "name", [])
             self.considerError(lastError, 'rulePart')
-            _locals['n'] = _G_apply_360
-            def _G_pred_361():
-                _G_python_362, lastError = eval('n == requiredName', self.globals, _locals), None
-                self.considerError(lastError, None)
-                return (_G_python_362, self.currentError)
-            _G_pred_363, lastError = self.pred(_G_pred_361)
-            self.considerError(lastError, 'rulePart')
-            _G_python_364, lastError = eval('setattr(self, "rulename", n)', self.globals, _locals), None
-            self.considerError(lastError, 'rulePart')
-            def _G_optional_365():
-                self._trace('\n                            expr4', (3445, 3479), self.input.position)
-                _G_apply_366, lastError = self._apply(self.rule_expr4, "expr4", [])
-                self.considerError(lastError, None)
-                return (_G_apply_366, self.currentError)
-            def _G_optional_367():
-                return (None, self.input.nullError())
-            _G_or_368, lastError = self._or([_G_optional_365, _G_optional_367])
-            self.considerError(lastError, 'rulePart')
-            _locals['args'] = _G_or_368
-            def _G_or_369():
-                self._trace('ws', (3515, 3517), self.input.position)
-                _G_apply_370, lastError = self._apply(self.rule_ws, "ws", [])
-                self.considerError(lastError, None)
-                self._trace(" '='", (3517, 3521), self.input.position)
-                _G_exactly_371, lastError = self.exactly('=')
-                self.considerError(lastError, None)
-                self._trace(' expr', (3521, 3526), self.input.position)
-                _G_apply_372, lastError = self._apply(self.rule_expr, "expr", [])
-                self.considerError(lastError, None)
-                _locals['e'] = _G_apply_372
-                self._trace(' ruleEnd', (3528, 3536), self.input.position)
-                _G_apply_373, lastError = self._apply(self.rule_ruleEnd, "ruleEnd", [])
-                self.considerError(lastError, None)
-                _G_python_374, lastError = eval('t.And([args, e]) if args else e', self.globals, _locals), None
+            _locals['n'] = _G_apply_372
+            def _G_pred_373():
+                _G_python_374, lastError = eval('n == requiredName', self.globals, _locals), None
                 self.considerError(lastError, None)
                 return (_G_python_374, self.currentError)
-            def _G_or_375():
-                self._trace(' ruleEnd', (3632, 3640), self.input.position)
-                _G_apply_376, lastError = self._apply(self.rule_ruleEnd, "ruleEnd", [])
-                self.considerError(lastError, None)
-                _G_python_377, lastError = eval('args', self.globals, _locals), None
-                self.considerError(lastError, None)
-                return (_G_python_377, self.currentError)
-            _G_or_378, lastError = self._or([_G_or_369, _G_or_375])
+            _G_pred_375, lastError = self.pred(_G_pred_373)
             self.considerError(lastError, 'rulePart')
-            return (_G_or_378, self.currentError)
+            _G_python_376, lastError = eval('setattr(self, "rulename", n)', self.globals, _locals), None
+            self.considerError(lastError, 'rulePart')
+            def _G_optional_377():
+                self._trace('\n                            expr4', (3568, 3602), self.input.position)
+                _G_apply_378, lastError = self._apply(self.rule_expr4, "expr4", [])
+                self.considerError(lastError, None)
+                return (_G_apply_378, self.currentError)
+            def _G_optional_379():
+                return (None, self.input.nullError())
+            _G_or_380, lastError = self._or([_G_optional_377, _G_optional_379])
+            self.considerError(lastError, 'rulePart')
+            _locals['args'] = _G_or_380
+            def _G_or_381():
+                self._trace('ws', (3638, 3640), self.input.position)
+                _G_apply_382, lastError = self._apply(self.rule_ws, "ws", [])
+                self.considerError(lastError, None)
+                self._trace(" '='", (3640, 3644), self.input.position)
+                _G_exactly_383, lastError = self.exactly('=')
+                self.considerError(lastError, None)
+                self._trace(' expr', (3644, 3649), self.input.position)
+                _G_apply_384, lastError = self._apply(self.rule_expr, "expr", [])
+                self.considerError(lastError, None)
+                _locals['e'] = _G_apply_384
+                self._trace(' ruleEnd', (3651, 3659), self.input.position)
+                _G_apply_385, lastError = self._apply(self.rule_ruleEnd, "ruleEnd", [])
+                self.considerError(lastError, None)
+                _G_python_386, lastError = eval('t.And([args, e]) if args else e', self.globals, _locals), None
+                self.considerError(lastError, None)
+                return (_G_python_386, self.currentError)
+            def _G_or_387():
+                self._trace(' ruleEnd', (3755, 3763), self.input.position)
+                _G_apply_388, lastError = self._apply(self.rule_ruleEnd, "ruleEnd", [])
+                self.considerError(lastError, None)
+                _G_python_389, lastError = eval('args', self.globals, _locals), None
+                self.considerError(lastError, None)
+                return (_G_python_389, self.currentError)
+            _G_or_390, lastError = self._or([_G_or_381, _G_or_387])
+            self.considerError(lastError, 'rulePart')
+            return (_G_or_390, self.currentError)
 
 
         def rule_rule(self):
             _locals = {'self': self}
             self.locals['rule'] = _locals
-            self._trace(' noindentation', (3657, 3671), self.input.position)
-            _G_apply_379, lastError = self._apply(self.rule_noindentation, "noindentation", [])
+            self._trace(' noindentation', (3780, 3794), self.input.position)
+            _G_apply_391, lastError = self._apply(self.rule_noindentation, "noindentation", [])
             self.considerError(lastError, 'rule')
-            def _G_lookahead_380():
-                self._trace('name', (3675, 3679), self.input.position)
-                _G_apply_381, lastError = self._apply(self.rule_name, "name", [])
+            def _G_lookahead_392():
+                self._trace('name', (3798, 3802), self.input.position)
+                _G_apply_393, lastError = self._apply(self.rule_name, "name", [])
                 self.considerError(lastError, None)
-                _locals['n'] = _G_apply_381
+                _locals['n'] = _G_apply_393
                 return (_locals['n'], self.currentError)
-            _G_lookahead_382, lastError = self.lookahead(_G_lookahead_380)
+            _G_lookahead_394, lastError = self.lookahead(_G_lookahead_392)
             self.considerError(lastError, 'rule')
-            def _G_many1_383():
-                self._trace(' rulePart(n)', (3682, 3694), self.input.position)
-                _G_python_384, lastError = eval('n', self.globals, _locals), None
+            def _G_many1_395():
+                self._trace(' rulePart(n)', (3805, 3817), self.input.position)
+                _G_python_396, lastError = eval('n', self.globals, _locals), None
                 self.considerError(lastError, None)
-                _G_apply_385, lastError = self._apply(self.rule_rulePart, "rulePart", [_G_python_384])
+                _G_apply_397, lastError = self._apply(self.rule_rulePart, "rulePart", [_G_python_396])
                 self.considerError(lastError, None)
-                return (_G_apply_385, self.currentError)
-            _G_many1_386, lastError = self.many(_G_many1_383, _G_many1_383())
+                return (_G_apply_397, self.currentError)
+            _G_many1_398, lastError = self.many(_G_many1_395, _G_many1_395())
             self.considerError(lastError, 'rule')
-            _locals['rs'] = _G_many1_386
-            _G_python_387, lastError = eval('t.Rule(n, t.Or(rs))', self.globals, _locals), None
+            _locals['rs'] = _G_many1_398
+            _G_python_399, lastError = eval('t.Rule(n, t.Or(rs))', self.globals, _locals), None
             self.considerError(lastError, 'rule')
-            return (_G_python_387, self.currentError)
+            return (_G_python_399, self.currentError)
 
 
         def rule_grammar(self):
             _locals = {'self': self}
             self.locals['grammar'] = _locals
-            def _G_many_388():
-                self._trace(' rule', (3733, 3738), self.input.position)
-                _G_apply_389, lastError = self._apply(self.rule_rule, "rule", [])
+            def _G_many_400():
+                self._trace(' rule', (3856, 3861), self.input.position)
+                _G_apply_401, lastError = self._apply(self.rule_rule, "rule", [])
                 self.considerError(lastError, None)
-                return (_G_apply_389, self.currentError)
-            _G_many_390, lastError = self.many(_G_many_388)
+                return (_G_apply_401, self.currentError)
+            _G_many_402, lastError = self.many(_G_many_400)
             self.considerError(lastError, 'grammar')
-            _locals['rs'] = _G_many_390
-            self._trace(' ws', (3742, 3745), self.input.position)
-            _G_apply_391, lastError = self._apply(self.rule_ws, "ws", [])
+            _locals['rs'] = _G_many_402
+            self._trace(' ws', (3865, 3868), self.input.position)
+            _G_apply_403, lastError = self._apply(self.rule_ws, "ws", [])
             self.considerError(lastError, 'grammar')
-            _G_python_392, lastError = eval('t.Grammar(self.name, self.tree_target, rs)', self.globals, _locals), None
+            _G_python_404, lastError = eval('t.Grammar(self.name, self.tree_target, rs)', self.globals, _locals), None
             self.considerError(lastError, 'grammar')
-            return (_G_python_392, self.currentError)
+            return (_G_python_404, self.currentError)
 
 
     if parsley.globals is not None:

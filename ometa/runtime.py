@@ -2,10 +2,7 @@
 """
 Code needed to run a grammar after it has been compiled.
 """
-import string
-import sys
 import time
-import operator
 from textwrap import dedent
 from terml.nodes import coerceToTerm, Term, termMaker as t
 from ometa.builder import moduleFromGrammar, writePython
@@ -23,17 +20,10 @@ class ParseError(Exception):
     ?Redo from start
     """
 
-    @property
-    def position(self):
-        return self.args[0]
-
-
-    @property
-    def error(self):
-        return self.args[1]
-
     def __init__(self, input, position, message, trail=None):
         Exception.__init__(self, position, message)
+        self.position = position
+        self.error = message or []
         self.input = input
         self.trail = trail or []
 
@@ -43,8 +33,17 @@ class ParseError(Exception):
             return (self.position, self.error) == (other.position, other.error)
 
 
+    def mergeWith(self, other):
+        """
+        Merges in another error's error and trail.
+        """
+        self.error = list(set(self.error + other.error))
+        self.args = (self.position, self.error)
+        self.trail = other.trail or self.trail or []
+
+
     def formatReason(self):
-        if self.error is None:
+        if not self.error:
             return "Syntax error"
         if len(self.error) == 1:
             if self.error[0][0] == 'message':
@@ -136,19 +135,26 @@ def joinErrors(errors):
     """
     Return the error from the branch that matched the most of the input.
     """
-    errors.sort(reverse=True, key=lambda o: o.args[0])
+    if len(errors) == 1:
+        return errors[0]
+
+    highestPos = -1
     results = set()
-    pos = errors[0].position
     trail = None
+
     for err in errors:
-        if pos == err.position:
-            e, trail = err.error, (err.trail or trail)
-            if e is not None:
-                for item in e:
-                        results.add(item)
+        pos = err.position
+        if pos < highestPos:
+            continue
+        elif pos > highestPos:
+            highestPos = pos
+            trail = err.trail or None
+            results = set(err.error)
         else:
-            break
-    return ParseError(errors[0].input,  pos, list(results) or None, trail)
+            trail = err.trail or trail
+            results.update(err.error)
+
+    return ParseError(errors[0].input, highestPos, list(results), trail)
 
 
 class character(str):
@@ -387,18 +393,21 @@ class OMetaBase(object):
             self.input = InputStream.fromText(input)
         self.locals = {}
         if self.globals is None:
-            self.globals = globals or {}
-        if basestring is str:
-            self.globals['basestring'] = str
-            self.globals['unichr'] = chr
+            if globals is None:
+                self.globals = {}
+            else:
+                self.globals = globals
+
         self.currentError = self.input.nullError()
 
     def considerError(self, error, typ=None):
         if error:
-            if error.args[0] > self.currentError.args[0]:
+            newPos = error.position
+            curPos = self.currentError.position
+            if newPos > curPos:
                 self.currentError = error
-            elif error.args[0] == self.currentError.args[0]:
-                self.currentError = joinErrors([error, self.currentError])
+            elif newPos == curPos:
+                self.currentError.mergeWith(error)
 
 
     def _trace(self, src, span, inputPos):
@@ -463,12 +472,8 @@ class OMetaBase(object):
         @param args: A sequence of arguments to it.
         """
         if args:
-            if sys.version_info[0] < 3:
-                attrname = 'func_code'
-            else:
-                attrname = '__code__'
-            if ((not getattr(rule, attrname, None))
-                 or getattr(rule, attrname).co_argcount - 1 != len(args)):
+            if ((not getattr(rule, 'func_code', None))
+                 or rule.func_code.co_argcount - 1 != len(args)):
                 for arg in args[::-1]:
                     self.input = ArgInput(arg, self.input)
                 return rule()
@@ -602,7 +607,7 @@ class OMetaBase(object):
         m = self.input
         try:
             fn()
-        except ParseError as e:
+        except ParseError:
             self.input = m
             return True, self.input.nullError()
         else:
@@ -618,9 +623,9 @@ class OMetaBase(object):
                 c, e = self.input.head()
             except EOFError as e:
                 break
-            t = self.input.tail()
+            tl = self.input.tail()
             if c.isspace():
-                self.input = t
+                self.input = tl
             else:
                 break
         return True, e
@@ -855,7 +860,7 @@ class OMetaGrammarBase(OMetaBase):
         self.name = name
         res, err = self.apply("grammar")
         try:
-            x = self.input.head()
+            self.input.head()
         except EOFError:
             pass
         else:

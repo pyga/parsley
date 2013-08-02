@@ -81,6 +81,8 @@ expr3 = (expr2:e
                       | -> e
 )):r
            (':' name:n -> t.Bind(n, r)
+           | ':(' name:n (',' ws name)*:others ws ')'
+                (-> [n] + others if others else n):n -> t.Bind(n, r)
            | -> r)
           |ws ':' name:n
           -> t.Bind(n, t.Apply("anything", self.rulename, []))

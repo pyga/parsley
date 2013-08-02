@@ -648,10 +648,17 @@ class OMetaTestCase(unittest.TestCase):
 
     def test_binding(self):
         """
-        The result of a parsing expression can be bound to a name.
+        The result of a parsing expression can be bound to a single name
+        or names surrounded by parentheses.
         """
         g = self.compile("foo = '1':x -> int(x) * 2")
         self.assertEqual(g.foo("1"), 2)
+        g = self.compile("foo = '1':(x) -> int(x) * 2")
+        self.assertEqual(g.foo("1"), 2)
+        g = self.compile("foo = (-> 3, 4):(x, y) -> x")
+        self.assertEqual(g.foo(""), 3)
+        g = self.compile("foo = (-> 1, 2):(x, y) -> int(x) * 2 + int(y)")
+        self.assertEqual(g.foo(""), 4)
 
 
     def test_bindingAccess(self):
@@ -668,6 +675,18 @@ class OMetaTestCase(unittest.TestCase):
         self.assertEqual(g.apply("stuff")[0], '3')
         self.assertEqual(g.locals['stuff']['a'], '1')
         self.assertEqual(g.locals['stuff']['c'], '3')
+        G = self.classTested.makeGrammar(
+            "stuff = '1':a ('2':(b) | '345':(c, d, e))", 'TestGrammar').createParserClass(OMetaBase, {})
+        g = G("12")
+        self.assertEqual(g.apply("stuff")[0], '2')
+        self.assertEqual(g.locals['stuff']['a'], '1')
+        self.assertEqual(g.locals['stuff']['b'], '2')
+        g = G("1345")
+        self.assertEqual(g.apply("stuff")[0], '345')
+        self.assertEqual(g.locals['stuff']['a'], '1')
+        self.assertEqual(g.locals['stuff']['c'], '3')
+        self.assertEqual(g.locals['stuff']['d'], '4')
+        self.assertEqual(g.locals['stuff']['e'], '5')
 
 
     def test_predicate(self):

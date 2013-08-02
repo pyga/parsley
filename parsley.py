@@ -5,7 +5,7 @@ from ometa.runtime import ParseError, EOFError, OMetaBase
 from terml.parser import parseTerm as term
 from terml.quasiterm import quasiterm
 
-__version__ = '1.1'
+__version__ = '1.2'
 
 
 def wrapGrammar(g, tracefunc=None):

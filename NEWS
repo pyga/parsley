@@ -1,3 +1,17 @@
+1.2.0 (2013-08-01):
+ - Added 'makeProtocol' for parsing stream protocols using Parsley
+   grammars and Twisted, with examples, docs, and a tutorial.
+ - Added 'stack' as support for 'makeProtocol'.
+ - Sped up parsing; started compiling python expressons only once.
+   (thanks to eevee!)
+ - Allowed tuple unpacking in assignment in rules. For example,
+   `rule1 = rule2:(a, b) -> a + b`. (thanks to introom!)
+ - Added a trace hook and an example of a trace visualizer using it.
+ - Fixed an example in the README. (thanks to ilmarga!)
+ - Added support for custom labels in grammars. For example,
+   `rule1 = rule2 ^(foo)` will make Parsley consider 'foo' the name for
+   'rule2' in error messages. (thanks to miebster!)
+
 1.1.0 (2013-03-03):
  - The 'spaces' rule has been provided under the alias 'ws'; 'spaces'
    is now the deprecated name.

@@ -71,8 +71,7 @@ class TrampolinedGrammarInterpreter(object):
     def setNext(self, rule):
         if isinstance(rule, basestring):
             rule = (rule, )
-        if not isinstance(rule, (list, tuple)):
-            raise TypeError("rule should be a string, list or a tuple.")
+        rule = tuple(rule)
         return self.apply(rule[0], None, rule[1:])
 
 

@@ -131,6 +131,7 @@ def joinErrors(errors):
     """
     if len(errors) == 1:
         return errors[0]
+
     highestPos = -1
     results = set()
     trail = None

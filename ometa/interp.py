@@ -69,9 +69,8 @@ class TrampolinedGrammarInterpreter(object):
 
 
     def setNext(self, rule):
-        if isinstance(rule, basestring):
+        if not isinstance(rule, tuple):
             rule = (rule, )
-        rule = tuple(rule)
         return self.apply(rule[0], None, rule[1:])
 
 

@@ -1,6 +1,9 @@
 from ometa.interp import TrampolinedGrammarInterpreter, _feed_me
 
 class TrampolinedParser:
+    _buffer = b''
+
+
     """
     A parser that incrementally parses incoming data.
     """
@@ -37,9 +40,13 @@ class TrampolinedParser:
 
         @param data: The raw data received.
         """
-        while data:
+        if self._buffer:
+            data = self._buffer + data
+        while data and not getattr(self.receiver, "paused", False):
             status = self._interp.receive(data)
             if status is _feed_me:
                 return
             data = ''.join(self._interp.input.data[self._interp.input.position:])
             self._setupInterp()
+        if data:
+            self._buffer = data

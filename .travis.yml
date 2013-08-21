@@ -1,13 +1,14 @@
 language: python
 python:
+  - "2.5"
   - "2.6"
   - "2.7"
 
 install:
   - "pip install pytest Twisted python-coveralls --use-mirrors"
 script:
-  - "coverage run $(which trial) ometa"
-  - "coverage run -a $(which trial) test_parsley"
+  - "coverage run -a $(which py.test) test_parsley"
   - "coverage run -a $(which py.test) examples"
+  - "cd ometa && coverage run -a $(which py.test) ."
 after_success:
   - "coveralls"

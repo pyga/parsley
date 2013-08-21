@@ -1,3 +1,4 @@
+import pytest
 import unittest
 from ometa.runtime import OMetaBase, ParseError, expected, eof
 
@@ -53,10 +54,10 @@ class RuntimeTests(unittest.TestCase):
 
         data = "foo"
         o = OMetaBase(data)
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.rule_exactly("g")
-        self.assertEquals(e.exception[1], expected(None, "g"))
-        self.assertEquals(e.exception[0], 0)
+        self.assertEquals(e.value[1], expected(None, "g"))
+        self.assertEquals(e.value[0], 0)
 
 
 
@@ -83,10 +84,10 @@ class RuntimeTests(unittest.TestCase):
         """
         data = "foozle"
         o = OMetaBase(data)
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.rule_token("fog")
-        self.assertEqual(e.exception[0], 2)
-        self.assertEqual(e.exception[1], expected("token", "fog"))
+        self.assertEqual(e.value[0], 2)
+        self.assertEqual(e.value[1], expected("token", "fog"))
 
 
     def test_many(self):
@@ -135,12 +136,12 @@ class RuntimeTests(unittest.TestCase):
         data = "foozle"
         o = OMetaBase(data)
 
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o._or([lambda: o.token("fog"),
                    lambda: o.token("foozik"),
                    lambda: o.token("woozle")])
-        self.assertEqual(e.exception[0], 4)
-        self.assertEqual(e.exception[1], expected("token",  "foozik"))
+        self.assertEqual(e.value[0], 4)
+        self.assertEqual(e.value[1], expected("token",  "foozik"))
 
 
     def test_orFalseSuccess(self):
@@ -183,10 +184,10 @@ class RuntimeTests(unittest.TestCase):
 
         data = "xy"
         o = OMetaBase(data)
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o._not(lambda: o.exactly("x"))
-        self.assertEqual(e.exception[0], 1)
-        self.assertEqual(e.exception[1], None)
+        self.assertEqual(e.value[0], 1)
+        self.assertEqual(e.value[1], None)
 
 
     def test_spaces(self):
@@ -216,9 +217,9 @@ class RuntimeTests(unittest.TestCase):
         """
 
         o = OMetaBase("")
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.pred(lambda: (False, ParseError(o.input, 0, None)))
-        self.assertEqual(e.exception, ParseError(o.input, 0, None))
+        self.assertEqual(e.value, ParseError(o.input, 0, None))
 
 
     def test_end(self):
@@ -227,9 +228,9 @@ class RuntimeTests(unittest.TestCase):
         if input is left.
         """
         o = OMetaBase("abc")
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.rule_end()
-        self.assertEqual(e.exception, ParseError(o.input, 1, None))
+        self.assertEqual(e.value, ParseError(o.input, 1, None))
         o.many(o.rule_anything)
         self.assertEqual(o.rule_end(), (True, ParseError("abc", 3, None)))
 
@@ -242,9 +243,9 @@ class RuntimeTests(unittest.TestCase):
         data = "ooops"
         label = 'CustomLabel'
         o = OMetaBase(data)
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.label(lambda: o.rule_exactly('x'), label)
-        self.assertEqual(e.exception,
+        self.assertEqual(e.value,
                          ParseError(o.input, 0, expected(label)).withMessage([("Custom Exception:", label, None)]))
 
     def test_letter(self):
@@ -254,9 +255,9 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase("a1")
         v, e = o.rule_letter()
         self.assertEqual((v, e), ("a", ParseError(o.input, 0, None)))
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.rule_letter()
-        self.assertEqual(e.exception, ParseError(o.input, 1,
+        self.assertEqual(e.value, ParseError(o.input, 1,
                                                  expected("letter")))
 
 
@@ -269,9 +270,9 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual((v, e), ("a", ParseError(None, 0, None)))
         v, e = o.rule_letterOrDigit()
         self.assertEqual((v, e), ("1", ParseError(None, 1, None)))
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.rule_letterOrDigit()
-        self.assertEqual(e.exception,
+        self.assertEqual(e.value,
                          ParseError(o.input, 2, expected("letter or digit")))
 
 
@@ -282,9 +283,9 @@ class RuntimeTests(unittest.TestCase):
         o = OMetaBase("1a")
         v, e = o.rule_digit()
         self.assertEqual((v, e), ("1", ParseError("1a", 0, None)))
-        with self.assertRaises(ParseError) as e:
+        with pytest.raises(ParseError) as e:
             o.rule_digit()
-        self.assertEqual(e.exception, ParseError(o.input, 1, expected("digit")))
+        self.assertEqual(e.value, ParseError(o.input, 1, expected("digit")))
 
 
 

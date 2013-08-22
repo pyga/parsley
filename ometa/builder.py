@@ -1,6 +1,9 @@
 # -*- test-case-name: ometa.test.test_builder -*-
 import ast
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 from types import ModuleType as module
 import linecache, sys
 from terml.nodes import Term, Tag, coerceToTerm
@@ -437,7 +440,7 @@ class GeneratedCodeLoader(object):
 
 
 def moduleFromGrammar(source, className, modname, filename):
-    mod = module(modname)
+    mod = module(str(modname))
     mod.__name__ = modname
     mod.__loader__ = GeneratedCodeLoader(source)
     code = compile(source, filename, "exec")

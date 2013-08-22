@@ -4,6 +4,12 @@ from ometa.runtime import character, EOFError
 import terml
 from terml.nodes import Tag, Term, termMaker
 
+try:
+    integer_types = (int, long)
+except NameError:
+    integer_types = (int,)
+
+
 ## Functions called from grammar actions
 
 def concat(*bits):
@@ -56,7 +62,7 @@ def tagString(string):
 def numberType(n):
     if isinstance(n, float):
         return ".float64."
-    elif isinstance(n, (long, int)):
+    elif isinstance(n, integer_types):
         return ".int."
     raise ValueError("wtf")
 

@@ -1,19 +1,25 @@
-from StringIO import StringIO
+import os
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 from terml.nodes import Term, coerceToTerm, termMaker as t
 
+HERE = os.path.dirname(__file__)
 
 def writeBytecode(expr):
-    print "Gonna compile", expr
+    print("Gonna compile %s" % (expr,))
     from ometa.grammar import TreeTransformerGrammar
     from ometa.runtime import TreeTransformerBase
-    Compiler = TreeTransformerGrammar.makeGrammar(open("../ometa/vm.parsley").read(),
+    path = os.path.join(HERE, 'vm.parsley')
+    Compiler = TreeTransformerGrammar.makeGrammar(open(path).read(),
             "Compiler").createParserClass(TreeTransformerBase, {"t": t})
     return Compiler.transform(expr)[0]
 
 
 def bytecodeToPython(expr):
-    print "Gonna emit", expr
+    print("Gonna emit %s" % (expr,))
     from ometa.grammar import TreeTransformerGrammar
     from ometa.runtime import TreeTransformerBase
     Emitter = TreeTransformerGrammar.makeGrammar(open("ometa/vm_emit.parsley").read(),
@@ -25,7 +31,7 @@ def writeBytecodeRule(expr):
     e = GrammarEmitter()
     p = PythonWriter(expr)
     p.output(e)
-    return e.rules.items()[0]
+    return list(e.rules.items())[0]
 
 
 def writeBytecodeGrammar(expr):

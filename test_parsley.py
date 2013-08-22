@@ -27,7 +27,7 @@ class StackTestCase(unittest.TestCase):
         "stack can be called with ten wrappers."
         args = []
         result = 'a',
-        for x in xrange(10):
+        for x in range(10):
             args.append(wrapperFactory(x))
             result = 9 - x, result
         args.append(nullFactory)

@@ -1,4 +1,7 @@
+#from __future__ import unicode_literals
+
 import operator
+import sys
 from textwrap import dedent
 from twisted.trial import unittest
 from ometa.grammar import OMeta, TermOMeta, TreeTransformerGrammar
@@ -7,6 +10,11 @@ from ometa.runtime import (ParseError, OMetaBase, OMetaGrammarBase, EOFError,
                            expected, TreeTransformerBase)
 from ometa.interp import GrammarInterpreter, TrampolinedGrammarInterpreter
 from terml.parser import parseTerm as term
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 
 class HandyWrapper(object):
@@ -98,7 +106,7 @@ class OMeta1TestCase(unittest.TestCase):
         Input matches can be made on literal integers.
         """
         g = self.compile("stuff ::= 17 0x1F -2 0177")
-        self.assertEqual(g.stuff([17, 0x1f, -2, 0177]), 0177)
+        self.assertEqual(g.stuff([17, 0x1f, -2, 0o177]), 0o177)
         self.assertRaises(ParseError, g.stuff, [1, 2, 3])
 
 
@@ -282,13 +290,13 @@ class OMeta1TestCase(unittest.TestCase):
         """
         g = self.compile("""
               digit ::= ('0' | '1' | '2'):d => int(d)
-              foo :x :ignored ::= (?(x > 1) '9' | ?(x <= 1) '8'):d => int(d)
+              foo :x :ignored ::= (?(int(x) > 1) '9' | ?(int(x) <= 1) '8'):d => int(d)
               baz ::= <digit>:a <foo a None>:b => [a, b]
             """)
         self.assertEqual(g.baz("18"), [1, 8])
         self.assertEqual(g.baz("08"), [0, 8])
         self.assertEqual(g.baz("29"), [2, 9])
-        self.assertRaises(ParseError, g.foo, "28")
+        self.assertRaises(ParseError, g.baz, "28")
 
 
     def test_patternMatch(self):
@@ -359,7 +367,7 @@ class OMeta1TestCase(unittest.TestCase):
                   | :x ?(isinstance(x, basestring) and x.isdigit()) => int(x))
         """)
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
-        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
 
 
     def test_string(self):
@@ -489,7 +497,7 @@ class OMetaTestCase(unittest.TestCase):
         Input matches can be made on literal integers.
         """
         g = self.compile("stuff = 17 0x1F -2 0177")
-        self.assertEqual(g.stuff([17, 0x1f, -2, 0177]), 0177)
+        self.assertEqual(g.stuff([17, 0x1f, -2, 0o177]), 0o177)
         self.assertRaises(ParseError, g.stuff, [1, 2, 3])
 
 
@@ -729,13 +737,13 @@ class OMetaTestCase(unittest.TestCase):
         """
         g = self.compile("""
               digit = ('0' | '1' | '2'):d -> int(d)
-              foo :x = (?(x > 1) '9' | ?(x <= 1) '8'):d -> int(d)
+              foo :x = (?(int(x) > 1) '9' | ?(int(x) <= 1) '8'):d -> int(d)
               baz = digit:a foo(a):b -> [a, b]
             """)
         self.assertEqual(g.baz("18"), [1, 8])
         self.assertEqual(g.baz("08"), [0, 8])
         self.assertEqual(g.baz("29"), [2, 9])
-        self.assertRaises(ParseError, g.foo, "28")
+        self.assertRaises(ParseError, g.baz, "28")
 
 
     def test_patternMatch(self):
@@ -806,7 +814,7 @@ class OMetaTestCase(unittest.TestCase):
                   | :x ?(isinstance(x, basestring) and x.isdigit()) -> int(x))
         """)
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
-        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
 
 
     def test_stringConsumedBy(self):
@@ -1015,7 +1023,7 @@ class TermActionGrammarTests(OMetaTestCase):
              "isdigit": lambda x: isinstance(x, basestring) and x.isdigit()})
 
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
-        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
 
 
     def test_string(self):
@@ -1058,7 +1066,7 @@ class TermActionGrammarTests(OMetaTestCase):
         """
         g = self.compile("""
               digit = ('0' | '1' | '2'):d -> int(d)
-              foo :x = (?(gt(x, 1)) '9' | ?(lte(x, 1)) '8'):d -> int(d)
+              foo :x = (?(gt(int(x), 1)) '9' | ?(lte(int(x), 1)) '8'):d -> int(d)
               baz = digit:a foo(a):b -> [a, b]
             """, {"lte": operator.le, "gt": operator.gt})
         self.assertEqual(g.baz("18"), [1, 8])

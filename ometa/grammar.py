@@ -5,7 +5,10 @@ definitions.
 """
 import os.path
 import string
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 from terml.nodes import termMaker as t
 import ometa

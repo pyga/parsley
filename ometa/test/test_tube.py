@@ -44,7 +44,7 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         """
         receiver = TrampolinedReceiver()
         trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
-        buf = b'foobarandnotreachdelimiter'
+        buf = 'foobarandnotreachdelimiter'
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
         self.assertEqual(receiver.received, [])
@@ -56,12 +56,12 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         """
         receiver = TrampolinedReceiver()
         trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
-        buf = b'\r\n'.join((b'foo', b'bar', b'foo', b'bar'))
+        buf = '\r\n'.join(('foo', 'bar', 'foo', 'bar'))
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
-        self.assertEqual(receiver.received, [b'foo', b'bar', b'foo'])
+        self.assertEqual(receiver.received, ['foo', 'bar', 'foo'])
         trampolinedParser.receive('\r\n')
-        self.assertEqual(receiver.received, [b'foo', b'bar', b'foo', b'bar'])
+        self.assertEqual(receiver.received, ['foo', 'bar', 'foo', 'bar'])
 
 
     def test_bindings(self):

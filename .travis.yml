@@ -6,8 +6,8 @@ python:
 install:
   - "pip install pytest Twisted coveralls . --use-mirrors"
 script:
-  - "coverage run -a $(which py.test) test_parsley.py"
+  - "coverage run $(which trial) test_parsley"
+  - "coverage run -a $(which trial) ometa"
   - "coverage run -a $(which py.test) examples"
-  - "cd ometa && coverage run -a $(which py.test) ."
 after_success:
   - "coveralls"

@@ -1,5 +1,4 @@
 import string
-import sys
 
 try:
     xrange
@@ -93,10 +92,10 @@ class TrampolinedGrammarInterpreter(object):
         @param args: A sequence of arguments to it.
         """
         if args:
-            if sys.version_info[0] < 3:
-                attrname = 'func_code'
-            else:
+            if basestring is str:
                 attrname = '__code__'
+            else:
+                attrname = 'func_code'
             if ((not getattr(rule, attrname, None))
                  or getattr(rule, attrname).co_argcount - 1 != len(args)):
                 for arg in args[::-1]:
@@ -511,6 +510,7 @@ class GrammarInterpreter(object):
         self._globals = globals or {}
         if basestring is str:
             self._globals['basestring'] = str
+            self._globals['unichr'] = chr
         self.rules = decomposeGrammar(grammar)
         self.run = None
         self._spanStart = 0

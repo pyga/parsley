@@ -195,7 +195,7 @@ class InputStream(object):
         """
         if isinstance(iterable, (character, unicodeCharacter)):
             raise TypeError("Characters are not iterable")
-        if isinstance(iterable, str):
+        if isinstance(iterable, bytes):
             return WrappedValueInputStream(iterable, 0, wrapper=character)
         elif isinstance(iterable, unicode):
             return WrappedValueInputStream(iterable, 0,
@@ -397,7 +397,9 @@ class OMetaBase(object):
                 self.globals = {}
             else:
                 self.globals = globals
-
+        if basestring is str:
+            self.globals['basestring'] = str
+            self.globals['unichr'] = chr
         self.currentError = self.input.nullError()
 
     def considerError(self, error, typ=None):
@@ -472,8 +474,12 @@ class OMetaBase(object):
         @param args: A sequence of arguments to it.
         """
         if args:
-            if ((not getattr(rule, 'func_code', None))
-                 or rule.func_code.co_argcount - 1 != len(args)):
+            if basestring is str:
+                attrname = '__code__'
+            else:
+                attrname = 'func_code'
+            if ((not getattr(rule, attrname, None))
+                 or getattr(rule, attrname).co_argcount - 1 != len(args)):
                 for arg in args[::-1]:
                     self.input = ArgInput(arg, self.input)
                 return rule()

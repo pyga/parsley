@@ -462,11 +462,7 @@ def createParserClass(GrammarBase, ruleGlobals):
                 _G_consumedby_161, lastError = self.consumedby(_G_consumedby_156)
                 self.considerError(lastError, None)
                 _locals['hs'] = _G_consumedby_161
-                try:
-                    _G_python_162, lastError = eval('unichr(int(hs, 16))', self.globals, _locals), None
-                except:
-                    print('*** %s' % self.__class__.__bases__)
-                    raise
+                _G_python_162, lastError = eval('unichr(int(hs, 16))', self.globals, _locals), None
                 self.considerError(lastError, None)
                 return (_G_python_162, self.currentError)
             def _G_or_163():

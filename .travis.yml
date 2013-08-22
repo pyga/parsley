@@ -1,0 +1,14 @@
+language: python
+python:
+  - "2.6"
+  - "2.7"
+  - "3.2"
+
+install:
+  - "pip install pytest Twisted coveralls . --use-mirrors"
+script:
+  - "coverage run $(which trial) test_parsley"
+  - "coverage run -a $(which trial) ometa"
+  - "coverage run -a $(which py.test) examples"
+after_success:
+  - "coveralls"

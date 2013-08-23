@@ -1,0 +1,9 @@
+[run]
+source =
+    ometa
+    parsley.py
+    examples/parsley_json.py
+    examples/protocol/netstrings.py
+omit =
+    ometa/_generated/*
+    *test*.py

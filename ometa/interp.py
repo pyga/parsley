@@ -20,13 +20,13 @@ class TrampolinedGrammarInterpreter(object):
     An interpreter for OMeta grammars that processes input
     incrementally.
     """
-    def __init__(self, grammar, ruleName, callback=None, globals=None):
+    def __init__(self, grammar, rule, callback=None, globals=None):
         self.grammar = grammar
         self.position = 0
         self.callback = callback
         self.globals = globals or {}
         self.rules = decomposeGrammar(grammar)
-        self.next = self.apply(ruleName, None, ())
+        self.next = self.setNext(rule)
         self._localsStack = []
         self.currentResult = None
         self.input = InputStream([], 0)
@@ -66,6 +66,12 @@ class TrampolinedGrammarInterpreter(object):
             pass
         if self.callback:
             self.callback(*x)
+
+
+    def setNext(self, rule):
+        if not isinstance(rule, tuple):
+            rule = (rule, )
+        return self.apply(rule[0], None, rule[1:])
 
 
     ## Implementation note: each method, instead of being a function
@@ -148,10 +154,15 @@ class TrampolinedGrammarInterpreter(object):
         Invoke a rule, optionally with arguments.
         """
         argvals = []
-        for a in args:
-            for x in self._eval(a):
-                if x is _feed_me: yield x
-            argvals.append(x[0])
+        # we tell whether a rule is a manually set one by the codeName
+        # if it's None, then we think it's set by setNext
+        if codeName is None:
+            argvals = args
+        else:
+            for a in args:
+                for x in self._eval(a):
+                    if x is _feed_me: yield x
+                argvals.append(x[0])
         _locals = {}
         self._localsStack.append(_locals)
         try:

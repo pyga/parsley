@@ -42,6 +42,8 @@ class TrampolinedParser:
         """
         if self._buffer:
             data = self._buffer + data
+            # Note here to reset the buffer
+            self._buffer = b''
         while data and not getattr(self.receiver, "paused", False):
             status = self._interp.receive(data)
             if status is _feed_me:

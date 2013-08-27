@@ -26,7 +26,7 @@ class TrampolinedParser:
         'initial'.
         """
         self._interp = TrampolinedGrammarInterpreter(
-            grammar=self.grammar, ruleName=self.receiver.currentRule,
+            grammar=self.grammar, rule=self.receiver.currentRule,
             callback=None, globals=self.bindings)
 
 

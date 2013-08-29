@@ -35,6 +35,9 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
             delimiter = '\r\n'
             initial = <(~delimiter anything)*>:val delimiter -> receiver.receive(val)
             witharg :arg1 :arg2 = <(~delimiter anything)*>:a delimiter -> receiver.receive(arg1+arg2+a)
+
+            bindings = digit:d (-> int(d)+SMALL_INT):val -> receiver.receive(val)
+            items = <anything{2}>:item -> receiver.receive(item)
         """
         self.grammar = self._parseGrammar(_grammar)
 
@@ -70,11 +73,9 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         The passed-in bindings should be accessible inside the grammar.
         """
         receiver = TrampolinedReceiver()
-        grammar = r"""
-            initial = digit:d (-> int(d)+SMALL_INT):val -> receiver.receive(val)
-        """
         bindings = {'SMALL_INT': 3}
-        TrampolinedParser(self._parseGrammar(grammar), receiver, bindings).receive('0')
+        receiver.currentRule = "bindings"
+        TrampolinedParser(self.grammar, receiver, bindings).receive('0')
         self.assertEqual(receiver.received, [3])
 
 
@@ -89,3 +90,25 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
         self.assertEqual(receiver.received, ["nice day oh yes"])
+
+
+    def test_pauseParsing(self):
+        """
+        TrampolinedParser should be able to pause parsing.
+        """
+        receiver = TrampolinedReceiver()
+        receiver.currentRule = "items"
+        trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
+        teststring = b'whatanicedayitis'
+        buf = [teststring[i:i+2] for i in range(0, len(teststring), 2)]
+        for c in buf[:2]:
+            trampolinedParser.receive(c)
+        trampolinedParser._interp.paused = True
+        for c in buf[2:]:
+            trampolinedParser.receive(c)
+        self.assertEqual(['wh', 'at'], receiver.received)
+        trampolinedParser._interp.paused = False
+        trampolinedParser.receive(b'')
+        self.assertEqual(buf, receiver.received)
+
+

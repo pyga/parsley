@@ -40,7 +40,7 @@ class TrampolinedGrammarInterpreter(object):
         """
         Feed data to the parser.
         """
-        if not buf:
+        if not buf and not self.hasPendingData():
             # No data. Nothing to do.
             return
         if self.ended:
@@ -55,6 +55,9 @@ class TrampolinedGrammarInterpreter(object):
         if self.callback:
             self.callback(*x)
         self.ended = True
+
+    def hasPendingData(self):
+        return len(self.input.data) > 0
 
 
     def end(self):

@@ -37,26 +37,21 @@ class TrampolinedParser:
 
         @param data: The raw data received.
         """
-        while data:
-            print("data got:", data)
+        while data or self._interp.hasPendingData():
             status = self._interp.receive(data)
             if status in (_feed_me, _paused):
-                print("inside staus", self._interp.paused)
                 return
             data = ''.join(self._interp.input.data[self._interp.input.position:])
-            print(self._interp.paused)
             self._setupInterp(self._interp.paused)
 
     def pauseProducing(self):
         self._interp.paused = True
-        print("paused::::::")
         self.receiver.transport.pauseProducing()
 
     def resumeProducing(self):
         self._interp.paused = False
-        print("resumbed:::::")
         self.receiver.transport.resumeProducing()
-        self.receiver.dataReceived(b'sdf')
+        self.receiver.dataReceived(b'')
 
     def stopProducing(self):
         self._interp.paused = True

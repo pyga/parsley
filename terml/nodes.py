@@ -24,6 +24,10 @@ class Term(_Term):
             return False
 
 
+    def __hash__(self):
+        return hash((Term, self.tag, self.data, self.args))
+
+
     def __repr__(self):
         return "term('%s')" % (self._unparse(4).replace("'", "\\'"))
 
@@ -104,6 +108,9 @@ class Tag(object):
 
     def __repr__(self):
         return "Tag(%r)" % (self.name,)
+
+    def __hash__(self):
+        return hash((Tag, self.name))
 
     def _unparse(self, indentLevel=0):
         return self.name

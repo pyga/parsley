@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+from StringIO import StringIO
+
 from twisted.trial import unittest
 from twisted.python.compat import iterbytes
 
 
 from ometa.grammar import OMeta
-from ometa.tube import TrampolinedParser
+from ometa.tube import iterGrammar, TrampolinedParser
 
 
 class TrampolinedReceiver():
@@ -89,3 +91,21 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
         self.assertEqual(receiver.received, ["nice day oh yes"])
+
+
+
+class TestIterGrammmar(unittest.SynchronousTestCase):
+    """
+    Tests for L{ometa.tube.iterGrammar}.
+    """
+
+    def testIterGrammar(self):
+        grammar =  r"""
+            delimiter = ':'
+            initial = <(~delimiter anything)*>:val delimiter -> val
+        """
+        grammar = OMeta(grammar).parseGrammar('Grammar')
+        input_data = 'foo:bar:baz:'
+        self.assertEqual(
+            ['foo', 'bar', 'baz'],
+            list(iterGrammar(grammar, 'initial', StringIO(input_data))))

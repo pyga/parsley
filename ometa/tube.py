@@ -50,11 +50,12 @@ def _pumpInterpreter(interpFactory, dataChunk, interp=None):
 
 
 
-def iterGrammar(grammar, rule, input_stream):
+def iterGrammar(grammar, bindings, rule, input_stream):
     """
     Repeatedly apply rule to an input stream, and yield matches.
 
     @param grammar: An ometa grammar.
+    @param bindings: Bindings for the grammar.
     @param rule: The name of the rule to match.  Matches will be yielded.
     @param input_stream: The stream to read.  Will be read incrementally.
     """
@@ -65,7 +66,8 @@ def iterGrammar(grammar, rule, input_stream):
         tokens.append(token)
 
     def makeInterpreter():
-        return TrampolinedGrammarInterpreter(grammar, rule, callback=append)
+        return TrampolinedGrammarInterpreter(
+            grammar, rule, callback=append, globals=bindings)
 
     while True:
         data = input_stream.read()

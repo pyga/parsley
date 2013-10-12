@@ -108,4 +108,4 @@ class TestIterGrammmar(unittest.SynchronousTestCase):
         input_data = 'foo:bar:baz:'
         self.assertEqual(
             ['foo', 'bar', 'baz'],
-            list(iterGrammar(grammar, 'initial', StringIO(input_data))))
+            list(iterGrammar(grammar, {}, 'initial', StringIO(input_data))))

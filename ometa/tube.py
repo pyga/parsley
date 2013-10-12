@@ -17,15 +17,11 @@ class TrampolinedParser:
         self.grammar = grammar
         self.bindings = dict(bindings)
         self.bindings['receiver'] = self.receiver = receiver
-        self._setupInterp()
+        self._interp = self._makeInterp()
 
 
-    def _setupInterp(self):
-        """
-        Resets the parser. The parser will begin parsing with the rule named
-        'initial'.
-        """
-        self._interp = TrampolinedGrammarInterpreter(
+    def _makeInterp(self):
+        return TrampolinedGrammarInterpreter(
             grammar=self.grammar, rule=self.receiver.currentRule,
             callback=None, globals=self.bindings)
 
@@ -37,12 +33,20 @@ class TrampolinedParser:
 
         @param data: The raw data received.
         """
-        while data:
-            status = self._interp.receive(data)
-            if status is _feed_me:
-                return
-            data = ''.join(self._interp.input.data[self._interp.input.position:])
-            self._setupInterp()
+        self._interp = _pumpInterpreter(self._makeInterp, data, self._interp)
+
+
+
+def _pumpInterpreter(interpFactory, dataChunk, interp=None):
+    if interp is None:
+        interp = interpFactory()
+    while dataChunk:
+        status = interp.receive(dataChunk)
+        if status is _feed_me:
+            break
+        dataChunk = ''.join(interp.input.data[interp.input.position:])
+        interp = interpFactory()
+    return interp
 
 
 
@@ -60,20 +64,14 @@ def iterGrammar(grammar, rule, input_stream):
             raise error
         tokens.append(token)
 
-    interp = None
+    def makeInterpreter():
+        return TrampolinedGrammarInterpreter(grammar, rule, callback=append)
+
     while True:
         data = input_stream.read()
         if not data:
             break
-        while data:
-            if interp is None or interp.ended:
-                interp = TrampolinedGrammarInterpreter(
-                    grammar, rule, callback=append)
-            status = interp.receive(data)
-            if status is _feed_me:
-                break
-            data = ''.join(interp.input.data[interp.input.position:])
+        _pumpInterpreter(makeInterpreter, data)
         for token in tokens:
             yield token
         tokens[:] = []
-    interp.end()

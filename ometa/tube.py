@@ -37,7 +37,7 @@ class TrampolinedParser:
 
 
 
-def _pumpInterpreter(interpFactory, dataChunk, interp=None):
+def _pumpInterpreter(interpFactory, dataChunk, interp=None, end=False):
     if interp is None:
         interp = interpFactory()
     while dataChunk:
@@ -46,11 +46,13 @@ def _pumpInterpreter(interpFactory, dataChunk, interp=None):
             break
         dataChunk = ''.join(interp.input.data[interp.input.position:])
         interp = interpFactory()
+    if end and not interp.ended:
+        interp.end()
     return interp
 
 
 
-def iterGrammar(grammar, bindings, rule, input_stream):
+def iterGrammar(grammar, bindings, rule, input_stream, end=False):
     """
     Repeatedly apply rule to an input stream, and yield matches.
 
@@ -58,6 +60,8 @@ def iterGrammar(grammar, bindings, rule, input_stream):
     @param bindings: Bindings for the grammar.
     @param rule: The name of the rule to match.  Matches will be yielded.
     @param input_stream: The stream to read.  Will be read incrementally.
+    @param end: Whether to tell the grammar that no more input will arrive
+        when the stream is exhausted.
     """
     tokens = []  # Should really be an explicit queue.
     def append(token, error):
@@ -73,7 +77,7 @@ def iterGrammar(grammar, bindings, rule, input_stream):
         data = input_stream.read()
         if not data:
             break
-        _pumpInterpreter(makeInterpreter, data)
+        _pumpInterpreter(makeInterpreter, data, end=end)
         for token in tokens:
             yield token
         tokens[:] = []

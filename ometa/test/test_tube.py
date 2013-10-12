@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import io
 from StringIO import StringIO
 
 from twisted.trial import unittest
@@ -99,13 +100,61 @@ class TestIterGrammmar(unittest.SynchronousTestCase):
     Tests for L{ometa.tube.iterGrammar}.
     """
 
-    def testIterGrammar(self):
+    def makeGrammar(self):
         grammar =  r"""
             delimiter = ':'
-            initial = <(~delimiter anything)*>:val delimiter -> val
+            initial = <(~delimiter anything)*>:val delimiter? -> val
         """
-        grammar = OMeta(grammar).parseGrammar('Grammar')
+        return OMeta(grammar).parseGrammar('Grammar')
+
+
+    def test_wholeThing(self):
+        """
+        iterGrammar repeatedly applies a rule, returning matches until the
+        input stream is exhausted.
+        """
+        grammar = self.makeGrammar()
         input_data = 'foo:bar:baz:'
         self.assertEqual(
             ['foo', 'bar', 'baz'],
             list(iterGrammar(grammar, {}, 'initial', StringIO(input_data))))
+
+
+    def test_byteAtATime(self):
+        """
+        iterGrammar properly handles data that comes in slowly, only yielding
+        when a rule is finally matched.
+        """
+        grammar = self.makeGrammar()
+        input_data = 'foo:bar:baz:'
+        stream = io.BufferedReader(io.BytesIO(input_data), 1)
+        self.assertEqual(
+            ['foo', 'bar', 'baz'],
+            list(iterGrammar(grammar, {}, 'initial', stream)))
+
+
+    def test_optionalBehaviour(self):
+        """
+        If end=True is passed to iterGrammar, it will tell the grammar to
+        expect no more input after the stream is exhausted.
+        """
+        grammar = self.makeGrammar()
+        input_data = 'foo:bar:baz:qux'
+        stream = io.BufferedReader(io.BytesIO(input_data), 5)
+        self.assertEqual(
+            ['foo', 'bar', 'baz', 'qux'],
+            list(iterGrammar(grammar, {}, 'initial', stream, end=True)))
+
+
+    def test_actuallyIterates(self):
+        """
+        iterGrammar returns an iterator that implements the standard iter()
+        interface.
+        """
+        grammar = self.makeGrammar()
+        input_data = 'foo:bar:baz:'
+        output = iterGrammar(grammar, {}, 'initial', StringIO(input_data))
+        self.assertEqual('foo', output.next())
+        self.assertEqual('bar', output.next())
+        self.assertEqual('baz', output.next())
+        self.assertRaises(StopIteration, output.next)

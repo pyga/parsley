@@ -4,7 +4,7 @@ python:
   - "2.7"
 
 install:
-  - "pip install pytest Twisted coveralls . --use-mirrors"
+  - "pip install pytest Twisted coveralls pytz . --use-mirrors"
 script:
   - "coverage run $(which trial) test_parsley"
   - "coverage run -a $(which trial) ometa"

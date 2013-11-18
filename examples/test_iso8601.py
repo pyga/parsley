@@ -1,12 +1,18 @@
 import datetime
 import unittest
 
-import pytz
-
-from iso8601 import DateTimeParser
+try:
+    import pytz
+    from iso8601 import DateTimeParser
+except ImportError:
+    skip = 'pytz is not installed or usable'
+else:
+    skip = None
 
 
 class TestDatetimeParsing(unittest.TestCase):
+    if skip is not None:
+        skip = skip
 
     def test_date(self):
         self.assertEqual(

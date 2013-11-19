@@ -34,6 +34,7 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         _grammar =  r"""
             delimiter = '\r\n'
             initial = <(~delimiter anything)*>:val delimiter -> receiver.receive(val)
+            witharg :arg1 :arg2 = <(~delimiter anything)*>:a delimiter -> receiver.receive(arg1+arg2+a)
         """
         self.grammar = self._parseGrammar(_grammar)
 
@@ -75,3 +76,16 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         bindings = {'SMALL_INT': 3}
         TrampolinedParser(self._parseGrammar(grammar), receiver, bindings).receive('0')
         self.assertEqual(receiver.received, [3])
+
+
+    def test_currentRuleWithArgs(self):
+        """
+        TrampolinedParser should be able to invoke curruent rule with args.
+        """
+        receiver = TrampolinedReceiver()
+        receiver.currentRule = "witharg", "nice ", "day"
+        trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
+        buf = b' oh yes\r\n'
+        for c in iterbytes(buf):
+            trampolinedParser.receive(c)
+        self.assertEqual(receiver.received, ["nice day oh yes"])

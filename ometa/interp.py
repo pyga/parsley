@@ -1,14 +1,4 @@
 import string
-
-try:
-    xrange
-except NameError:
-    xrange = range
-try:
-    basestring
-except NameError:
-    basestring = str
-
 from ometa.runtime import (InputStream, ParseError, EOFError, ArgInput,
                            joinErrors, expected, LeftRecursion)
 
@@ -30,13 +20,13 @@ class TrampolinedGrammarInterpreter(object):
     An interpreter for OMeta grammars that processes input
     incrementally.
     """
-    def __init__(self, grammar, ruleName, callback=None, globals=None):
+    def __init__(self, grammar, rule, callback=None, globals=None):
         self.grammar = grammar
         self.position = 0
         self.callback = callback
         self.globals = globals or {}
         self.rules = decomposeGrammar(grammar)
-        self.next_ = self.apply(ruleName, None, ())
+        self.next = self.setNext(rule)
         self._localsStack = []
         self.currentResult = None
         self.input = InputStream([], 0)
@@ -55,7 +45,7 @@ class TrampolinedGrammarInterpreter(object):
             raise ValueError("Can't feed a parser that's been ended.")
         self.input.data.extend(buf)
         x = None
-        for x in self.next_:
+        for x in self.next:
             if x is _feed_me:
                 return x
         if self.callback:
@@ -72,10 +62,16 @@ class TrampolinedGrammarInterpreter(object):
             return
         self.ended = True
         x = None
-        for x in self.next_:
+        for x in self.next:
             pass
         if self.callback:
             self.callback(*x)
+
+
+    def setNext(self, rule):
+        if not isinstance(rule, tuple):
+            rule = (rule, )
+        return self.apply(rule[0], None, rule[1:])
 
 
     ## Implementation note: each method, instead of being a function
@@ -92,12 +88,8 @@ class TrampolinedGrammarInterpreter(object):
         @param args: A sequence of arguments to it.
         """
         if args:
-            if basestring is str:
-                attrname = '__code__'
-            else:
-                attrname = 'func_code'
-            if ((not getattr(rule, attrname, None))
-                 or getattr(rule, attrname).co_argcount - 1 != len(args)):
+            if ((not getattr(rule, 'func_code', None))
+                 or rule.func_code.co_argcount - 1 != len(args)):
                 for arg in args[::-1]:
                     self.input = ArgInput(arg, self.input)
                 g = rule()
@@ -162,10 +154,15 @@ class TrampolinedGrammarInterpreter(object):
         Invoke a rule, optionally with arguments.
         """
         argvals = []
-        for a in args:
-            for x in self._eval(a):
-                if x is _feed_me: yield x
-            argvals.append(x[0])
+        # we tell whether a rule is a manually set one by the codeName
+        # if it's None, then we think it's set by setNext
+        if codeName is None:
+            argvals = args
+        else:
+            for a in args:
+                for x in self._eval(a):
+                    if x is _feed_me: yield x
+                argvals.append(x[0])
         _locals = {}
         self._localsStack.append(_locals)
         try:
@@ -263,7 +260,7 @@ class TrampolinedGrammarInterpreter(object):
                 self.currentError = joinErrors(errors)
                 yield x
                 return
-            except ParseError as err:
+            except ParseError, err:
                 errors.append(err)
                 self.input = i
         raise self.err(joinErrors(errors))
@@ -282,8 +279,7 @@ class TrampolinedGrammarInterpreter(object):
                     if x is _feed_me: yield x
                 ans.append(x[0])
                 self.currentError = x[1]
-            except ParseError as e:
-                err = e
+            except ParseError, err:
                 self.input = m
                 break
         yield ans, err
@@ -336,8 +332,7 @@ class TrampolinedGrammarInterpreter(object):
                         if x is _feed_me: yield x
                     v, e = x
                     ans.append(v)
-                except ParseError as err:
-                    e = err
+                except ParseError, e:
                     self.input = m
                     break
         yield ans, e
@@ -384,10 +379,10 @@ class TrampolinedGrammarInterpreter(object):
             for x in self._eval(expr):
                 if x is _feed_me:
                     yield x
-            print("^^ %s" % label)
+            print "^^", label
             self.currentError = x[1].withMessage([("Custom Exception:", label, None)])
             yield x[0], self.currentError
-        except ParseError as e:
+        except ParseError, e:
             raise self.err(e.withMessage([("Custom Exception:", label, None)]))
 
 
@@ -472,7 +467,7 @@ class TrampolinedGrammarInterpreter(object):
         except EOFError:
             yield _feed_me
             val, p = self.input.head()
-        if val in getattr(string, 'letters', string.ascii_letters):
+        if val in string.letters:
             self.input = self.input.tail()
             yield val, p
         else:
@@ -508,9 +503,6 @@ class GrammarInterpreter(object):
         self.rules = {}
         self._localsStack = []
         self._globals = globals or {}
-        if basestring is str:
-            self._globals['basestring'] = str
-            self._globals['unichr'] = chr
         self.rules = decomposeGrammar(grammar)
         self.run = None
         self._spanStart = 0
@@ -562,7 +554,7 @@ class GrammarInterpreter(object):
             try:
                 val, err = self._eval(run, args[0])
                 return val, err.withMessage([("Custom Exception:", label, None)])
-            except ParseError as e:
+            except ParseError, e:
                 raise e.withMessage([("Custom Exception:", label, None)])
 
         elif name == "Token":
@@ -578,8 +570,7 @@ class GrammarInterpreter(object):
                     m = run.input
                     v, _ = self._eval(run, args[0])
                     ans.append(v)
-                except ParseError as e:
-                    err = e
+                except ParseError, err:
                     run.input = m
                     break
             return ans, err
@@ -607,8 +598,7 @@ class GrammarInterpreter(object):
                     m = run.input
                     v, e = self._eval(run, args[2])
                     ans.append(v)
-                except ParseError as err:
-                    e = err
+                except ParseError, e:
                     run.input = m
                     break
             return ans, e
@@ -630,7 +620,7 @@ class GrammarInterpreter(object):
                     ret, err = x
                     errors.append(err)
                     return ret, joinErrors(errors)
-                except ParseError as err:
+                except ParseError, err:
                     errors.append(err)
                     run.input = m
             raise joinErrors(errors)
@@ -640,7 +630,7 @@ class GrammarInterpreter(object):
             m = run.input
             try:
                 self._eval(run, args[0])
-            except ParseError as err:
+            except ParseError, err:
                 run.input = m
                 return True, run.input.nullError()
             else:

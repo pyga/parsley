@@ -1,6 +1,6 @@
 from twisted.trial import unittest
 from ometa.runtime import ParseError
-from terml.nodes import Tag, Term, coerceToTerm, TermMaker
+from terml.nodes import Tag, Term, coerceToTerm, TermMaker, termMaker
 from terml.parser import TermLParser, character, parseTerm
 
 
@@ -156,3 +156,9 @@ class ParserTest(unittest.TestCase):
             coerceToTerm({3: 4, "a": character('x'), (2, 3): [4, 5]}),
             parseTerm('{"a": \'x\', 3: 4, [2, 3]: [4, 5]}'))
 
+
+    def test_hash(self):
+        t = TermMaker()
+        a = t.Arbitrary('foo')
+        b = t.Arbitrary('foo')
+        self.assertEqual(hash(a), hash(b))

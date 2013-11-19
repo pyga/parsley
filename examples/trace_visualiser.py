@@ -1,5 +1,5 @@
-from ScrolledText import ScrolledText
-import Tkinter as tk
+from tkinter.scrolledtext import ScrolledText
+import tkinter as tk
 
 from trace_json import traceparse
 from parsley_json import jsonGrammar

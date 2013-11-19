@@ -627,7 +627,8 @@ class OMetaBase(object):
         while True:
             try:
                 c, e = self.input.head()
-            except EOFError as e:
+            except EOFError as err:
+                e = err
                 break
             tl = self.input.tail()
             if c.isspace():

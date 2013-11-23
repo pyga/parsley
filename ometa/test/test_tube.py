@@ -117,7 +117,7 @@ class TestIterGrammmar(unittest.SynchronousTestCase):
         input_data = 'foo:bar:baz:'
         self.assertEqual(
             ['foo', 'bar', 'baz'],
-            list(iterGrammar(grammar, {}, 'initial', StringIO(input_data))))
+            list(iterGrammar(grammar, 'initial', StringIO(input_data))))
 
 
     def test_byteAtATime(self):
@@ -130,20 +130,21 @@ class TestIterGrammmar(unittest.SynchronousTestCase):
         stream = io.BufferedReader(io.BytesIO(input_data), 1)
         self.assertEqual(
             ['foo', 'bar', 'baz'],
-            list(iterGrammar(grammar, {}, 'initial', stream)))
+            list(iterGrammar(grammar, 'initial', stream)))
 
 
     def test_optionalBehaviour(self):
         """
-        If end=True is passed to iterGrammar, it will tell the grammar to
-        expect no more input after the stream is exhausted.
+        If streamEndsGrammar=True is passed to iterGrammar, it will tell the
+        grammar to expect no more input after the stream is exhausted.
         """
         grammar = self.makeGrammar()
         input_data = 'foo:bar:baz:qux'
         stream = io.BufferedReader(io.BytesIO(input_data), 5)
         self.assertEqual(
             ['foo', 'bar', 'baz', 'qux'],
-            list(iterGrammar(grammar, {}, 'initial', stream, end=True)))
+            list(iterGrammar(grammar, 'initial', stream,
+                             streamEndsGrammar=True)))
 
 
     def test_actuallyIterates(self):
@@ -153,7 +154,7 @@ class TestIterGrammmar(unittest.SynchronousTestCase):
         """
         grammar = self.makeGrammar()
         input_data = 'foo:bar:baz:'
-        output = iterGrammar(grammar, {}, 'initial', StringIO(input_data))
+        output = iterGrammar(grammar, 'initial', StringIO(input_data))
         self.assertEqual('foo', output.next())
         self.assertEqual('bar', output.next())
         self.assertEqual('baz', output.next())

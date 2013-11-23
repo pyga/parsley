@@ -52,17 +52,21 @@ def _pumpInterpreter(interpFactory, dataChunk, interp=None, end=False):
 
 
 
-def iterGrammar(grammar, bindings, rule, input_stream, end=False):
+def iterGrammar(grammar, rule, inputStream, bindings=None,
+                streamEndsGrammar=False, buffer_size=-1):
     """
     Repeatedly apply rule to an input stream, and yield matches.
 
-    @param grammar: An ometa grammar.
-    @param bindings: Bindings for the grammar.
-    @param rule: The name of the rule to match.  Matches will be yielded.
-    @param input_stream: The stream to read.  Will be read incrementally.
-    @param end: Whether to tell the grammar that no more input will arrive
-        when the stream is exhausted.
+    :param grammar: An ometa grammar.
+    :param rule: The name of the rule to match.  Matches will be yielded.
+    :param inputStream: The stream to read.  Will be read incrementally.
+    :param bindings: Bindings for the grammar.
+    :param streamEndsGrammar: Whether to tell the grammar that no more
+        input will arrive when the stream is exhausted.
+    :param buffer_size: The size of chunks to read from input stream.
     """
+    if bindings is None:
+        bindings = {}
     tokens = []  # Should really be an explicit queue.
     def append(token, error):
         if error.error:
@@ -74,10 +78,10 @@ def iterGrammar(grammar, bindings, rule, input_stream, end=False):
             grammar, rule, callback=append, globals=bindings)
 
     while True:
-        data = input_stream.read()
+        data = inputStream.read(buffer_size)
         if not data:
             break
-        _pumpInterpreter(makeInterpreter, data, end=end)
+        _pumpInterpreter(makeInterpreter, data, end=streamEndsGrammar)
         for token in tokens:
             yield token
-        tokens[:] = []
+        tokens = []

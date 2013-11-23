@@ -17,15 +17,11 @@ class TrampolinedParser:
         self.grammar = grammar
         self.bindings = dict(bindings)
         self.bindings['receiver'] = self.receiver = receiver
-        self._setupInterp()
+        self._interp = self._makeInterp()
 
 
-    def _setupInterp(self):
-        """
-        Resets the parser. The parser will begin parsing with the rule named
-        'initial'.
-        """
-        self._interp = TrampolinedGrammarInterpreter(
+    def _makeInterp(self):
+        return TrampolinedGrammarInterpreter(
             grammar=self.grammar, rule=self.receiver.currentRule,
             callback=None, globals=self.bindings)
 
@@ -37,9 +33,55 @@ class TrampolinedParser:
 
         @param data: The raw data received.
         """
-        while data:
-            status = self._interp.receive(data)
-            if status is _feed_me:
-                return
-            data = ''.join(self._interp.input.data[self._interp.input.position:])
-            self._setupInterp()
+        self._interp = _pumpInterpreter(self._makeInterp, data, self._interp)
+
+
+
+def _pumpInterpreter(interpFactory, dataChunk, interp=None, end=False):
+    if interp is None:
+        interp = interpFactory()
+    while dataChunk:
+        status = interp.receive(dataChunk)
+        if status is _feed_me:
+            break
+        dataChunk = ''.join(interp.input.data[interp.input.position:])
+        interp = interpFactory()
+    if end and not interp.ended:
+        interp.end()
+    return interp
+
+
+
+def iterGrammar(grammar, rule, inputStream, bindings=None,
+                streamEndsGrammar=False, buffer_size=-1):
+    """
+    Repeatedly apply rule to an input stream, and yield matches.
+
+    :param grammar: An ometa grammar.
+    :param rule: The name of the rule to match.  Matches will be yielded.
+    :param inputStream: The stream to read.  Will be read incrementally.
+    :param bindings: Bindings for the grammar.
+    :param streamEndsGrammar: Whether to tell the grammar that no more
+        input will arrive when the stream is exhausted.
+    :param buffer_size: The size of chunks to read from input stream.
+    """
+    if bindings is None:
+        bindings = {}
+    tokens = []  # Should really be an explicit queue.
+    def append(token, error):
+        if error.error:
+            raise error
+        tokens.append(token)
+
+    def makeInterpreter():
+        return TrampolinedGrammarInterpreter(
+            grammar, rule, callback=append, globals=bindings)
+
+    while True:
+        data = inputStream.read(buffer_size)
+        if not data:
+            break
+        _pumpInterpreter(makeInterpreter, data, end=streamEndsGrammar)
+        for token in tokens:
+            yield token
+        tokens = []

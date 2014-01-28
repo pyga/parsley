@@ -75,7 +75,7 @@ class ParseError(Exception):
         parsing failure.
         """
         #de-twineifying
-        lines = str(self.input).split('\n')
+        lines = self.input.split('\n')
         counter = 0
         lineNo = 1
         columnNo = 0

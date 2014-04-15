@@ -1,9 +1,9 @@
 #from __future__ import unicode_literals
 
 import operator
-import sys
 from textwrap import dedent
-import unittest
+
+import pytest
 
 from ometa.grammar import OMeta, TermOMeta, TreeTransformerGrammar
 from ometa.compat import OMeta1
@@ -1271,7 +1271,7 @@ class TrampolinedInterpWrapper(object):
             """
             tree = not isinstance(s, basestring)
             if tree:
-                raise unittest.SkipTest("Not applicable for push parsing")
+                pytest.skip("Not applicable for push parsing")
             results = []
             def whenDone(val, err):
                 results.append(val)

@@ -6,10 +6,8 @@ python:
   - "3.3"
 
 install:
-  - "pip install pytest Twisted coveralls pytz . --use-mirrors"
+  - "pip install pytest coveralls pytz ."
 script:
-  - "coverage run $(which trial) test_parsley"
-  - "coverage run -a $(which trial) ometa"
-  - "coverage run -a $(which py.test) examples"
+  - "coverage run $(which py.test) ."
 after_success:
   - "coveralls"

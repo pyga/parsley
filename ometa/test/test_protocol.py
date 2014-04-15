@@ -1,15 +1,13 @@
-try:
-    from twisted.trial import unittest
-    from ometa.protocol import ParserProtocol
-except ImportError:
-    import unittest
-    skip = "twisted not installed or usable"
-else:
-    skip = None
+import unittest
+
+import pytest
 
 from ometa.grammar import OMeta
 from ometa.runtime import ParseError
 
+
+protocol = pytest.importorskip('ometa.protocol')
+ParserProtocol = protocol.ParserProtocol
 
 testingGrammarSource = """
 
@@ -69,11 +67,7 @@ class FakeTransport(object):
 
 
 class ParserProtocolTestCase(unittest.TestCase):
-    skip = skip
-
     def setUp(self):
-        if skip is not None:
-            raise unittest.SkipTest(skip)
         self.protocol = ParserProtocol(
             testGrammar, SenderFactory, ReceiverFactory, {})
 
@@ -168,8 +162,8 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.protocol.makeConnection(transport)
         self.protocol.dataReceived('b')
         self.failIfEqual(self.protocol.receiver.lossReason, None)
-        self.failUnlessIsInstance(self.protocol.receiver.lossReason.value,
-                                  ParseError)
+        self.assertTrue(
+            isinstance(self.protocol.receiver.lossReason.value, ParseError))
         self.assert_(transport.aborted)
 
     def test_exceptionsRaisedFromReceiver(self):
@@ -181,8 +175,8 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.protocol.makeConnection(transport)
         self.protocol.dataReceived('e')
         self.failIfEqual(self.protocol.receiver.lossReason, None)
-        self.failUnlessIsInstance(self.protocol.receiver.lossReason.value,
-                                  SomeException)
+        self.assertTrue(
+            isinstance(self.protocol.receiver.lossReason.value, SomeException))
         self.assert_(transport.aborted)
 
     def test_dataIgnoredAfterDisconnection(self):

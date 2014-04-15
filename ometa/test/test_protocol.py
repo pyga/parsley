@@ -72,6 +72,8 @@ class ParserProtocolTestCase(unittest.TestCase):
     skip = skip
 
     def setUp(self):
+        if skip is not None:
+            raise unittest.SkipTest(skip)
         self.protocol = ParserProtocol(
             testGrammar, SenderFactory, ReceiverFactory, {})
 

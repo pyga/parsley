@@ -5,8 +5,14 @@ python:
   - "3.2"
   - "3.3"
 
+matrix:
+  allow_failures:
+    # 2.6 doesn't have SkipTest, so it's going to fail.
+    - python: 2.6
+
 install:
-  - "pip install pytest coveralls pytz ."
+  # `pip install twisted` fails on python 3 except on trunk.
+  - "pip install pytest coveralls pytz . git+https://github.com/twisted/twisted"
 script:
   - "coverage run $(which py.test) ."
 after_success:

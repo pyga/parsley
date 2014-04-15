@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import unittest
 
@@ -88,7 +88,7 @@ class TrampolinedParserTestCase(unittest.TestCase):
         receiver = TrampolinedReceiver()
         receiver.currentRule = "witharg", "nice ", "day"
         trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
-        buf = b' oh yes\r\n'
+        buf = ' oh yes\r\n'
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
         self.assertEqual(receiver.received, ["nice day oh yes"])

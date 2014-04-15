@@ -1,17 +1,27 @@
-from twisted.trial import unittest
+import unittest
 from ometa.runtime import ParseError
 from terml.nodes import Tag, Term, coerceToTerm, TermMaker, termMaker
 from terml.parser import TermLParser, character, parseTerm
 
 
-class TermMakerTests(unittest.TestCase):
+class TestCase(unittest.TestCase):
+    def assertRaises(self, ex, f, *args, **kwargs):
+        try:
+            f(*args, **kwargs)
+        except ex as e:
+            return e
+        else:
+            assert False, "%r didn't raise %r" % (f, ex)
+
+
+class TermMakerTests(TestCase):
     def test_make(self):
         m = TermMaker()
         t1 = m.Foo(1, 'a', m.Baz())
         self.assertEqual(t1, parseTerm('Foo(1, "a", Baz)'))
 
 
-class ParserTest(unittest.TestCase):
+class ParserTest(TestCase):
     """
     Test TermL parser rules.
     """

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from twisted.trial import unittest
+import unittest
 from twisted.python.compat import iterbytes
 
 
@@ -22,7 +22,7 @@ class TrampolinedReceiver():
         self.received.append(data)
 
 
-class TrampolinedParserTestCase(unittest.SynchronousTestCase):
+class TrampolinedParserTestCase(unittest.TestCase):
     """
     Tests for L{ometa.tube.TrampolinedParser}
     """

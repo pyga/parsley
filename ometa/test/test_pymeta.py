@@ -3,13 +3,15 @@
 import operator
 import sys
 from textwrap import dedent
-from twisted.trial import unittest
+import unittest
+
 from ometa.grammar import OMeta, TermOMeta, TreeTransformerGrammar
 from ometa.compat import OMeta1
 from ometa.runtime import (ParseError, OMetaBase, OMetaGrammarBase, EOFError,
                            expected, TreeTransformerBase)
 from ometa.interp import GrammarInterpreter, TrampolinedGrammarInterpreter
 from terml.parser import parseTerm as term
+from ometa.test.helpers import TestCase
 
 try:
     basestring
@@ -53,7 +55,7 @@ class HandyWrapper(object):
 
 
 
-class OMeta1TestCase(unittest.TestCase):
+class OMeta1TestCase(TestCase):
     """
     Tests of OMeta grammar compilation, with v1 syntax.
     """
@@ -418,7 +420,7 @@ class OMeta1TestCase(unittest.TestCase):
 
 
 
-class OMetaTestCase(unittest.TestCase):
+class OMetaTestCase(TestCase):
     """
     Tests of OMeta grammar compilation.
     """
@@ -1076,7 +1078,7 @@ class TermActionGrammarTests(OMetaTestCase):
 
 
 
-class PyExtractorTest(unittest.TestCase):
+class PyExtractorTest(TestCase):
     """
     Tests for finding Python expressions in OMeta grammars.
     """
@@ -1111,7 +1113,7 @@ class PyExtractorTest(unittest.TestCase):
         self.assertRaises(ParseError, o.pythonExpr)
 
 
-class MakeGrammarTest(unittest.TestCase):
+class MakeGrammarTest(TestCase):
     """
     Test the definition of grammars via the 'makeGrammar' method.
     """
@@ -1325,7 +1327,7 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
 
 
 
-class TreeTransformerTestCase(unittest.TestCase):
+class TreeTransformerTestCase(TestCase):
 
     def compile(self, grammar, namespace=None):
         """
@@ -1439,7 +1441,7 @@ class TreeTransformerTestCase(unittest.TestCase):
 
 
 
-class ErrorReportingTests(unittest.TestCase):
+class ErrorReportingTests(TestCase):
 
 
     def compile(self, grammar):

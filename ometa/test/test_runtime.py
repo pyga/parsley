@@ -172,8 +172,9 @@ class RuntimeTests(TestCase):
                                lambda: o.token("foz"),
                                lambda: o.token("f")])
         self.assertEqual(e.args[0], 2)
-        self.assertEqual(e.args[1], [expected("token", "fog")[0],
-                                     expected("token", "foz")[0]])
+        self.assertEqual(set(e.args[1]),
+                set([expected("token", "fog")[0],
+                     expected("token", "foz")[0]]))
 
 
     def test_notError(self):

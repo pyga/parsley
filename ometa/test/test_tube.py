@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
 import unittest
-from twisted.python.compat import iterbytes
-
 
 from ometa.grammar import OMeta
 from ometa.tube import TrampolinedParser
+
+
+def iterbytes(originalBytes):
+    for i in range(len(originalBytes)):
+        yield originalBytes[i:i+1]
 
 
 class TrampolinedReceiver():

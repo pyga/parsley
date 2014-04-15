@@ -1487,10 +1487,11 @@ class ErrorReportingTests(TestCase):
 
         #matching "some" means second branch of 'start' is taken
         self.assertEqual(e.position, 23)
-        self.assertEqual(e.error, [('expected', "token", "bananas"),
-                                   ('expected', 'token', "bacon"),
-                                   ('expected', "token", "robots"),
-                                   ('expected', "token", "americans")])
+        self.assertEqual(set(e.error),
+                set([('expected', "token", "bananas"),
+                     ('expected', 'token', "bacon"),
+                     ('expected', "token", "robots"),
+                     ('expected', "token", "americans")]))
 
         e = self.assertRaises(ParseError, g.start,
                               "crazy horse likes mountains")
@@ -1498,11 +1499,12 @@ class ErrorReportingTests(TestCase):
         #no "some" means first branch of 'start' is taken...
         #but second is also viable
         self.assertEqual(e.position, 18)
-        self.assertEqual(e.error, [('expected', "token", "some"),
-                                   ('expected', "token", "bananas"),
-                                   ('expected', 'token', "bacon"),
-                                   ('expected', "token", "robots"),
-                                   ('expected', "token", "americans")])
+        self.assertEqual(set(e.error),
+                set([('expected', "token", "some"),
+                     ('expected', "token", "bananas"),
+                     ('expected', 'token', "bacon"),
+                     ('expected', "token", "robots"),
+                     ('expected', "token", "americans")]))
 
 
     def test_formattedReporting(self):

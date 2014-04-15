@@ -272,6 +272,7 @@ class TrampolinedGrammarInterpreter(object):
         collecting the results into a list. Implementation of '*'.
         """
         ans = ans or []
+        err = None
         while True:
             try:
                 m = self.input
@@ -279,7 +280,8 @@ class TrampolinedGrammarInterpreter(object):
                     if x is _feed_me: yield x
                 ans.append(x[0])
                 self.currentError = x[1]
-            except ParseError as err:
+            except ParseError as error:
+                err = error
                 self.input = m
                 break
         yield ans, err
@@ -313,6 +315,8 @@ class TrampolinedGrammarInterpreter(object):
         else:
             max = self._localsStack[-1][max.data]
 
+        e = None
+
         if min == max == 0:
             yield '', None
             return
@@ -332,7 +336,8 @@ class TrampolinedGrammarInterpreter(object):
                         if x is _feed_me: yield x
                     v, e = x
                     ans.append(v)
-                except ParseError as e:
+                except ParseError as err:
+                    e = err
                     self.input = m
                     break
         yield ans, e
@@ -468,7 +473,7 @@ class TrampolinedGrammarInterpreter(object):
         except EOFError:
             yield _feed_me
             val, p = self.input.head()
-        if val in string.letters:
+        if val in string.ascii_letters:
             self.input = self.input.tail()
             yield val, p
         else:
@@ -490,7 +495,7 @@ class TrampolinedGrammarInterpreter(object):
             raise self.err(p.withMessage(expected("digit")))
 
     def err(self, e):
-        e.input = ''.join(e.input)
+        e.input = ''.join(str(i) for i in e.input)
         raise e
 
 class GrammarInterpreter(object):
@@ -511,7 +516,7 @@ class GrammarInterpreter(object):
     def apply(self, input, rulename, tree=False):
         self.run = self.base(input, self._globals, tree=tree)
         #XXX hax, fix grammar parser to distinguish tree from nontree grammars
-        if not isinstance(self.run.input.data, basestring):
+        if not isinstance(self.run.input.data, str):
             tree = True
             self.run.tree = True
         v, err = self._apply(self.run, rulename, ())
@@ -567,12 +572,14 @@ class GrammarInterpreter(object):
 
         elif name in ("Many", "Many1"):
             ans = [self._eval(run, args[0])[0]] if name == "Many1" else []
+            err = None
             while True:
                 try:
                     m = run.input
                     v, _ = self._eval(run, args[0])
                     ans.append(v)
-                except ParseError as err:
+                except ParseError as e:
+                    err = e
                     run.input = m
                     break
             return ans, err
@@ -591,6 +598,7 @@ class GrammarInterpreter(object):
             if min == max == 0:
                 return "", None
             ans = []
+            e = None
             for i in range(min):
                 v, e = self._eval(run, args[2])
                 ans.append(v)
@@ -600,7 +608,8 @@ class GrammarInterpreter(object):
                     m = run.input
                     v, e = self._eval(run, args[2])
                     ans.append(v)
-                except ParseError as e:
+                except ParseError as err:
+                    e = err
                     run.input = m
                     break
             return ans, e

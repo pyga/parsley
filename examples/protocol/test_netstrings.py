@@ -1,8 +1,10 @@
-from twisted.test.proto_helpers import StringTransport
-
 import parsley
 import pytest
 import netstrings
+
+proto_helpers = pytest.importorskip('twisted.test.proto_helpers')
+StringTransport = proto_helpers.StringTransport
+
 
 netstringGrammar = parsley.makeGrammar(netstrings.grammar, {})
 

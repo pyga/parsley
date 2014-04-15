@@ -11,3 +11,11 @@ script:
   - "coverage run -a $(which py.test) examples"
 after_success:
   - "coveralls"
+  
+notifications:
+  email: false
+  irc:
+    channels:
+    - chat.freenode.org#parsley
+    on_success: always
+    on_failure: always

@@ -324,7 +324,7 @@ class TrampolinedGrammarInterpreter(object):
             ans.append(v)
 
         if max is not None:
-            repeats = xrange(min, max)
+            repeats = range(min, max)
             for i in repeats:
                 try:
                     m = self.input

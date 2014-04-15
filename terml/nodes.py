@@ -28,6 +28,9 @@ class Term(_Term):
 
     def __eq__(self, other):
         try:
+            if self.tag.name == ".bag." and other.tag.name == ".bag.":
+                return (self.data, set(self.args)
+                  ) == (other.data, set(other.args))
             return (     self.tag, self.data, self.args
                    ) == (other.tag, other.data, other.args)
         except AttributeError:
@@ -86,6 +89,8 @@ class Term(_Term):
         datac = cmp(self.data, other.data)
         if datac:
             return datac
+        if self.tag.name == ".bag." and other.tag.name == ".bag.":
+            return cmp(set(self.args), set(other.args))
         return cmp(self.args, other.args)
 
     def __int__(self):

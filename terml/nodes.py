@@ -1,10 +1,20 @@
 from collections import namedtuple
+import sys
+
+try:
+    basestring
+    scalar_types = (str, unicode, int, long, float)
+    integer_types = (int, long)
+except NameError:
+    basestring = str
+    scalar_types = (str, int, float)
+    integer_types = (int,)
 
 _Term = namedtuple("Term", "tag data args span")
 class Term(_Term):
     def __new__(cls, tag, data, args, span):
         #XXX AstroTag tracks (name, tag_code) and source span
-        if data and not isinstance(data, (str, unicode, int, long, float)):
+        if data and not isinstance(data, scalar_types):
             raise ValueError("Term data can't be of type %r" % (type(data),))
         if data and args:
             raise ValueError("Term %s can't have both data and children" % (tag,))
@@ -18,6 +28,9 @@ class Term(_Term):
 
     def __eq__(self, other):
         try:
+            if self.tag.name == ".bag." and other.tag.name == ".bag.":
+                return (self.data, set(self.args)
+                  ) == (other.data, set(other.args))
             return (     self.tag, self.data, self.args
                    ) == (other.tag, other.data, other.args)
         except AttributeError:
@@ -76,6 +89,8 @@ class Term(_Term):
         datac = cmp(self.data, other.data)
         if datac:
             return datac
+        if self.tag.name == ".bag." and other.tag.name == ".bag.":
+            return cmp(set(self.args), set(other.args))
         return cmp(self.args, other.args)
 
     def __int__(self):
@@ -125,7 +140,7 @@ def coerceToTerm(val):
         return Term(Tag("true"), None, None, None)
     if val is False:
         return Term(Tag("false"), None, None, None)
-    if isinstance(val, (int, long)):
+    if isinstance(val, integer_types):
         return Term(Tag(".int."), val, None, None)
     if isinstance(val, float):
         return Term(Tag(".float64."), val, None, None)
@@ -140,7 +155,7 @@ def coerceToTerm(val):
     if isinstance(val, dict):
         return Term(Tag('.bag.'), None, tuple(Term(Tag('.attr.'), None,
                                                    (coerceToTerm(k), coerceToTerm(v)), None)
-                                         for (k, v) in val.iteritems()),
+                                         for (k, v) in val.items()),
                     None)
     raise ValueError("Could not coerce %r to Term" % (val,))
 

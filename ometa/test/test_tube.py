@@ -1,11 +1,14 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
-from twisted.trial import unittest
-from twisted.python.compat import iterbytes
-
+import unittest
 
 from ometa.grammar import OMeta
 from ometa.tube import TrampolinedParser
+
+
+def iterbytes(originalBytes):
+    for i in range(len(originalBytes)):
+        yield originalBytes[i:i+1]
 
 
 class TrampolinedReceiver():
@@ -22,7 +25,7 @@ class TrampolinedReceiver():
         self.received.append(data)
 
 
-class TrampolinedParserTestCase(unittest.SynchronousTestCase):
+class TrampolinedParserTestCase(unittest.TestCase):
     """
     Tests for L{ometa.tube.TrampolinedParser}
     """
@@ -45,7 +48,7 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         """
         receiver = TrampolinedReceiver()
         trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
-        buf = b'foobarandnotreachdelimiter'
+        buf = 'foobarandnotreachdelimiter'
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
         self.assertEqual(receiver.received, [])
@@ -57,12 +60,12 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         """
         receiver = TrampolinedReceiver()
         trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
-        buf = b'\r\n'.join((b'foo', b'bar', b'foo', b'bar'))
+        buf = '\r\n'.join(('foo', 'bar', 'foo', 'bar'))
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
-        self.assertEqual(receiver.received, [b'foo', b'bar', b'foo'])
+        self.assertEqual(receiver.received, ['foo', 'bar', 'foo'])
         trampolinedParser.receive('\r\n')
-        self.assertEqual(receiver.received, [b'foo', b'bar', b'foo', b'bar'])
+        self.assertEqual(receiver.received, ['foo', 'bar', 'foo', 'bar'])
 
 
     def test_bindings(self):
@@ -85,7 +88,7 @@ class TrampolinedParserTestCase(unittest.SynchronousTestCase):
         receiver = TrampolinedReceiver()
         receiver.currentRule = "witharg", "nice ", "day"
         trampolinedParser = TrampolinedParser(self.grammar, receiver, {})
-        buf = b' oh yes\r\n'
+        buf = ' oh yes\r\n'
         for c in iterbytes(buf):
             trampolinedParser.receive(c)
         self.assertEqual(receiver.received, ["nice day oh yes"])

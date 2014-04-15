@@ -1,4 +1,4 @@
-from twisted.trial.unittest import TestCase
+from unittest import TestCase
 from terml.nodes import termMaker as t
 from ometa.vm_builder import writeBytecode, writeBytecodeRule, writeBytecodeGrammar
 

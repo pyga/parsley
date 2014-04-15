@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from parsley_json import JSONParser
 import unittest
 
@@ -17,11 +19,11 @@ class JSONParserTests(unittest.TestCase):
         self.assertEqual(JSONParser("1.2E6").number(), 1.2E6)
 
     def test_string(self):
-        self.assertEqual(JSONParser('u2603').escapedUnicode(), u"\u2603")
-        self.assertEqual(JSONParser('"foo"').string(), u"foo")
-        self.assertEqual(JSONParser(r'"foo\n"').string(), u"foo\n")
-        self.assertEqual(JSONParser(r'"foo\rbaz\u2603"').string(), u"foo\rbaz\u2603")
-        self.assertEqual(JSONParser(r'"\\\/\b\"\f\t"').string(), u'\\/\b"\f\t')
+        self.assertEqual(JSONParser('u2603').escapedUnicode(), "\u2603")
+        self.assertEqual(JSONParser('"foo"').string(), "foo")
+        self.assertEqual(JSONParser(r'"foo\n"').string(), "foo\n")
+        self.assertEqual(JSONParser(r'"foo\rbaz\u2603"').string(), "foo\rbaz\u2603")
+        self.assertEqual(JSONParser(r'"\\\/\b\"\f\t"').string(), '\\/\b"\f\t')
 
     def test_literals(self):
         self.assertEqual(JSONParser(r'true').value(), True)

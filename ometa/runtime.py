@@ -7,6 +7,12 @@ from textwrap import dedent
 from terml.nodes import coerceToTerm, Term, termMaker as t
 from ometa.builder import moduleFromGrammar, writePython
 
+try:
+    basestring
+except NameError:
+    basestring = str
+    unicode = str
+
 TIMING = False
 
 class ParseError(Exception):
@@ -189,7 +195,7 @@ class InputStream(object):
         """
         if isinstance(iterable, (character, unicodeCharacter)):
             raise TypeError("Characters are not iterable")
-        if isinstance(iterable, str):
+        if isinstance(iterable, bytes):
             return WrappedValueInputStream(iterable, 0, wrapper=character)
         elif isinstance(iterable, unicode):
             return WrappedValueInputStream(iterable, 0,
@@ -391,7 +397,9 @@ class OMetaBase(object):
                 self.globals = {}
             else:
                 self.globals = globals
-
+        if basestring is str:
+            self.globals['basestring'] = str
+            self.globals['unichr'] = chr
         self.currentError = self.input.nullError()
 
     def considerError(self, error, typ=None):
@@ -466,8 +474,12 @@ class OMetaBase(object):
         @param args: A sequence of arguments to it.
         """
         if args:
-            if ((not getattr(rule, 'func_code', None))
-                 or rule.func_code.co_argcount - 1 != len(args)):
+            if basestring is str:
+                attrname = '__code__'
+            else:
+                attrname = 'func_code'
+            if ((not getattr(rule, attrname, None))
+                 or getattr(rule, attrname).co_argcount - 1 != len(args)):
                 for arg in args[::-1]:
                     self.input = ArgInput(arg, self.input)
                 return rule()
@@ -481,7 +493,7 @@ class OMetaBase(object):
             try:
                 memoRec = self.input.setMemo(ruleName,
                                          [rule(), self.input])
-            except ParseError, e:
+            except ParseError as e:
                 e.trail.append(ruleName)
                 raise
             if lr.detected:
@@ -541,7 +553,8 @@ class OMetaBase(object):
                 m = self.input
                 v, _ = fn()
                 ans.append(v)
-            except ParseError, e:
+            except ParseError as err:
+                e = err
                 self.input = m
                 break
         return ans, e
@@ -565,7 +578,8 @@ class OMetaBase(object):
                 m = self.input
                 v, e = fn()
                 ans.append(v)
-            except ParseError, e:
+            except ParseError as err:
+                e = err
                 self.input = m
                 break
         return ans, e
@@ -584,7 +598,7 @@ class OMetaBase(object):
                 ret, err = f()
                 errors.append(err)
                 return ret, joinErrors(errors)
-            except ParseError, e:
+            except ParseError as e:
                 errors.append(e)
                 self.input = m
         raise joinErrors(errors)
@@ -613,7 +627,8 @@ class OMetaBase(object):
         while True:
             try:
                 c, e = self.input.head()
-            except EOFError, e:
+            except EOFError as err:
+                e = err
                 break
             tl = self.input.tail()
             if c.isspace():
@@ -729,7 +744,7 @@ class OMetaBase(object):
             for c in tok:
                 v, e = self.exactly(c)
             return tok, e
-        except ParseError, e:
+        except ParseError as e:
             self.input = m
             raise e.withMessage(expected("token", tok))
 
@@ -743,7 +758,7 @@ class OMetaBase(object):
             if self.currentError == err:
                 self.currentError = err2
             return val, err2
-        except ParseError, e:
+        except ParseError as e:
             raise e.withMessage([("Custom Exception:", label, None)])
 
 
@@ -821,17 +836,17 @@ class OMetaGrammarBase(OMetaBase):
             start = time.time()
         tree = g.parseGrammar(name)
         if TIMING:
-            print "Grammar %r parsed in %g secs" % (name, time.time() - start)
+            print("Grammar %r parsed in %g secs" % (name, time.time() - start))
             def cnt(n):
                 count = sum(cnt(a) for a in n.args) + 1
                 return count
-            print "%d nodes." % (cnt(tree))
+            print("%d nodes." % (cnt(tree)))
             start = time.time()
         modname = "pymeta_grammar__" + name
         filename = "/pymeta_generated_code/" + modname + ".py"
         source = writePython(tree, grammar)
         if TIMING:
-            print "Grammar %r generated in %g secs" % (name, time.time() - start)
+            print("Grammar %r generated in %g secs" % (name, time.time() - start))
         return moduleFromGrammar(source, name, modname, filename)
 
 
@@ -927,7 +942,7 @@ class OMetaGrammarBase(OMetaBase):
         while True:
             try:
                 c, e = self.input.head()
-            except EOFError, e:
+            except EOFError as e:
                 break
             t = self.input.tail()
             if c.isspace() or consumingComment:
@@ -956,7 +971,8 @@ class OMetaGrammarBase(OMetaBase):
             try:
                 c, e = self.rule_anything()
                 endchar = c
-            except ParseError, e:
+            except ParseError as err:
+                e = err
                 endchar = None
                 break
             if c in endChars and len(stack) == 0:

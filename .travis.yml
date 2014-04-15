@@ -2,13 +2,14 @@ language: python
 python:
   - "2.6"
   - "2.7"
+  - "3.2"
+  - "3.3"
 
 install:
-  - "pip install pytest Twisted coveralls pytz . --use-mirrors"
+  - "bash .travis.install"
+  - "pip install pytest coveralls pytz ."
 script:
-  - "coverage run $(which trial) test_parsley"
-  - "coverage run -a $(which trial) ometa"
-  - "coverage run -a $(which py.test) examples"
+  - "coverage run $(which py.test) ."
 after_success:
   - "coveralls"
   

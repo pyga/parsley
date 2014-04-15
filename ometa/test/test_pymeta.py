@@ -1,12 +1,22 @@
+#from __future__ import unicode_literals
+
 import operator
 from textwrap import dedent
-from twisted.trial import unittest
+
+import pytest
+
 from ometa.grammar import OMeta, TermOMeta, TreeTransformerGrammar
 from ometa.compat import OMeta1
 from ometa.runtime import (ParseError, OMetaBase, OMetaGrammarBase, EOFError,
                            expected, TreeTransformerBase)
 from ometa.interp import GrammarInterpreter, TrampolinedGrammarInterpreter
 from terml.parser import parseTerm as term
+from ometa.test.helpers import TestCase
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 
 class HandyWrapper(object):
@@ -45,7 +55,7 @@ class HandyWrapper(object):
 
 
 
-class OMeta1TestCase(unittest.TestCase):
+class OMeta1TestCase(TestCase):
     """
     Tests of OMeta grammar compilation, with v1 syntax.
     """
@@ -98,7 +108,7 @@ class OMeta1TestCase(unittest.TestCase):
         Input matches can be made on literal integers.
         """
         g = self.compile("stuff ::= 17 0x1F -2 0177")
-        self.assertEqual(g.stuff([17, 0x1f, -2, 0177]), 0177)
+        self.assertEqual(g.stuff([17, 0x1f, -2, 0o177]), 0o177)
         self.assertRaises(ParseError, g.stuff, [1, 2, 3])
 
 
@@ -282,13 +292,13 @@ class OMeta1TestCase(unittest.TestCase):
         """
         g = self.compile("""
               digit ::= ('0' | '1' | '2'):d => int(d)
-              foo :x :ignored ::= (?(x > 1) '9' | ?(x <= 1) '8'):d => int(d)
+              foo :x :ignored ::= (?(int(x) > 1) '9' | ?(int(x) <= 1) '8'):d => int(d)
               baz ::= <digit>:a <foo a None>:b => [a, b]
             """)
         self.assertEqual(g.baz("18"), [1, 8])
         self.assertEqual(g.baz("08"), [0, 8])
         self.assertEqual(g.baz("29"), [2, 9])
-        self.assertRaises(ParseError, g.foo, "28")
+        self.assertRaises(ParseError, g.baz, "28")
 
 
     def test_patternMatch(self):
@@ -359,7 +369,7 @@ class OMeta1TestCase(unittest.TestCase):
                   | :x ?(isinstance(x, basestring) and x.isdigit()) => int(x))
         """)
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
-        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
 
 
     def test_string(self):
@@ -410,7 +420,7 @@ class OMeta1TestCase(unittest.TestCase):
 
 
 
-class OMetaTestCase(unittest.TestCase):
+class OMetaTestCase(TestCase):
     """
     Tests of OMeta grammar compilation.
     """
@@ -489,7 +499,7 @@ class OMetaTestCase(unittest.TestCase):
         Input matches can be made on literal integers.
         """
         g = self.compile("stuff = 17 0x1F -2 0177")
-        self.assertEqual(g.stuff([17, 0x1f, -2, 0177]), 0177)
+        self.assertEqual(g.stuff([17, 0x1f, -2, 0o177]), 0o177)
         self.assertRaises(ParseError, g.stuff, [1, 2, 3])
 
 
@@ -729,13 +739,13 @@ class OMetaTestCase(unittest.TestCase):
         """
         g = self.compile("""
               digit = ('0' | '1' | '2'):d -> int(d)
-              foo :x = (?(x > 1) '9' | ?(x <= 1) '8'):d -> int(d)
+              foo :x = (?(int(x) > 1) '9' | ?(int(x) <= 1) '8'):d -> int(d)
               baz = digit:a foo(a):b -> [a, b]
             """)
         self.assertEqual(g.baz("18"), [1, 8])
         self.assertEqual(g.baz("08"), [0, 8])
         self.assertEqual(g.baz("29"), [2, 9])
-        self.assertRaises(ParseError, g.foo, "28")
+        self.assertRaises(ParseError, g.baz, "28")
 
 
     def test_patternMatch(self):
@@ -806,7 +816,7 @@ class OMetaTestCase(unittest.TestCase):
                   | :x ?(isinstance(x, basestring) and x.isdigit()) -> int(x))
         """)
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
-        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
 
 
     def test_stringConsumedBy(self):
@@ -1015,7 +1025,7 @@ class TermActionGrammarTests(OMetaTestCase):
              "isdigit": lambda x: isinstance(x, basestring) and x.isdigit()})
 
         self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
-        self.assertEqual(g.interp([[u'3', u'+', [u'5', u'*', u'2']]]), 13)
+        self.assertEqual(g.interp([['3', '+', ['5', '*', '2']]]), 13)
 
 
     def test_string(self):
@@ -1058,7 +1068,7 @@ class TermActionGrammarTests(OMetaTestCase):
         """
         g = self.compile("""
               digit = ('0' | '1' | '2'):d -> int(d)
-              foo :x = (?(gt(x, 1)) '9' | ?(lte(x, 1)) '8'):d -> int(d)
+              foo :x = (?(gt(int(x), 1)) '9' | ?(lte(int(x), 1)) '8'):d -> int(d)
               baz = digit:a foo(a):b -> [a, b]
             """, {"lte": operator.le, "gt": operator.gt})
         self.assertEqual(g.baz("18"), [1, 8])
@@ -1068,7 +1078,7 @@ class TermActionGrammarTests(OMetaTestCase):
 
 
 
-class PyExtractorTest(unittest.TestCase):
+class PyExtractorTest(TestCase):
     """
     Tests for finding Python expressions in OMeta grammars.
     """
@@ -1103,7 +1113,7 @@ class PyExtractorTest(unittest.TestCase):
         self.assertRaises(ParseError, o.pythonExpr)
 
 
-class MakeGrammarTest(unittest.TestCase):
+class MakeGrammarTest(TestCase):
     """
     Test the definition of grammars via the 'makeGrammar' method.
     """
@@ -1261,7 +1271,7 @@ class TrampolinedInterpWrapper(object):
             """
             tree = not isinstance(s, basestring)
             if tree:
-                raise unittest.SkipTest("Not applicable for push parsing")
+                pytest.skip("Not applicable for push parsing")
             results = []
             def whenDone(val, err):
                 results.append(val)
@@ -1317,7 +1327,7 @@ class TrampolinedInterpreterTestCase(OMetaTestCase):
 
 
 
-class TreeTransformerTestCase(unittest.TestCase):
+class TreeTransformerTestCase(TestCase):
 
     def compile(self, grammar, namespace=None):
         """
@@ -1431,7 +1441,7 @@ class TreeTransformerTestCase(unittest.TestCase):
 
 
 
-class ErrorReportingTests(unittest.TestCase):
+class ErrorReportingTests(TestCase):
 
 
     def compile(self, grammar):
@@ -1477,10 +1487,11 @@ class ErrorReportingTests(unittest.TestCase):
 
         #matching "some" means second branch of 'start' is taken
         self.assertEqual(e.position, 23)
-        self.assertEqual(e.error, [('expected', "token", "bananas"),
-                                   ('expected', 'token', "bacon"),
-                                   ('expected', "token", "robots"),
-                                   ('expected', "token", "americans")])
+        self.assertEqual(set(e.error),
+                set([('expected', "token", "bananas"),
+                     ('expected', 'token', "bacon"),
+                     ('expected', "token", "robots"),
+                     ('expected', "token", "americans")]))
 
         e = self.assertRaises(ParseError, g.start,
                               "crazy horse likes mountains")
@@ -1488,11 +1499,12 @@ class ErrorReportingTests(unittest.TestCase):
         #no "some" means first branch of 'start' is taken...
         #but second is also viable
         self.assertEqual(e.position, 18)
-        self.assertEqual(e.error, [('expected', "token", "some"),
-                                   ('expected', "token", "bananas"),
-                                   ('expected', 'token', "bacon"),
-                                   ('expected', "token", "robots"),
-                                   ('expected', "token", "americans")])
+        self.assertEqual(set(e.error),
+                set([('expected', "token", "some"),
+                     ('expected', "token", "bananas"),
+                     ('expected', 'token', "bacon"),
+                     ('expected', "token", "robots"),
+                     ('expected', "token", "americans")]))
 
 
     def test_formattedReporting(self):

@@ -19,3 +19,4 @@ notifications:
     - chat.freenode.org#parsley
     on_success: always
     on_failure: always
+    use_notice: true

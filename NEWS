@@ -1,3 +1,8 @@
+1.3.0 (2015-09-08):
+ - Added python 3 support.
+ - Added an example of parsing ISO 8601.
+ - Support rule arguments in parser protocols.
+
 1.2.0 (2013-08-01):
  - Added 'makeProtocol' for parsing stream protocols using Parsley
    grammars and Twisted, with examples, docs, and a tutorial.

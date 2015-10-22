@@ -6,8 +6,7 @@ python:
   - "3.3"
 
 install:
-  - "bash .travis.install"
-  - "pip install pytest coveralls pytz ."
+  - "pip install -rrequirements.txt"
 script:
   - "coverage run $(which py.test) ."
 after_success:

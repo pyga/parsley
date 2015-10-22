@@ -7,7 +7,9 @@ Extending Grammars and Inheritance
 Another feature taken from OMeta is *grammar inheritance*. We can
 write a grammar with rules that override ones in a parent. If we load
 the grammar from our calculator tutorial as ``Calc``, we can extend it
-with some constants::
+with some constants:
+
+.. code:: python
 
     from parsley import makeGrammar
     import math

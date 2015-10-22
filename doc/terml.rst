@@ -10,7 +10,7 @@ trees.
 Creating Terms
 ==============
 
-::
+.. code:: python
 
     >>> from terml.nodes import termMaker as t
     >>> t.Term()
@@ -18,7 +18,7 @@ Creating Terms
 
 That's it! We've created an empty term, `Term`, with nothing inside.
 
-::
+.. code:: python
 
     >>> t.Num(1)
     term('Num(1)')

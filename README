@@ -109,17 +109,17 @@ rules and provide new ones. Grammar rules are exposed as methods.
 Example Usage
 -------------
 
-::
+.. code:: python
 
-    from parsley import makeGrammar
-    exampleGrammar = """
-    ones = '1' '1' -> 1
-    twos = '2' '2' -> 2
-    stuff = (ones | twos)+
-    """
-    Example = makeGrammar(exampleGrammar, {})
-    g = Example("11221111")
-    result = g.stuff()
-    print result
+    >>> from parsley import makeGrammar
+    >>> exampleGrammar = """
+    ... ones = '1' '1' -> 1
+    ... twos = '2' '2' -> 2
+    ... stuff = (ones | twos)+
+    ... """
 
-→  ``[1, 2, 1, 1]``
+    >>> Example = makeGrammar(exampleGrammar, {})
+    >>> g = Example("11221111")
+    >>> g.stuff()
+    [1, 2, 1, 1]
+

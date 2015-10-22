@@ -12,15 +12,19 @@ Most Python programmers are familiar with regular expressions, as
 provided by Python's `re` module. To use it, you provide a string that
 describes the pattern you want to match, and your input.
 
-For example::
+For example:
+
+.. code:: python
 
     >>> import re
     >>> x = re.compile("a(b|c)d+e")
     >>> x.match("abddde")
-    <_sre.SRE_Match object at 0x7f587af54af8>
+    <_sre.SRE_Match object...>
 
 
-You can do exactly the same sort of thing in Parsley::
+You can do exactly the same sort of thing in Parsley:
+
+.. code:: python
 
     >>> import parsley
     >>> x = parsley.makeGrammar("foo = 'a' ('b' | 'c') 'd'+ 'e'", {})
@@ -49,7 +53,9 @@ Calling `match` for a regular expression returns a match object if the
 match succeeds or None if it fails. Parsley parsers return the value
 of last expression in the rule. Behind the scenes, Parsley turns each
 rule in your grammar into Python methods. In pseudo-Python code, it
-looks something like this::
+looks something like this:
+
+.. code:: python
 
     def foo(self):
         match('a')
@@ -75,16 +81,15 @@ Since these rules just turn into Python code eventually, we can stick
 some Python code into them ourselves. This is particularly useful for
 changing the return value of a rule. The Parsley expression for this
 is `->`. We can also bind the results of expressions to variable names
-and use them in Python code. So things like this are possible::
+and use them in Python code. So things like this are possible:
 
-    x = parsley.makeGrammar("""
-    foo = 'a':one baz:two 'd'+ 'e' -> (one, two)
-    baz = 'b' | 'c'
-    """, {})
-    print x("abdde").foo()
+.. code:: python
 
-::
-
+    >>> x = parsley.makeGrammar("""
+    ... foo = 'a':one baz:two 'd'+ 'e' -> (one, two)
+    ... baz = 'b' | 'c'
+    ... """, {})
+    >>> x("abdde").foo()
     ('a', 'b')
 
 Literal match expressions like `'a'` return the character they
@@ -114,31 +119,27 @@ with '+', and a specific number of times with '{n, m}' or just
 '{n}'. Since all expressions in Parsley return a value, these
 repetition operators return a list containing each match they made.
 
-::
+.. code:: python
 
-    x = parsley.makeGrammar("""
-    digit = anything:x ?(x in '0123456789') -> x
-    number = digit+
-    """, {})
-    print x("314159").number()
-
-::
-
+    >>> x = parsley.makeGrammar("""
+    ... digit = anything:x ?(x in '0123456789') -> x
+    ... number = digit+
+    ... """, {})
+    >>> x("314159").number()
     ['3', '1', '4', '1', '5', '9']
 
 The `number` rule repeatedly matches `digit` and collects the matches
 into a list. This gets us part way to turning a string like `314159`
 into an integer. All we need now is to turn the list back into a
-string and call `int()`::
+string and call `int()`:
 
-    x = parsley.makeGrammar("""
-    digit = anything:x ?(x in '0123456789') -> x
-    number = digit+:ds -> int(''.join(ds))
-    """, {})
-    print x("8675309").number()
+.. code:: python
 
-::
-
+    >>> x = parsley.makeGrammar("""
+    ... digit = anything:x ?(x in '0123456789') -> x
+    ... number = digit+:ds -> int(''.join(ds))
+    ... """, {})
+    >>> x("8675309").number()
     8675309
 
 Collecting Chunks Of Input
@@ -148,16 +149,15 @@ If it seemed kind of strange to break our input string up into a list
 and then reassemble it into a string using `join`, you're not
 alone. Parsley has a shortcut for this since it's a common case: you
 can use `<>` around a rule to make it return the slice of input it
-consumes, ignoring the actual return value of the rule. For example::
+consumes, ignoring the actual return value of the rule. For example:
 
-    x = parsley.makeGrammar("""
-    digit = anything:x ?(x in '0123456789')
-    number = <digit+>:ds -> int(ds)
-    """, {})
-    print x("11235").number()
+.. code:: python
 
-::
-
+    >>> x = parsley.makeGrammar("""
+    ... digit = anything:x ?(x in '0123456789')
+    ... number = <digit+>:ds -> int(ds)
+    ... """, {})
+    >>> x("11235").number()
     11235
 
 Here, `<digit+>` returns the string `"11235"`, since that's the
@@ -172,20 +172,18 @@ Building A Calculator
 
 Now let's look at using these rules in a more complicated parser. We
 have support for parsing numbers; let's do addition, as well.
-::
 
-    x = parsley.makeGrammar("""
-    digit = anything:x ?(x in '0123456789')
-    number = <digit+>:ds -> int(ds)
-    expr = number:left ( '+' number:right -> left + right
-                       | -> left)
-    """, {})
-    print x("17+34").expr()
-    print x("18").expr()
+.. code:: python
 
-::
-
+    >>> x = parsley.makeGrammar("""
+    ... digit = anything:x ?(x in '0123456789')
+    ... number = <digit+>:ds -> int(ds)
+    ... expr = number:left ( '+' number:right -> left + right
+    ...                    | -> left)
+    ... """, {})
+    >>> x("17+34").expr()
     51
+    >>> x("18").expr()
     18
 
 Parentheses group expressions just like in Python. the '`|`' operator
@@ -231,22 +229,21 @@ things further and allow multiple operations in our expressions --
 things like "1 - 2 + 3".
 
 There's a couple different ways to do this. Possibly the easiest is to
-build a list of numbers and operations, then do the math.::
+build a list of numbers and operations, then do the math.:
 
-    x = parsley.makeGrammar("""
-    number = <digit+>:ds -> int(ds)
-    ws = ' '*
-    add = '+' ws number:n -> ('+', n)
-    sub = '-' ws number:n -> ('-', n)
-    addsub = ws (add | sub)
-    expr = number:left (addsub+:right -> right
-                       | -> left)
-    """, {})
-    print x("1 + 2 - 3").expr()
+.. code:: python
 
-::
-
-    [('+', 2), ('-, 3)]
+    >>> x = parsley.makeGrammar("""
+    ... number = <digit+>:ds -> int(ds)
+    ... ws = ' '*
+    ... add = '+' ws number:n -> ('+', n)
+    ... sub = '-' ws number:n -> ('-', n)
+    ... addsub = ws (add | sub)
+    ... expr = number:left (addsub+:right -> right
+    ...                    | -> left)
+    ... """, {})
+    >>> x("1 + 2 - 3").expr()
+    [('+', 2), ('-', 3)]
 
 Oops, this is only half the job done. We're collecting the operators
 and values, but now we need to do the actual calculation. The easiest
@@ -256,31 +253,30 @@ inside the grammar.
 So far we have been passing an empty dict as the second argument to
 ``makeGrammar``. This is a dict of variable bindings that can be used
 in Python expressions in the grammar. So we can pass Python objects,
-such as functions, this way::
+such as functions, this way:
 
-    def calculate(start, pairs):
-        result = start
-        for op, value in pairs:
-            if op == '+':
-                result += value
-            elif op == '-':
-                result -= value
-        return result
-    x = parsley.makeGrammar("""
-    number = <digit+>:ds -> int(ds)
-    ws = ' '*
-    add = '+' ws number:n -> ('+', n)
-    sub = '-' ws number:n -> ('-', n)
-    addsub = ws (add | sub)
-    expr = number:left (addsub+:right -> calculate(left, right)
-                       | -> left)
-    """, {"calculate": calculate})
-    print x("4 + 5 - 6").expr()
+.. code:: python
 
-::
-
+    >>> def calculate(start, pairs):
+    ...    result = start
+    ...    for op, value in pairs:
+    ...        if op == '+':
+    ...            result += value
+    ...        elif op == '-':
+    ...            result -= value
+    ...    return result
+    ...
+    >>> x = parsley.makeGrammar("""
+    ... number = <digit+>:ds -> int(ds)
+    ... ws = ' '*
+    ... add = '+' ws number:n -> ('+', n)
+    ... sub = '-' ws number:n -> ('-', n)
+    ... addsub = ws (add | sub)
+    ... expr = number:left (addsub+:right -> calculate(left, right)
+    ...                    | -> left)
+    ... """, {"calculate": calculate})
+    >>> x("4 + 5 - 6").expr()
     3
-
 
 Introducing this function lets us simplify even further: instead of
 using ``addsub+``, we can use ``addsub*``, since ``calculate(left, [])``
@@ -294,38 +290,38 @@ into precedence rules: should "4 * 5 + 6" give us 26, or 44? The
 traditional choice is for multiplication and division to take
 precedence over addition and subtraction, so the answer should
 be 26. We'll resolve this by making sure multiplication and division
-happen before addition and subtraction are considered::
+happen before addition and subtraction are considered:
 
-    def calculate(start, pairs):
-        result = start
-        for op, value in pairs:
-            if op == '+':
-                result += value
-            elif op == '-':
-                result -= value
-            elif op == '*':
-                result *= value
-            elif op == '/':
-                result /= value
-        return result
-    x = parsley.makeGrammar("""
-    number = <digit+>:ds -> int(ds)
-    ws = ' '*
-    add = '+' ws expr2:n -> ('+', n)
-    sub = '-' ws expr2:n -> ('-', n)
-    mul = '*' ws number:n -> ('*', n)
-    div = '/' ws number:n -> ('/', n)
+.. code:: python
 
-    addsub = ws (add | sub)
-    muldiv = ws (mul | div)
-
-    expr = expr2:left addsub*:right -> calculate(left, right)
-    expr2 = number:left muldiv*:right -> calculate(left, right)
-    """, {"calculate": calculate})
-    print x("4 * 5 + 6").expr()
-
-::
-
+    >>> def calculate(start, pairs):
+    ...    result = start
+    ...    for op, value in pairs:
+    ...        if op == '+':
+    ...            result += value
+    ...        elif op == '-':
+    ...            result -= value
+    ...        elif op == '*':
+    ...            result *= value
+    ...        elif op == '/':
+    ...            result /= value
+    ...    return result
+    ...
+    >>> x = parsley.makeGrammar("""
+    ... number = <digit+>:ds -> int(ds)
+    ... ws = ' '*
+    ... add = '+' ws expr2:n -> ('+', n)
+    ... sub = '-' ws expr2:n -> ('-', n)
+    ... mul = '*' ws number:n -> ('*', n)
+    ... div = '/' ws number:n -> ('/', n)
+    ...
+    ... addsub = ws (add | sub)
+    ... muldiv = ws (mul | div)
+    ...
+    ... expr = expr2:left addsub*:right -> calculate(left, right)
+    ... expr2 = number:left muldiv*:right -> calculate(left, right)
+    ... """, {"calculate": calculate})
+    >>> x("4 * 5 + 6").expr()
     26
 
 Notice particularly that ``add``, ``sub``, and ``expr`` all call the
@@ -340,41 +336,37 @@ write "4 * (5 + 6)" when you do want 44. We'll do this by adding a
 parentheses, and replace existing calls to ``number`` with calls to
 ``value``.
 
-::
+.. code:: python
 
-    def calculate(start, pairs):
-        result = start
-        for op, value in pairs:
-            if op == '+':
-                result += value
-            elif op == '-':
-                result -= value
-            elif op == '*':
-                result *= value
-            elif op == '/':
-                result /= value
-        return result
-    x = parsley.makeGrammar("""
-    number = <digit+>:ds -> int(ds)
-    parens = '(' ws expr:e ws ')' -> e
-    value = number | parens
-    ws = ' '*
-    add = '+' ws expr2:n -> ('+', n)
-    sub = '-' ws expr2:n -> ('-', n)
-    mul = '*' ws value:n -> ('*', n)
-    div = '/' ws value:n -> ('/', n)
-
-    addsub = ws (add | sub)
-    muldiv = ws (mul | div)
-
-    expr = expr2:left addsub*:right -> calculate(left, right)
-    expr2 = value:left muldiv*:right -> calculate(left, right)
-    """, {"calculate": calculate})
-
-    print x("4 * (5 + 6) + 1").expr()
-
-::
-
+    >>> def calculate(start, pairs):
+    ...    result = start
+    ...    for op, value in pairs:
+    ...        if op == '+':
+    ...            result += value
+    ...        elif op == '-':
+    ...            result -= value
+    ...        elif op == '*':
+    ...            result *= value
+    ...        elif op == '/':
+    ...            result /= value
+    ...    return result
+    >>> x = parsley.makeGrammar("""
+    ... number = <digit+>:ds -> int(ds)
+    ... parens = '(' ws expr:e ws ')' -> e
+    ... value = number | parens
+    ... ws = ' '*
+    ... add = '+' ws expr2:n -> ('+', n)
+    ... sub = '-' ws expr2:n -> ('-', n)
+    ... mul = '*' ws value:n -> ('*', n)
+    ... div = '/' ws value:n -> ('/', n)
+    ...
+    ... addsub = ws (add | sub)
+    ... muldiv = ws (mul | div)
+    ...
+    ... expr = expr2:left addsub*:right -> calculate(left, right)
+    ... expr2 = value:left muldiv*:right -> calculate(left, right)
+    ... """, {"calculate": calculate})
+    >>> x("4 * (5 + 6) + 1").expr()
     45
 
 And there you have it: a four-function calculator with precedence and

@@ -17,3 +17,4 @@ Contents:
    extending
    terml
    reference
+   community

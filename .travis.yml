@@ -3,10 +3,11 @@ python:
   - "2.6"
   - "2.7"
   - "3.3"
+  - "3.4"
+  - "3.5"
 
 install:
-  - "bash .travis.install"
-  - "pip install pytest coveralls pytz ."
+  - "pip install -rrequirements.txt"
 script:
   - "coverage run $(which py.test) ."
 after_success:

@@ -1,0 +1,6 @@
+.
+coverage < 4.0
+coveralls
+pytest
+pytz
+twisted ; python_version <= '3.0'

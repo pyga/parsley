@@ -25,8 +25,7 @@ inside an object expression.
               | -> []
 
 This handles the three cases for object contents: one, multiple, or
-zero pairs. A name/value pair is separated by a colon. We use the
-builtin rule ``spaces`` to consume any whitespace after the colon::
+zero pairs. A name/value pair is separated by a colon::
 
     pair = ws string:k ws ':' value:v -> (k, v)
 
@@ -98,8 +97,8 @@ floating-point.
 
 ::
 
-    number = spaces ('-' | -> ''):sign (intPart:ds (floatPart(sign ds)
-                                                   | -> int(sign + ds)))
+    number = ws ('-' | -> ''):sign (intPart:ds (floatPart(sign ds)
+                                               | -> int(sign + ds)))
 
 Here we vary from the json.org description a little and move sign
 handling up into the ``number`` rule. We match either an ``intPart``

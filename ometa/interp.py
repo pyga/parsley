@@ -13,6 +13,7 @@ def decomposeGrammar(grammar):
 
 # after 12, i'm worse than a gremlin
 _feed_me = object()
+_paused = object()
 
 
 class TrampolinedGrammarInterpreter(object):
@@ -20,7 +21,7 @@ class TrampolinedGrammarInterpreter(object):
     An interpreter for OMeta grammars that processes input
     incrementally.
     """
-    def __init__(self, grammar, rule, callback=None, globals=None):
+    def __init__(self, grammar, rule, callback=None, globals=None, paused=False):
         self.grammar = grammar
         self.position = 0
         self.callback = callback
@@ -32,25 +33,31 @@ class TrampolinedGrammarInterpreter(object):
         self.input = InputStream([], 0)
         self.ended = False
         self._spanStart = 0
+        self.paused = paused
 
 
     def receive(self, buf):
         """
         Feed data to the parser.
         """
-        if not buf:
+        if not buf and not self.hasPendingData():
             # No data. Nothing to do.
             return
         if self.ended:
             raise ValueError("Can't feed a parser that's been ended.")
         self.input.data.extend(buf)
+        if self.paused:
+            return _paused
         x = None
         for x in self.next:
-            if x is _feed_me:
+            if x in (_feed_me, _paused):
                 return x
         if self.callback:
             self.callback(*x)
         self.ended = True
+
+    def hasPendingData(self):
+        return len(self.input.data) > 0
 
 
     def end(self):
@@ -87,6 +94,9 @@ class TrampolinedGrammarInterpreter(object):
         @param ruleName: The name of the rule invoked.
         @param args: A sequence of arguments to it.
         """
+        # print("AM I PAUSED,", self.paused)
+        # while self.paused:
+        #     yield _paused
         if args:
             if ((not getattr(rule, 'func_code', None))
                  or rule.func_code.co_argcount - 1 != len(args)):
@@ -175,7 +185,7 @@ class TrampolinedGrammarInterpreter(object):
                 #ruleName may be a Twine, so gotta call str()
                 f = getattr(self, str('rule_' + ruleName))
             for x in self._apply(f, ruleName, argvals):
-                if x is _feed_me: yield x
+                if x in (_feed_me, _paused): yield x
             yield x
         finally:
             self._localsStack.pop()

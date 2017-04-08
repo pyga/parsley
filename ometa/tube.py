@@ -1,4 +1,4 @@
-from ometa.interp import TrampolinedGrammarInterpreter, _feed_me
+from ometa.interp import TrampolinedGrammarInterpreter, _feed_me, _paused
 
 class TrampolinedParser:
     """
@@ -20,14 +20,14 @@ class TrampolinedParser:
         self._setupInterp()
 
 
-    def _setupInterp(self):
+    def _setupInterp(self, paused=False):
         """
         Resets the parser. The parser will begin parsing with the rule named
         'initial'.
         """
         self._interp = TrampolinedGrammarInterpreter(
             grammar=self.grammar, rule=self.receiver.currentRule,
-            callback=None, globals=self.bindings)
+            callback=None, globals=self.bindings, paused=paused)
 
 
     def receive(self, data):
@@ -37,9 +37,22 @@ class TrampolinedParser:
 
         @param data: The raw data received.
         """
-        while data:
+        while data or self._interp.hasPendingData():
             status = self._interp.receive(data)
-            if status is _feed_me:
+            if status in (_feed_me, _paused):
                 return
             data = ''.join(self._interp.input.data[self._interp.input.position:])
-            self._setupInterp()
+            self._setupInterp(self._interp.paused)
+
+    def pauseProducing(self):
+        self._interp.paused = True
+        self.receiver.transport.pauseProducing()
+
+    def resumeProducing(self):
+        self._interp.paused = False
+        self.receiver.transport.resumeProducing()
+        self.receiver.dataReceived(b'')
+
+    def stopProducing(self):
+        self._interp.paused = True
+        self.receiver.transport.stopProducing()

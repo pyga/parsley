@@ -130,7 +130,9 @@ An example of wrapping a sender factory:
 .. literalinclude:: _static/listings/tutorial3-netstring-reversal.py
    :pyobject: NetstringReversalWrapper
 
-And then, constructing the Protocol::
+And then, constructing the Protocol:
+
+.. code:: python
 
   NetstringProtocol = makeProtocol(
       grammar,

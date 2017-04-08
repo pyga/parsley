@@ -359,6 +359,23 @@ class OMeta1TestCase(TestCase):
          self.assertEqual(g.num("32767"), 32767)
 
 
+    def test_mutual_leftrecursion(self):
+         g = self.compile("""
+               num ::= (<num>:n <digit>:d   => n * 10 + d
+                      | <digit>)
+               digit ::= :x ?(x.isdigit()) => int(x)
+               x ::= <expr>
+               expr ::= <x>:e '-' <num>:n => e - n
+                       | <num>
+              """)
+         self.assertEqual(g.expr("3"), 3)
+         self.assertEqual(g.expr("3-2"), 1)
+         self.assertEqual(g.expr("3-2-1"), 0)
+         self.assertEqual(g.x("3"), 3)
+         self.assertEqual(g.x("3-2"), 1)
+         self.assertEqual(g.x("3-2-1"), 0)
+
+
     def test_characterVsSequence(self):
         """
         Characters (in single-quotes) are not regarded as sequences.
@@ -806,6 +823,23 @@ class OMetaTestCase(TestCase):
          self.assertEqual(g.num("32767"), 32767)
 
 
+    def test_mutual_leftrecursion(self):
+         g = self.compile("""
+               num = (num:n digit:d   -> n * 10 + d
+                      | digit)
+               digit = :x ?(x.isdigit()) -> int(x)
+               x = expr
+               expr = x:e '-' num:n -> e - n
+                       | num
+              """)
+         self.assertEqual(g.expr("3"), 3)
+         self.assertEqual(g.expr("3-2"), 1)
+         self.assertEqual(g.expr("3-2-1"), 0)
+         self.assertEqual(g.x("3"), 3)
+         self.assertEqual(g.x("3-2"), 1)
+         self.assertEqual(g.x("3-2-1"), 0)
+
+
     def test_characterVsSequence(self):
         """
         Characters (in single-quotes) are not regarded as sequences.
@@ -1010,6 +1044,25 @@ class TermActionGrammarTests(OMetaTestCase):
                     "isdigit": lambda x: x.isdigit()})
          self.assertEqual(g.num("3"), 3)
          self.assertEqual(g.num("32767"), 32767)
+
+    def test_mutual_leftrecursion(self):
+        g = self.compile("""
+              num = (num:n digit:d   -> makeInt(n, d)
+                     | digit)
+              digit = :x ?(isdigit(x)) -> int(x)
+              x = expr
+              expr = x:e '-' num:n -> subtract(e, n)
+                      | num
+             """, {"makeInt": lambda x, y: x * 10 + y,
+                   "isdigit": lambda x: x.isdigit(),
+                   "subtract": lambda x, y: x-y})
+        self.assertEqual(g.expr("3"), 3)
+        self.assertEqual(g.expr("3-2"), 1)
+        self.assertEqual(g.expr("3-2-1"), 0)
+        self.assertEqual(g.x("3"), 3)
+        self.assertEqual(g.x("3-2"), 1)
+        self.assertEqual(g.x("3-2-1"), 0)
+
 
     def test_characterVsSequence(self):
         """

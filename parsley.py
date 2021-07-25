@@ -93,8 +93,8 @@ class _GrammarWrapper(object):
                     return ret
                 else:
                     # problem is that input remains, so:
-                    err = ParseError(err.input, err.position + 1,
-                                     [["message", "expected EOF"]], err.trail)
+                    err = ParseError(
+                        err.input, err.position, [["message", "can't parse remainder"]], err.trail)
             raise err
         return invokeRule
 

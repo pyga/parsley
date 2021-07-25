@@ -80,23 +80,22 @@ class ParseError(Exception):
         Return a pretty string containing error info about string
         parsing failure.
         """
-        #de-twineifying
+        # calculate line+row from linear index
         lines = str(self.input).split('\n')
-        counter = 0
-        lineNo = 1
-        columnNo = 0
+        remaining = self.position
+        lineNo, columnNo = 0,0 # zero-based indices
         for line in lines:
-            newCounter = counter + len(line)
-            if newCounter > self.position:
-                columnNo = self.position - counter
+            if remaining <= len(line): # can point at newline/EOF
+                columnNo = remaining
                 break
-            else:
-                counter += len(line) + 1
-                lineNo += 1
+            remaining -= len(line) + 1 # newline
+            lineNo += 1
+        assert lineNo < len(lines)
+
         reason = self.formatReason()
         return ('\n' + line + '\n' + (' ' * columnNo + '^') +
                 "\nParse error at line %s, column %s: %s. trail: [%s]\n"
-                % (lineNo, columnNo, reason, ' '.join(self.trail)))
+                % (lineNo+1, columnNo+1, reason, ' '.join(self.trail)))
 
 
     def __str__(self):
@@ -128,7 +127,7 @@ def eof():
     """
     Return an indication that the end of the input was reached.
     """
-    return [("message", "end of input")]
+    return [("message", "unexpected EOF")]
 
 
 def joinErrors(errors):
@@ -234,7 +233,7 @@ class InputStream(object):
                 data = self.data.__class__('').join(self.data)
             else:
                 data = self.data
-            raise EOFError(data, self.position + 1)
+            raise EOFError(data, self.position)
         return self.data[self.position], self.error
 
     def nullError(self, msg=None):

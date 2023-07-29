@@ -58,6 +58,17 @@ class RuntimeTests(TestCase):
         self.assertEquals(exc.args[0], 0)
 
 
+    def test_apply(self):
+        """
+        L{OMetaBase.rule_apply} applies the given rule with arguments.
+        """
+        data = "foo"
+        o = OMetaBase(data)
+        v, e = o.rule_apply("exactly", "f")
+        self.assertEqual(v, "f")
+        self.assertEqual(e.args[0], 0)
+        self.assertRaises(NameError, o.rule_apply, "foo")
+
 
     def test_token(self):
         """

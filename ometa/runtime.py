@@ -800,6 +800,7 @@ class OMetaBase(object):
     rule_end = end
     rule_ws = eatWhitespace
     rule_exactly = exactly
+    rule_apply = apply
 
     #Deprecated.
     rule_spaces = eatWhitespace

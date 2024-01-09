@@ -325,7 +325,7 @@ class PythonWriterTests(unittest.TestCase):
         x = t.Rule("foo", t.List(
                 t.Exactly("x")))
         g = t.Grammar("TestGrammar", True, [x])
-        self.assert_("\n        tree = True\n" in writePython(g, ""))
+        self.assertIn("\n        tree = True\n", writePython(g, ""))
 
 
     def test_rule(self):

@@ -54,8 +54,8 @@ class RuntimeTests(TestCase):
         data = "foo"
         o = OMetaBase(data)
         exc = self.assertRaises(ParseError, o.rule_exactly, "g")
-        self.assertEquals(exc.args[1], expected(None, "g"))
-        self.assertEquals(exc.args[0], 0)
+        self.assertEqual(exc.args[1], expected(None, "g"))
+        self.assertEqual(exc.args[0], 0)
 
 
 

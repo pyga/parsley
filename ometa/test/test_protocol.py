@@ -90,7 +90,7 @@ class ParserProtocolTestCase(unittest.TestCase):
     def test_connectionEstablishes(self):
         """prepareParsing is called on the receiver after connection establishment."""
         self.protocol.makeConnection(None)
-        self.assert_(self.protocol.receiver.connected)
+        self.assertTrue(self.protocol.receiver.connected)
 
     def test_basicParsing(self):
         """Rules can be parsed multiple times for the same effect."""
@@ -161,10 +161,10 @@ class ParserProtocolTestCase(unittest.TestCase):
         transport = FakeTransport()
         self.protocol.makeConnection(transport)
         self.protocol.dataReceived('b')
-        self.failIfEqual(self.protocol.receiver.lossReason, None)
+        self.assertIsNotNone(self.protocol.receiver.lossReason)
         self.assertTrue(
             isinstance(self.protocol.receiver.lossReason.value, ParseError))
-        self.assert_(transport.aborted)
+        self.assertTrue(transport.aborted)
 
     def test_exceptionsRaisedFromReceiver(self):
         """
@@ -174,10 +174,10 @@ class ParserProtocolTestCase(unittest.TestCase):
         transport = FakeTransport()
         self.protocol.makeConnection(transport)
         self.protocol.dataReceived('e')
-        self.failIfEqual(self.protocol.receiver.lossReason, None)
+        self.assertIsNotNone(self.protocol.receiver.lossReason)
         self.assertTrue(
             isinstance(self.protocol.receiver.lossReason.value, SomeException))
-        self.assert_(transport.aborted)
+        self.assertTrue(transport.aborted)
 
     def test_dataIgnoredAfterDisconnection(self):
         """After connectionLost is called, all incoming data is ignored."""
@@ -187,4 +187,4 @@ class ParserProtocolTestCase(unittest.TestCase):
         self.protocol.connectionLost(reason)
         self.protocol.dataReceived('d')
         self.assertEqual(self.protocol.receiver.lossReason, reason)
-        self.assert_(not transport.aborted)
+        self.assertFalse(transport.aborted)
